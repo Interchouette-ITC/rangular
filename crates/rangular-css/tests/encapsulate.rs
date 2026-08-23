@@ -1,4 +1,4 @@
-use rangular_css::{encapsulate, encapsulate_css, ScopeAttrs};
+use rangular_css::{compile_scss, encapsulate, encapsulate_css, ScopeAttrs};
 use std::path::{Path, PathBuf};
 
 fn fixture_root() -> PathBuf {
@@ -7,6 +7,30 @@ fn fixture_root() -> PathBuf {
 
 fn scope() -> ScopeAttrs {
     ScopeAttrs::new("r0")
+}
+
+#[test]
+fn compile_scss_drops_bare_host() {
+    let out = compile_scss(
+        r"
+:host { display: contents; }
+.seed-bar { display: flex; .btn { margin: 0; } }
+",
+    );
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(!out.css.contains(":host"));
+    assert!(!out.css.contains("_ngcontent"));
+    assert!(!out.css.contains("_nghost"));
+    assert!(out.css.contains(".seed-bar {"));
+    assert!(out.css.contains(".seed-bar .btn {"));
+}
+
+#[test]
+fn compile_scss_host_class_becomes_class() {
+    let out = compile_scss(":host.open .panel { color: red; }");
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.css.contains(".open .panel"));
+    assert!(!out.css.contains(":host"));
 }
 
 #[test]
