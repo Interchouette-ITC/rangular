@@ -9,27 +9,27 @@ shares the same AST for parity tests and tooling.
 
 ## Status
 
-| Area | Today |
-| --- | --- |
-| Language | v0.1 contract in [`docs/SPEC.md`](docs/SPEC.md) |
-| Parser / expr / host | Core subset |
-| AOT | `rangular-aot` + `rangular-macros` |
-| Runtime | `rangular-runtime` (parity / tooling) |
-| SCSS | `rangular-css` (`:host`, encapsulation; Bootstrap utilities stay global) |
-| Registry | Panel tags + typed `provide` / `inject` |
-| Growth | Fixture corpus in [`tests/fixtures/`](tests/fixtures/) |
+| Area                 | Today                                                                    |
+| -------------------- | ------------------------------------------------------------------------ |
+| Language             | v0.1 contract in [`docs/SPEC.md`](docs/SPEC.md)                          |
+| Parser / expr / host | Core subset                                                              |
+| AOT                  | `rangular-aot` + `rangular-macros`                                       |
+| Runtime              | `rangular-runtime` (parity / tooling)                                    |
+| SCSS                 | `rangular-css` (flat `compile_scss`, or encapsulate; Bootstrap utilities stay global) |
+| Registry             | Panel tags + typed `provide` / `inject`                                  |
+| Growth               | Fixture corpus in [`tests/fixtures/`](tests/fixtures/)                   |
 
 Honest subset, not full Angular. New syntax lands through fixtures and semver.
 Unsupported input yields `RANG*` diagnostics; templates must never panic the process.
 
 ## Goals
 
-| Goal | Approach |
-| --- | --- |
-| Markup out of Rust | External templates; no panel `view!` in controllers |
+| Goal               | Approach                                               |
+| ------------------ | ------------------------------------------------------ |
+| Markup out of Rust | External templates; no panel `view!` in controllers    |
 | Familiar authoring | Angular-shaped bindings, `@if` / `@for`, component CSS |
-| Web-native | [Leptos](https://leptos.dev/) CSR on wasm |
-| Safe parsing | Diagnostics on bad input; no panic on template text |
+| Web-native         | [Leptos](https://leptos.dev/) CSR on wasm              |
+| Safe parsing       | Diagnostics on bad input; no panic on template text    |
 
 Other Rust + Angular-template projects often target native or hybrid desktop
 GUIs. rangular targets the **browser DOM**, with a versioned subset and tests.
@@ -56,16 +56,16 @@ How to add fixtures: [`tests/fixtures/README.md`](tests/fixtures/README.md) and
 
 ## Workspace
 
-| Crate | Role |
-| --- | --- |
-| `rangular-parser` | HTML + Angular syntax → AST |
-| `rangular-expr` | Expression AST and evaluation |
-| `rangular-css` | Component SCSS, `:host`, encapsulation |
-| `rangular-host` | get / set / call / events |
-| `rangular-aot` | Compile-time lowering to Leptos |
-| `rangular-macros` | `rangular_template!` (includes build output) |
-| `rangular-runtime` | Interpret AST at runtime |
-| `rangular` | Facade + panel registry |
+| Crate              | Role                                         |
+| ------------------ | -------------------------------------------- |
+| `rangular-parser`  | HTML + Angular syntax → AST                  |
+| `rangular-expr`    | Expression AST and evaluation                |
+| `rangular-css`     | Component SCSS, `:host`, encapsulation       |
+| `rangular-host`    | get / set / call / events                    |
+| `rangular-aot`     | Compile-time lowering to Leptos              |
+| `rangular-macros`  | `rangular_template!` (includes build output) |
+| `rangular-runtime` | Interpret AST at runtime                     |
+| `rangular`         | Facade + panel registry                      |
 
 ## Docs
 

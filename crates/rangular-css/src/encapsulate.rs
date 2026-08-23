@@ -18,6 +18,29 @@ impl ScopeAttrs {
     }
 }
 
+/// Compile component **SCSS** to flat CSS without emulated `_ngcontent` /
+/// `_nghost` attributes. Use this when the DOM does not carry those attrs
+/// (typical Leptos CSR). Bare `:host` rules are dropped.
+#[must_use]
+pub fn compile_scss(scss: &str) -> CssResult {
+    match grass::from_string(scss.to_owned(), &grass::Options::default()) {
+        Ok(css) => match flatten_css(&css) {
+            Ok(out) => CssResult {
+                css: out,
+                issues: Vec::new(),
+            },
+            Err(issue) => CssResult {
+                css: String::new(),
+                issues: vec![issue],
+            },
+        },
+        Err(err) => CssResult {
+            css: String::new(),
+            issues: vec![CssIssue::error("RANG301", format!("scss: {err}"))],
+        },
+    }
+}
+
 /// Encapsulate component **SCSS**: compile with grass, rewrite `:host`, scope
 /// local selectors. Output is flat CSS for the browser.
 ///
@@ -49,6 +72,137 @@ pub fn encapsulate_css(css: &str, scope: &ScopeAttrs) -> CssResult {
             issues: vec![issue],
         },
     }
+}
+
+fn flatten_css(css: &str) -> Result<String, CssIssue> {
+    let css = strip_comments(css);
+    flatten_block(&css)
+}
+
+fn flatten_block(css: &str) -> Result<String, CssIssue> {
+    let mut out = String::new();
+    let mut rest = css;
+    while !rest.trim().is_empty() {
+        let (rule, next) = take_rule(rest)?;
+        rest = next;
+        if rule.trim().is_empty() {
+            continue;
+        }
+        let rewritten = flatten_rule(&rule)?;
+        if rewritten.trim().is_empty() {
+            continue;
+        }
+        out.push_str(&rewritten);
+        if !out.ends_with('\n') {
+            out.push('\n');
+        }
+    }
+    Ok(out)
+}
+
+fn flatten_rule(rule: &str) -> Result<String, CssIssue> {
+    let rule = rule.trim();
+    let open = rule
+        .find('{')
+        .ok_or_else(|| CssIssue::error("RANG301", "missing rule body"))?;
+    let close = rule
+        .rfind('}')
+        .ok_or_else(|| CssIssue::error("RANG301", "missing rule end"))?;
+    let prelude = rule[..open].trim();
+    let body = &rule[open + 1..close];
+
+    if prelude.starts_with('@') {
+        return flatten_at_rule(prelude, body);
+    }
+
+    let mut selectors = Vec::new();
+    for part in prelude.split(',') {
+        if let Some(sel) = flatten_selector(part.trim())? {
+            selectors.push(sel);
+        }
+    }
+    if selectors.is_empty() {
+        return Ok(String::new());
+    }
+    Ok(format!("{} {{{}}}", selectors.join(", "), body.trim()))
+}
+
+fn flatten_at_rule(prelude: &str, body: &str) -> Result<String, CssIssue> {
+    let name = prelude
+        .split_whitespace()
+        .next()
+        .unwrap_or("@")
+        .to_ascii_lowercase();
+    if name == "@media" || name == "@supports" || name == "@container" {
+        let inner = flatten_block(body)?;
+        if inner.trim().is_empty() {
+            return Ok(String::new());
+        }
+        return Ok(format!("{prelude} {{\n{inner}}}"));
+    }
+    Ok(format!("{prelude} {{{body}}}"))
+}
+
+fn flatten_selector(selector: &str) -> Result<Option<String>, CssIssue> {
+    let sel = selector.trim();
+    if sel.is_empty() {
+        return Err(CssIssue::error("RANG301", "empty selector"));
+    }
+    if sel.starts_with(":host") {
+        return flatten_host(sel);
+    }
+    Ok(Some(sel.to_owned()))
+}
+
+fn flatten_host(sel: &str) -> Result<Option<String>, CssIssue> {
+    let rest = &sel[":host".len()..];
+    if rest.is_empty() {
+        return Ok(None);
+    }
+
+    if rest.starts_with('(') {
+        let end = rest
+            .find(')')
+            .ok_or_else(|| CssIssue::error("RANG301", "malformed :host() selector"))?;
+        let inner = rest[1..end].trim();
+        let after = rest[end + 1..].trim_start();
+        let mut out = inner_suffix(inner);
+        if out.is_empty() && after.is_empty() {
+            return Ok(None);
+        }
+        if !after.is_empty() {
+            if let Some(desc) = flatten_selector(after)? {
+                if out.is_empty() {
+                    out = desc;
+                } else {
+                    out.push(' ');
+                    out.push_str(&desc);
+                }
+            } else if out.is_empty() {
+                return Ok(None);
+            }
+        }
+        return Ok(Some(out));
+    }
+
+    let (host_part, descendant) = split_descendant(rest);
+    let mut out = host_part.to_owned();
+    if let Some(desc) = descendant {
+        if let Some(d) = flatten_selector(desc)? {
+            if out.is_empty() {
+                out = d;
+            } else {
+                out.push(' ');
+                out.push_str(&d);
+            }
+        } else if out.is_empty() {
+            return Ok(None);
+        }
+    }
+    if out.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(out))
 }
 
 fn process_block(css: &str, scope: &ScopeAttrs) -> Result<String, CssIssue> {
