@@ -1,0 +1,27 @@
+<section class="seed-bar" aria-label="Seed controls">
+  <label for="seed">Seed</label>
+  <input
+    id="seed"
+    type="text"
+    [value]="seed"
+    (input)="seedChange($event)"
+    spellcheck="false"
+    autocomplete="off"
+  />
+  <button
+    class="btn btn-primary"
+    type="button"
+    [disabled]="generateDisabled"
+    (click)="onGenerate()"
+  >
+    Generate
+  </button>
+  <button
+    class="btn btn-secondary"
+    type="button"
+    [disabled]="randomDisabled"
+    (click)="onRandom()"
+  >
+    Random
+  </button>
+</section>

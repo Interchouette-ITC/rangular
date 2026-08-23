@@ -1,0 +1,18 @@
+[package]
+name = "rangular-runtime"
+description = "Runtime interpreter for rangular templates"
+readme = "../../README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+
+[dependencies]
+rangular-expr = { workspace = true }
+rangular-host = { workspace = true }
+rangular-parser = { workspace = true }
+
+[dev-dependencies]
+rangular-aot = { workspace = true }

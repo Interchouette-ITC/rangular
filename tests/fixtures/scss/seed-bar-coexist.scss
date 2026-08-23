@@ -1,0 +1,23 @@
+// Component sheet that mixes local rules with Bootstrap utilities.
+:host {
+  display: block;
+}
+
+.seed-bar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+// Host app Bootstrap owns these - must stay unscoped.
+.btn {
+  letter-spacing: normal;
+
+  &.btn-primary {
+    letter-spacing: normal;
+  }
+}
+
+.btn-secondary {
+  letter-spacing: normal;
+}

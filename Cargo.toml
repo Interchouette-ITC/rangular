@@ -1,0 +1,29 @@
+[workspace]
+members = [
+    "crates/rangular",
+    "crates/rangular-aot",
+    "crates/rangular-css",
+    "crates/rangular-expr",
+    "crates/rangular-host",
+    "crates/rangular-macros",
+    "crates/rangular-parser",
+    "crates/rangular-runtime",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "MIT"
+version = "0.1.0"
+authors = ["Interchouette"]
+repository = "https://github.com/Interchouette-ITC/rangular"
+rust-version = "1.75"
+
+[workspace.dependencies]
+rangular-aot = { path = "crates/rangular-aot", version = "0.1.0" }
+rangular-css = { path = "crates/rangular-css", version = "0.1.0" }
+rangular-expr = { path = "crates/rangular-expr", version = "0.1.0" }
+rangular-host = { path = "crates/rangular-host", version = "0.1.0" }
+rangular-macros = { path = "crates/rangular-macros", version = "0.1.0" }
+rangular-parser = { path = "crates/rangular-parser", version = "0.1.0" }
+rangular-runtime = { path = "crates/rangular-runtime", version = "0.1.0" }

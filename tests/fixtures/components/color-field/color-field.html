@@ -1,0 +1,58 @@
+<div class="color-field">
+  <span class="color-field__label">{{ label }}</span>
+  <div class="color-field__anchor">
+    <div class="color-field__row">
+      <input
+        [id]="inputId"
+        type="color"
+        class="color-field__color"
+        [value]="value"
+        (input)="onColorInput($event)"
+      />
+      <input
+        [id]="inputId + '-hex'"
+        type="text"
+        class="color-field__hex"
+        spellcheck="false"
+        maxlength="7"
+        [value]="hexDraft"
+        (input)="onHexInput($event)"
+      />
+      <button
+        type="button"
+        class="color-field__toggle"
+        [class.color-field__toggle--open]="paletteOpen"
+        [attr.aria-expanded]="paletteOpen"
+        (click)="togglePalette()"
+      >
+        Palette
+      </button>
+      <button
+        type="button"
+        class="color-field__reset"
+        [disabled]="!hasOverride"
+        (click)="onReset()"
+      >
+        Reset
+      </button>
+    </div>
+    <div
+      class="color-field__palette"
+      [class.color-field__palette--open]="paletteOpen"
+      role="listbox"
+      [attr.aria-hidden]="!paletteOpen"
+    >
+      @for (swatch of swatches; track swatch) {
+      <button
+        type="button"
+        class="color-field__swatch"
+        role="option"
+        [class.color-field__swatch--selected]="isSwatchSelected(swatch)"
+        [attr.aria-selected]="isSwatchSelected(swatch)"
+        [attr.data-swatch]="swatch"
+        (click)="onSwatch(swatch)"
+      ></button>
+      }
+    </div>
+  </div>
+</div>

@@ -1,0 +1,13 @@
+[package]
+name = "rangular-parser"
+description = "Angular-subset HTML template parser for rangular"
+readme = "../../README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+
+[dependencies]
+rangular-expr = { workspace = true }

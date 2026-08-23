@@ -1,0 +1,15 @@
+[package]
+name = "rangular-expr"
+description = "Expression AST and evaluation for rangular templates"
+readme = "../../README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+
+[dependencies]
+rangular-host = { workspace = true }
+
+[dev-dependencies]

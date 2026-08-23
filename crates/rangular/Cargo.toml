@@ -1,0 +1,18 @@
+[package]
+name = "rangular"
+description = "Angular-subset templates for Leptos on the web"
+readme = "../../README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+rangular-aot = { workspace = true }
+rangular-css = { workspace = true }
+rangular-expr = { workspace = true }
+rangular-host = { workspace = true }
+rangular-macros = { workspace = true }
+rangular-parser = { workspace = true }
+rangular-runtime = { workspace = true }

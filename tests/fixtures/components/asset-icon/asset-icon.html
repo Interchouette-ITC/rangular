@@ -1,0 +1,13 @@
+@if (src || letterFallback) {
+<span
+  class="asset-icon"
+  [class.asset-icon--sm]="size === 'sm'"
+  aria-hidden="true"
+>
+  @if (src) {
+  <img class="asset-icon__img" [src]="src" alt="" (error)="onError()" />
+  } @else {
+  <span class="asset-icon__letter">{{ letter }}</span>
+  }
+</span>
+}
