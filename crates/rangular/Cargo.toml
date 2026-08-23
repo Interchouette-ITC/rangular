@@ -1,6 +1,6 @@
 [package]
 name = "rangular"
-description = "Angular-subset templates for Leptos on the web"
+description = "Angular-shaped HTML/SCSS templates for Leptos (web CSR)"
 readme = "../../README.md"
 version.workspace = true
 edition.workspace = true

@@ -1,10 +1,11 @@
 # rangular
 
-Angular-subset HTML and component CSS for **Leptos on the web**.
+Write Angular-shaped templates as external `.html` and `.scss`, keep state and
+handlers in Rust, and render with [Leptos](https://leptos.dev/) in the browser
+(CSR / Trunk / wasm).
 
-Write templates as external `.html` and `.scss`. Keep Rust for state and
-handlers. rangular lowers templates to Leptos: **AOT** for production,
-**runtime** for parity tests and tooling.
+Production builds use **AOT** lowering to Leptos. A **runtime** interpreter
+shares the same AST for parity tests and tooling.
 
 ## Status
 
@@ -27,7 +28,7 @@ Unsupported input yields `RANG*` diagnostics; templates must never panic the pro
 | --- | --- |
 | Markup out of Rust | External templates; no panel `view!` in controllers |
 | Familiar authoring | Angular-shaped bindings, `@if` / `@for`, component CSS |
-| Web-native | Leptos CSR / Trunk / wasm |
+| Web-native | [Leptos](https://leptos.dev/) CSR on wasm |
 | Safe parsing | Diagnostics on bad input; no panic on template text |
 
 Other Rust + Angular-template projects often target native or hybrid desktop
