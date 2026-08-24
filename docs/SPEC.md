@@ -152,12 +152,12 @@ test/tooling only (`encapsulate_css`).
 
 ## Host API (shared by AOT and runtime)
 
-| Operation          | Purpose                                              |
-| ------------------ | ---------------------------------------------------- |
-| `get(path)`        | Read a binding value (`label`, `paletteOpen`, …)     |
-| `set(path, value)` | Two-way / input side effects when needed             |
-| `call(name, args)` | Invoke controller handlers                           |
-| Event bridge       | Map `(click)` etc. to host callables                 |
+| Operation          | Purpose                                          |
+| ------------------ | ------------------------------------------------ |
+| `get(path)`        | Read a binding value (`label`, `paletteOpen`, …) |
+| `set(path, value)` | Two-way / input side effects when needed         |
+| `call(name, args)` | Invoke controller handlers                       |
+| Event bridge       | Map `(click)` etc. to host callables             |
 
 ## Inject / registry
 
@@ -166,11 +166,11 @@ custom tags resolve through the same registry. Apps call `register_tag` for thei
 own panels. `Registry::with_example_panels()` registers tags that match the
 fixture corpus:
 
-| Tag                  | Component     |
-| -------------------- | ------------- |
-| `app-color-field`    | ColorField    |
-| `app-chrome-header`  | ChromeHeader  |
-| `app-asset-icon`     | AssetIcon     |
+| Tag                 | Component    |
+| ------------------- | ------------ |
+| `app-color-field`   | ColorField   |
+| `app-chrome-header` | ChromeHeader |
+| `app-asset-icon`    | AssetIcon    |
 
 At the Leptos app edge, apps map this to `provide_context` / `use_context` as
 needed.

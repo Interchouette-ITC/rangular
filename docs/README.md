@@ -28,12 +28,11 @@ separate **[rangular](https://github.com/Interchouette-ITC/rangular)** backend.
 
 External references (not dependencies):
 
-- [Angust](https://github.com/TudorOrban/Angust) - Angular-style Rust GUI
-  (native / desktop-oriented). Prefer this when you want widgets outside a
-  webview.
+- [Angust](https://github.com/TudorOrban/Angust) - proposed Angular-style Rust
+  GUI on native / desktop widgets (outside a webview)
 - [Angular Rust](https://github.com/angular-rust) - Angular-inspired Rust UX
   ecosystem
 
 **[rangular](https://github.com/Interchouette-ITC/rangular)** stays Leptos CSR /
-wasm first. See the root README for the Tauri sketch and how that differs from
-Angust.
+wasm. For a desktop window, put that same UI in a [Tauri](https://v2.tauri.app/)
+(or similar) webview; see the root README.

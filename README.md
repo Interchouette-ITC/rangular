@@ -141,23 +141,24 @@ Language details: [`docs/SPEC.md`](docs/SPEC.md). Layout of fixtures:
 
 **v0.1 targets the browser DOM.** That is the contract in
 [`docs/SPEC.md`](docs/SPEC.md): Leptos CSR / wasm. Native desktop widget toolkits
-are **out of scope**.
+(egui, iced, GTK, and similar) are **out of scope**.
 
 ### Want Angular-like on the desktop?
 
-Look at [Angust](https://github.com/TudorOrban/Angust) (native / desktop-oriented
-components and HTML templates) and the [Angular Rust](https://github.com/angular-rust)
-ecosystem. Different stack, useful reading; not what
-**[rangular](https://github.com/Interchouette-ITC/rangular)** implements.
+[Angust](https://github.com/TudorOrban/Angust) was proposing that path: native /
+desktop-oriented components and HTML templates. Look there, and at the
+[Angular Rust](https://github.com/angular-rust) ecosystem, if you want widgets
+outside a webview.
 
-### Shipping a desktop app anyway?
+### Shipping a desktop app with rangular
 
 [Tauri](https://v2.tauri.app/) (and similar shells) host a **webview**. Your UI
-is still a web app. A Leptos + Trunk build that uses
+is still a web app: a Leptos + Trunk build that uses
 **[rangular](https://github.com/Interchouette-ITC/rangular)** panels can run
-inside that webview the same way it runs in Chrome. That is an **indirect**
-desktop path: **[rangular](https://github.com/Interchouette-ITC/rangular)** still
-speaks DOM / wasm, not egui / iced / GTK.
+inside that webview the same way it runs in Chrome.
+
+**[rangular](https://github.com/Interchouette-ITC/rangular)** still speaks DOM /
+wasm, not egui / iced / GTK.
 
 ```mermaid
 flowchart TB
@@ -168,11 +169,9 @@ flowchart TB
   end
 ```
 
-No Tauri-specific crate in this repo today. If your frontend already works under
-Trunk, you are most of the way there.
+A Tauri demo that reuses the fixture panels is planned for this repository.
 
 ## Working on this repo
-
 
 ```bash
 make check   # cargo check --workspace
