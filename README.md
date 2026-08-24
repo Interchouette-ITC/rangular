@@ -63,7 +63,7 @@ flowchart LR
 | AOT                  | `rangular-aot` + `rangular-macros`                                              |
 | Runtime              | `rangular-runtime` (parity / tooling)                                           |
 | SCSS                 | `rangular-css` (`compile_scss` or encapsulate; Bootstrap utilities stay global) |
-| Registry             | Component tags + typed `provide` / `inject`                                 |
+| Registry             | Component tags + typed `provide` / `inject`                                     |
 | Growth               | Fixture corpus in [`tests/fixtures/`](tests/fixtures/)                          |
 
 Honest subset, not full Angular. New syntax lands through fixtures and semver.
@@ -97,29 +97,28 @@ rangular-css = { path = "../rangular/crates/rangular-css" }
 rangular-host = { path = "../rangular/crates/rangular-host" }
 ```
 
-### One component = three files (MVC)
+### One component = three files
 
-A **component** is one UI piece in its own folder. Think Angular: markup and
-styles stay out of Rust; Rust owns state and handlers.
+Same habit as Angular, with **`.rs` instead of `.ts`**:
 
-| File | Role | MVC |
-| ---- | ---- | --- |
-| `item_list.html` | Template (`{{ }}`, `@for`, bindings) | **View** |
-| `item_list.scss` | Component styles (`:host`, nesting) | **View styles** |
-| `item_list.rs` | `Host` + Leptos `#[component]` wrapper | **Controller** |
+| File | Angular habit | Here |
+| ---- | ------------- | ---- |
+| `item_list.html` | template | Angular-shaped markup (`{{ }}`, `@for`, bindings) |
+| `item_list.scss` | component styles | `:host`, nesting, `&` |
+| `item_list.rs` | class / component.ts | Rust `Host` + Leptos `#[component]` |
 
 ```text
 src/components/item_list/
-  item_list.html    # View
-  item_list.scss    # Styles
-  item_list.rs      # Controller (Host)
+  item_list.html    # familiar Angular-shaped template
+  item_list.scss    # familiar component SCSS
+  item_list.rs      # state + handlers (was .ts)
 ```
 
 Full fixture (HTML + SCSS):
 [`tests/fixtures/components/item-list/`](tests/fixtures/components/item-list/).
 Also see `color-field`, `chrome-header`, `asset-icon` in the same tree.
 
-**View** (`item_list.html`):
+**Template** (`item_list.html`):
 
 ```html
 <section class="item-list" aria-label="Items">
@@ -152,7 +151,13 @@ Also see `color-field`, `chrome-header`, `asset-icon` in the same tree.
 }
 ```
 
-**Controller** (`item_list.rs`) - implement `Host`, wrap signals, call the
+SCSS is compiled **in Rust** by [`grass`](https://crates.io/crates/grass)
+(a Sass implementation). No Node / `sass` CLI. `rangular_css::compile_scss`
+calls `grass::from_string` at build time and emits flat CSS for the browser.
+`encapsulate` does the same compile, then applies emulated `:host` / scoping
+when you need that path.
+
+**Rust host** (`item_list.rs`) - implement `Host`, wrap signals, call the
 generated view from Leptos:
 
 ```rust
@@ -196,7 +201,7 @@ impl Host for ItemListHost {
 }
 ```
 
-That is the whole idea: **HTML + SCSS + Rust host**. Leptos only mounts the
+That is the whole idea: **`.html` + `.scss` + `.rs`**. Leptos only mounts the
 component; it does not embed the markup.
 
 ### Wire AOT in `build.rs`
@@ -223,12 +228,12 @@ Language details: [`docs/SPEC.md`](docs/SPEC.md). Fixture layout:
 
 ## Goals
 
-| Goal               | Approach                                               |
-| ------------------ | ------------------------------------------------------ |
+| Goal               | Approach                                                |
+| ------------------ | ------------------------------------------------------- |
 | Markup out of Rust | External templates; no component `view!` in controllers |
 | Familiar authoring | Angular-shaped bindings, `@if` / `@for`, component CSS  |
-| Web-native         | [Leptos](https://leptos.dev/) CSR on wasm              |
-| Safe parsing       | Diagnostics on bad input; no panic on template text    |
+| Web-native         | [Leptos](https://leptos.dev/) CSR on wasm               |
+| Safe parsing       | Diagnostics on bad input; no panic on template text     |
 
 ## Browser first (and what that means)
 
