@@ -13,8 +13,13 @@ may remove or rename supported constructs only with a migration note.
 | External `.html` templates                     | Markup inside Rust controllers  |
 | Component `.scss` (compiled then encapsulated) | Pipes, i18n, NgModule           |
 | AOT (production default)                       | Claiming runtime parity in prod |
-| Runtime interpreter (tests/tooling)            | Desktop GUI targets             |
+| Runtime interpreter (tests/tooling)            | Native desktop GUI toolkits     |
 | Fixture-driven growth                          | Silent ignore of unknown syntax |
+
+**Desktop shells with a webview** (for example Tauri) are still the web path:
+the UI is Leptos CSR / wasm inside the webview. They are **not** a separate
+native-widget target. For Angular-style **native** desktop GUIs, see external
+projects such as Angust; they are outside this contract.
 
 ## Authoring model
 
