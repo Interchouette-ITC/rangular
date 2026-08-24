@@ -92,6 +92,10 @@ body {
   margin-top: 0.75rem;
 }
 
+.seed-bar-wrap {
+  scroll-margin-top: 1rem;
+}
+
 .demo__nav {
   display: flex;
   flex-wrap: wrap;
@@ -202,6 +206,31 @@ body {
   bottom: 0;
   width: auto;
   height: auto;
+}
+
+.demo-decor--burst .demo-decor__crab,
+.demo-decor--burst .demo-decor__mark {
+  animation:
+    demo-decor-burst 0.55s ease-out,
+    demo-decor-float 3.8s ease-in-out 0.55s infinite;
+}
+
+.demo-decor--burst .demo-decor__mark {
+  animation:
+    demo-decor-burst 0.55s ease-out,
+    demo-decor-float 5s ease-in-out 0.55s infinite;
+}
+
+@keyframes demo-decor-burst {
+  0% {
+    scale: 0.55;
+    opacity: 0.35;
+  }
+
+  100% {
+    scale: 1;
+    opacity: 1;
+  }
 }
 
 .demo-decor__crab,

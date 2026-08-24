@@ -7,7 +7,7 @@ pub fn SeedBarPanel(applied_seed: RwSignal<String>) -> impl IntoView {
     let random_seq = RwSignal::new(0_u32);
 
     view! {
-        <div class="seed-bar-wrap">
+        <div class="seed-bar-wrap" id="seed-bar">
             <section class="seed-bar" aria-label="Seed controls">
                 <label for="demo-seed-input">"Seed"</label>
                 <input
@@ -16,6 +16,11 @@ pub fn SeedBarPanel(applied_seed: RwSignal<String>) -> impl IntoView {
                     bind:value=seed
                     spellcheck="false"
                     autocomplete="off"
+                    on:keydown=move |ev| {
+                        if ev.key() == "Enter" {
+                            apply_seed(&seed, applied_seed);
+                        }
+                    }
                 />
                 <button
                     class="btn btn-primary"
@@ -30,17 +35,7 @@ pub fn SeedBarPanel(applied_seed: RwSignal<String>) -> impl IntoView {
                 <button
                     class="btn btn-secondary"
                     type="button"
-                    on:click=move |_| {
-                        random_seq.update(|n| {
-                            *n = n.wrapping_add(1);
-                            if *n == 0 {
-                                *n = 1;
-                            }
-                        });
-                        let next = random_seed_hex(random_seq.get_untracked());
-                        seed.set(next.clone());
-                        applied_seed.set(next);
-                    }
+                    on:click=move |_| apply_random(&seed, applied_seed, random_seq)
                 >
                     "Random"
                 </button>
@@ -60,6 +55,18 @@ fn apply_seed(seed: &RwSignal<String>, applied_seed: RwSignal<String>) {
         return;
     }
     applied_seed.set(current);
+}
+
+fn apply_random(seed: &RwSignal<String>, applied_seed: RwSignal<String>, random_seq: RwSignal<u32>) {
+    random_seq.update(|n| {
+        *n = n.wrapping_add(1);
+        if *n == 0 {
+            *n = 1;
+        }
+    });
+    let next = random_seed_hex(random_seq.get_untracked());
+    seed.set(next.clone());
+    applied_seed.set(next);
 }
 
 fn random_seed_hex(seq: u32) -> String {

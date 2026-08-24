@@ -75,7 +75,7 @@ fn hoist_event_closure(
     ev_ty: &TokenStream,
     body: &TokenStream,
 ) -> TokenStream {
-    let ev = if event_name == "error" {
+    let ev = if matches!(event_name, "error" | "load") {
         format_ident!("_ev")
     } else {
         format_ident!("ev")

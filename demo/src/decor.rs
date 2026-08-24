@@ -8,10 +8,19 @@ const ASSET_ICON_SRC: &str = "/logo-256.png";
 
 #[component]
 pub fn DemoDecor(applied_seed: RwSignal<String>) -> impl IntoView {
+    let burst = RwSignal::new(0_u32);
+    Effect::new(move |_| {
+        if applied_seed.get().is_empty() {
+            return;
+        }
+        burst.update(|n| *n = n.wrapping_add(1));
+    });
+
     view! {
         <div
             class="demo-decor"
             class=("demo-decor--shuffle", move || !applied_seed.get().is_empty())
+            class=("demo-decor--burst", move || burst.get() > 0)
             aria-hidden="true"
         >
             {(0..CRAB_COUNT)
