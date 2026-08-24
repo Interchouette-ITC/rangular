@@ -161,13 +161,14 @@ test/tooling only (`encapsulate_css`).
 
 ## Inject / registry
 
-Typed services use `Registry::provide` / `Registry::inject` (TypeId map). Panel
-custom tags resolve through the same registry. Apps call `register_tag` for their
-own panels. `Registry::with_example_panels()` registers tags that match the
-fixture corpus:
+Typed services use `Registry::provide` / `Registry::inject` (TypeId map).
+Component custom tags resolve through the same registry. Apps call
+`register_tag` for their own components. `Registry::with_example_panels()`
+registers tags that match the fixture corpus:
 
 | Tag                 | Component    |
 | ------------------- | ------------ |
+| `app-item-list`     | ItemList     |
 | `app-color-field`   | ColorField   |
 | `app-chrome-header` | ChromeHeader |
 | `app-asset-icon`    | AssetIcon    |
