@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use rangular_expr::{eval, Expr, Host, Value};
+use rangular_host::EventPayload;
 use send_wrapper::SendWrapper;
 
 /// Shared host handle for AOT-generated views.
@@ -146,10 +147,15 @@ impl<H: Host> HostCell<H> {
         self.emit_call_scoped(name, expr, loop_name, loop_val);
     }
 
-    /// Set `$event` from a DOM string (e.g. input value), then invoke the handler expr.
-    pub fn emit_dom_event_call(&self, name: &str, expr: &Expr, event_value: String) {
-        let _ = self.0.borrow_mut().set("$event", Value::Str(event_value));
-        self.emit_call_scoped(name, expr, None, None);
+    /// Set `$event` from a typed DOM payload, then invoke the handler expr.
+    pub fn emit_dom_event_call(
+        &self,
+        name: &str,
+        expr: &Expr,
+        event_name: &str,
+        event_value: String,
+    ) {
+        self.emit_dom_event_call_scoped(name, expr, event_name, event_value, None, None);
     }
 
     /// Like [`Self::emit_dom_event_call`] inside an `@for` item scope.
@@ -157,11 +163,13 @@ impl<H: Host> HostCell<H> {
         &self,
         name: &str,
         expr: &Expr,
+        event_name: &str,
         event_value: String,
         loop_name: Option<&str>,
         loop_val: Option<&str>,
     ) {
-        let _ = self.0.borrow_mut().set("$event", Value::Str(event_value));
+        let payload = EventPayload::from_dom(event_name, event_value);
+        let _ = self.0.borrow_mut().set("$event", Value::from(payload));
         self.emit_call_scoped(name, expr, loop_name, loop_val);
     }
 }
@@ -191,6 +199,12 @@ fn value_display(value: &Value) -> String {
             .map(value_display)
             .collect::<Vec<_>>()
             .join(","),
+        Value::Event(payload) => match payload {
+            EventPayload::Click => "event:click".into(),
+            EventPayload::Input { value } => format!("event:input:{value}"),
+            EventPayload::Error => "event:error".into(),
+            EventPayload::Custom(inner) => format!("event:custom:{}", value_display(inner)),
+        },
         Value::Unit => String::new(),
     }
 }

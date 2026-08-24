@@ -83,6 +83,13 @@ fn lower_nodes(
         .filter_map(|node| lower_node(node, issues, scope))
         .collect();
     if parts.is_empty() {
+        // Only omitted nodes (comments / bare ng-content): still a valid empty fragment.
+        if nodes
+            .iter()
+            .all(|n| matches!(n, Node::Comment(_, _) | Node::Projection(_)))
+        {
+            return Some(quote! {});
+        }
         issues.push(AotIssue::error("RANG401", "no lowerable template nodes"));
         return None;
     }
@@ -101,7 +108,7 @@ fn lower_node(node: &Node, issues: &mut Vec<AotIssue>, scope: &Scope<'_>) -> Opt
                 move || host.prop_str_scoped(&#ex, #st)
             }})
         }
-        Node::Comment(_, _) => None,
+        Node::Comment(_, _) | Node::Projection(_) => None,
         Node::If(block) => lower_if(block, issues, scope),
         Node::For(block) => lower_for(block, issues),
     }
@@ -194,6 +201,7 @@ fn lower_attrs(attrs: &[Attr], scope: &Scope<'_>) -> TokenStream {
             Attr::Event { name, expr, .. } => {
                 let handler = rangular_parser::event_handler_name(expr);
                 let ex = expr_tokens(expr);
+                let event_name = name.as_str();
                 tokens.push(event_attr(
                     name,
                     &quote! {{
@@ -209,6 +217,7 @@ fn lower_attrs(attrs: &[Attr], scope: &Scope<'_>) -> TokenStream {
                             host.emit_dom_event_call_scoped(
                                 #handler,
                                 &#ex,
+                                #event_name,
                                 event_value,
                                 #st,
                             );

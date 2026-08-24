@@ -1,4 +1,4 @@
-use crate::ast::{Attr, Element, ForBlock, IfBlock, Node, Template};
+use crate::ast::{Attr, Element, ForBlock, IfBlock, Node, Projection, Template};
 use crate::diag::Diagnostic;
 use crate::expr::{parse_into, Expr};
 use crate::span::{pos, Span};
@@ -117,6 +117,17 @@ impl<'a> Parser<'a> {
             }
         }
         let span = span_open.merge(Span::new(pos(start), pos(self.pos)));
+        if tag == "ng-content" {
+            let select = attrs.iter().find_map(|attr| match attr {
+                Attr::Static {
+                    name,
+                    value: Some(value),
+                    ..
+                } if name == "select" => Some(value.clone()),
+                _ => None,
+            });
+            return Some(Node::Projection(Projection { select, span }));
+        }
         let el = Element {
             tag,
             attrs,

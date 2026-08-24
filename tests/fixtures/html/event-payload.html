@@ -1,0 +1,9 @@
+<section class="event-payload" aria-label="Event payload sample">
+  <input
+    type="text"
+    [value]="draft"
+    (input)="onInput($event)"
+  />
+  <button type="button" (click)="onClick($event)">Go</button>
+  <img alt="" [src]="iconSrc" (error)="onError($event)" />
+</section>

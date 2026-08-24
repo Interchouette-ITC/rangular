@@ -93,7 +93,7 @@ fn render_node<H: Host>(node: &Node, ctx: &mut Ctx<'_, H>) -> Vec<VNode> {
         Node::Interpolation(expr, _) => {
             vec![VNode::Text(display_value(&eval_expr(expr, ctx)))]
         }
-        Node::Comment(_, _) => Vec::new(),
+        Node::Comment(_, _) | Node::Projection(_) => Vec::new(),
         Node::If(block) => render_if(block, ctx),
         Node::For(block) => render_for(block, ctx),
     }
@@ -217,6 +217,14 @@ fn display_value(value: &Value) -> String {
             .map(display_value)
             .collect::<Vec<_>>()
             .join(","),
+        Value::Event(payload) => match payload {
+            rangular_host::EventPayload::Click => "event:click".into(),
+            rangular_host::EventPayload::Input { value } => format!("event:input:{value}"),
+            rangular_host::EventPayload::Error => "event:error".into(),
+            rangular_host::EventPayload::Custom(inner) => {
+                format!("event:custom:{}", display_value(inner))
+            }
+        },
         Value::Unit => String::new(),
     }
 }
