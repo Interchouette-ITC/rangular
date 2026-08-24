@@ -1,8 +1,9 @@
-# Contributing to rangular
+# Contributing to [**rangular**](https://github.com/Interchouette-ITC/rangular)
 
 ## Fixture-driven language growth
 
-rangular evolves from **`tests/fixtures/`**. Each fixture is a small Angular-shaped
+**[rangular](https://github.com/Interchouette-ITC/rangular)** evolves from
+**`tests/fixtures/`**. Each fixture is a small Angular-shaped
 HTML and/or SCSS example that parser, SCSS, AOT, and runtime tests must handle or
 document as unsupported.
 
@@ -36,8 +37,9 @@ policy in `SPEC.md`.
 
 ### App templates stay in apps
 
-Product UI templates belong in the consuming application repository. The rangular
-corpus holds engine examples only.
+Product UI templates belong in the consuming application repository. The
+**[rangular](https://github.com/Interchouette-ITC/rangular)** corpus holds engine
+examples only.
 
 ## Code changes
 

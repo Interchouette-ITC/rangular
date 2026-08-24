@@ -1,4 +1,4 @@
-# rangular docs
+# [**rangular**](https://github.com/Interchouette-ITC/rangular) docs
 
 <p align="center">
   <img src="assets/logo-128.png" alt="rangular mark" width="96" height="96" />
@@ -11,7 +11,6 @@ holds the contract and contributor habits.
 | --- | --- |
 | [`SPEC.md`](SPEC.md) | Language contract for **0.1.x** (what is in / out of scope) |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Fixtures, diagnostics, PR habits |
-| [`assets/`](assets/) | Project logo (`logo.png`, `logo-256.png`, `logo-128.png`) |
 
 ## Scope in one glance
 
@@ -22,7 +21,7 @@ holds the contract and contributor habits.
 
 A [Tauri](https://v2.tauri.app/) (or similar) **webview** still counts as the
 browser path: you ship the same wasm UI inside a desktop shell. That is not a
-separate rangular backend.
+separate **[rangular](https://github.com/Interchouette-ITC/rangular)** backend.
 
 ## Related projects
 
@@ -34,5 +33,6 @@ External references (not dependencies):
 - [Angular Rust](https://github.com/angular-rust) - Angular-inspired Rust UX
   ecosystem
 
-rangular stays Leptos CSR / wasm first. See the root README for the Tauri
-sketch and how that differs from Angust.
+**[rangular](https://github.com/Interchouette-ITC/rangular)** stays Leptos CSR /
+wasm first. See the root README for the Tauri sketch and how that differs from
+Angust.

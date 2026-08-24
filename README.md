@@ -1,4 +1,4 @@
-# rangular
+# [**rangular**](https://github.com/Interchouette-ITC/rangular)
 
 <p align="center">
   <img src="docs/assets/logo-256.png" alt="rangular logo: Angular-shaped shield with Ferris the crab" width="160" height="160" />
@@ -12,18 +12,18 @@ Write markup in familiar `.html` / `.scss`, keep state and handlers in Rust, and
 render with [Leptos](https://leptos.dev/) in the browser (CSR / Trunk / wasm).
 
 If you know Angular component files, you will feel at home. If you know Rust,
-you keep ownership of the real logic. rangular sits between the two: a **versioned
-subset**, not a full Angular port, with diagnostics (`RANG*`) instead of panics
-on bad template text.
+you keep ownership of the real logic. **[rangular](https://github.com/Interchouette-ITC/rangular)**
+sits between the two: a **versioned subset**, not a full Angular port, with
+diagnostics (`RANG*`) instead of panics on bad template text.
 
 Production builds use **AOT** lowering to Leptos. A **runtime** interpreter
 shares the same AST for parity tests and tooling.
 
 ## What you get today
 
-Author panels as Angular-shaped files; rangular turns them into Leptos views
-for the browser. Production prefers **AOT**; the **runtime** keeps the same AST
-for tests and tooling.
+Author panels as Angular-shaped files; **[rangular](https://github.com/Interchouette-ITC/rangular)**
+turns them into Leptos views for the browser. Production prefers **AOT**; the
+**runtime** keeps the same AST for tests and tooling.
 
 ```mermaid
 flowchart LR
@@ -89,14 +89,17 @@ are **out of scope**.
 
 Look at [Angust](https://github.com/TudorOrban/Angust) (native / desktop-oriented
 components and HTML templates) and the [Angular Rust](https://github.com/angular-rust)
-ecosystem. Different stack, useful reading; not what rangular implements.
+ecosystem. Different stack, useful reading; not what
+**[rangular](https://github.com/Interchouette-ITC/rangular)** implements.
 
 ### Shipping a desktop app anyway?
 
 [Tauri](https://v2.tauri.app/) (and similar shells) host a **webview**. Your UI
-is still a web app. A Leptos + Trunk build that uses rangular panels can run
+is still a web app. A Leptos + Trunk build that uses
+**[rangular](https://github.com/Interchouette-ITC/rangular)** panels can run
 inside that webview the same way it runs in Chrome. That is an **indirect**
-desktop path: rangular still speaks DOM / wasm, not egui / iced / GTK.
+desktop path: **[rangular](https://github.com/Interchouette-ITC/rangular)** still
+speaks DOM / wasm, not egui / iced / GTK.
 
 ```mermaid
 flowchart TB
@@ -152,11 +155,8 @@ How to add fixtures: [`tests/fixtures/README.md`](tests/fixtures/README.md) and
 - [`docs/SPEC.md`](docs/SPEC.md) - language contract (in / out of scope)
 - [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) - fixtures and PR habits
 - [`docs/README.md`](docs/README.md) - docs index and related projects
-- Logo files: [`docs/assets/`](docs/assets/) (`logo.png`, `logo-256.png`, `logo-128.png`)
 
-The shield + [Ferris](https://rustacean.net/) mark is just a friendly project
-logo, not a product brand system. Use the sized PNGs in docs; keep `logo.png`
-when you need a larger version.
+The shield + [Ferris](https://rustacean.net/) mark is a friendly project logo.
 
 ## License
 

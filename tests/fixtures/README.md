@@ -1,6 +1,7 @@
 # Test fixtures (how to add examples)
 
-This directory is the **corpus** that drives rangular language growth.
+This directory is the **corpus** that drives
+**[rangular](https://github.com/Interchouette-ITC/rangular)** language growth.
 
 ## What this is
 

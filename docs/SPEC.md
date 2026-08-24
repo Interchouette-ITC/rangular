@@ -1,9 +1,10 @@
-# rangular specification v0.1
+# [**rangular**](https://github.com/Interchouette-ITC/rangular) specification v0.1
 
-This document is the language contract for rangular **0.1.x**. Patch releases
-clarify diagnostics and fix bugs without breaking supported syntax. Minor
-releases may add constructs when fixtures and tests cover them. Major releases
-may remove or rename supported constructs only with a migration note.
+This document is the language contract for
+**[rangular](https://github.com/Interchouette-ITC/rangular)** **0.1.x**. Patch
+releases clarify diagnostics and fix bugs without breaking supported syntax.
+Minor releases may add constructs when fixtures and tests cover them. Major
+releases may remove or rename supported constructs only with a migration note.
 
 ## Scope
 
@@ -32,9 +33,9 @@ App global CSS        loaded by the host app (not rewritten by rangular)
 ```
 
 Global utility classes (for example `.btn`, `.container`) come from the host
-application stylesheet. rangular does **not** ship or require a particular global
-CSS framework. Component CSS encapsulation must not mangle global selectors the
-app loads separately.
+application stylesheet. **[rangular](https://github.com/Interchouette-ITC/rangular)**
+does **not** ship or require a particular global CSS framework. Component CSS
+encapsulation must not mangle global selectors the app loads separately.
 
 ## Template grammar (v0.1 core)
 
