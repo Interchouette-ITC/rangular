@@ -15,6 +15,12 @@ pub enum Expr {
         callee: Box<Self>,
         args: Vec<Self>,
     },
+    /// `expr | name` or `expr | name:arg1:arg2` (Angular-shaped pipes).
+    Pipe {
+        expr: Box<Self>,
+        name: String,
+        args: Vec<Self>,
+    },
     Ternary {
         cond: Box<Self>,
         then_branch: Box<Self>,

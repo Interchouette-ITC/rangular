@@ -1,25 +1,40 @@
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
-use rangular_expr::{eval, Expr, Host, Value};
+use rangular_expr::{eval_with_pipes, Expr, Host, PipeRegistry, Value};
 use rangular_host::EventPayload;
 use send_wrapper::SendWrapper;
 
 /// Shared host handle for AOT-generated views.
 ///
 /// Wrapped for Leptos `Send` bounds; wasm CSR stays single-threaded.
-pub struct HostCell<H: Host>(SendWrapper<Rc<RefCell<H>>>);
+pub struct HostCell<H: Host> {
+    host: SendWrapper<Rc<RefCell<H>>>,
+    pipes: Arc<PipeRegistry>,
+}
 
 impl<H: Host> Clone for HostCell<H> {
     fn clone(&self) -> Self {
-        Self(SendWrapper::new(Rc::clone(&*self.0)))
+        Self {
+            host: SendWrapper::new(Rc::clone(&*self.host)),
+            pipes: Arc::clone(&self.pipes),
+        }
     }
 }
 
 impl<H: Host> HostCell<H> {
     #[must_use]
     pub fn new(host: H) -> Self {
-        Self(SendWrapper::new(Rc::new(RefCell::new(host))))
+        Self::with_pipes(host, PipeRegistry::builtins_arc())
+    }
+
+    #[must_use]
+    pub fn with_pipes(host: H, pipes: Arc<PipeRegistry>) -> Self {
+        Self {
+            host: SendWrapper::new(Rc::new(RefCell::new(host))),
+            pipes,
+        }
     }
 
     #[must_use]
@@ -60,7 +75,7 @@ impl<H: Host> HostCell<H> {
 
     #[must_use]
     pub fn eval_value(&self, expr: &Expr) -> Value {
-        eval(expr, &mut *self.0.borrow_mut()).unwrap_or(Value::Unit)
+        eval_with_pipes(expr, &mut *self.host.borrow_mut(), &self.pipes).unwrap_or(Value::Unit)
     }
 
     #[must_use]
@@ -70,6 +85,17 @@ impl<H: Host> HostCell<H> {
         loop_name: Option<&str>,
         loop_val: Option<&str>,
     ) -> Value {
+        if let Expr::Pipe { expr, name, args } = expr {
+            let left = self.eval_scoped(expr, loop_name, loop_val);
+            let arg_vals: Vec<Value> = args
+                .iter()
+                .map(|arg| self.eval_scoped(arg, loop_name, loop_val))
+                .collect();
+            return self
+                .pipes
+                .apply(name, &left, &arg_vals)
+                .unwrap_or(Value::Unit);
+        }
         if let (Some(name), Some(val)) = (loop_name, loop_val) {
             if matches!(expr, Expr::Ident(item) if item == name) {
                 return Value::Str(val.to_owned());
@@ -80,7 +106,7 @@ impl<H: Host> HostCell<H> {
                         .iter()
                         .map(|arg| self.eval_scoped(arg, Some(name), Some(val)))
                         .collect();
-                    if let Ok(v) = self.0.borrow_mut().call(callee_name, &values) {
+                    if let Ok(v) = self.host.borrow_mut().call(callee_name, &values) {
                         return v;
                     }
                 }
@@ -119,7 +145,7 @@ impl<H: Host> HostCell<H> {
     }
 
     pub fn emit_call(&self, name: &str, args: &[Value]) {
-        let _ = self.0.borrow_mut().call(name, args);
+        let _ = self.host.borrow_mut().call(name, args);
     }
 
     pub fn emit_call_scoped(
@@ -169,7 +195,7 @@ impl<H: Host> HostCell<H> {
         loop_val: Option<&str>,
     ) {
         let payload = EventPayload::from_dom(event_name, event_value);
-        let _ = self.0.borrow_mut().set("$event", Value::from(payload));
+        let _ = self.host.borrow_mut().set("$event", Value::from(payload));
         self.emit_call_scoped(name, expr, loop_name, loop_val);
     }
 }

@@ -1,4 +1,4 @@
-use rangular_expr::{eval, Expr};
+use rangular_expr::{eval_with_pipes, Expr, PipeRegistry};
 use rangular_host::{Host, Value};
 use rangular_parser::{
     builtin_tag_io, classify_bindings, parse, Attr, Diagnostic, Element, ForBlock, IfBlock, Node,
@@ -24,6 +24,7 @@ struct Frame {
 
 struct Ctx<'a, H: Host> {
     host: &'a mut H,
+    pipes: &'a PipeRegistry,
     frames: Vec<Frame>,
     issues: Vec<RuntimeIssue>,
     slot: &'a [VNode],
@@ -32,7 +33,18 @@ struct Ctx<'a, H: Host> {
 /// Parse `source` then render. Parse errors become runtime issues; never panics on content.
 #[must_use]
 pub fn interpret(source: &str, file: &str, host: &mut impl Host) -> RenderResult {
-    interpret_with_slot(source, file, host, &[])
+    interpret_with_pipes(source, file, host, PipeRegistry::builtins())
+}
+
+/// Like [`interpret`] with an explicit [`PipeRegistry`].
+#[must_use]
+pub fn interpret_with_pipes(
+    source: &str,
+    file: &str,
+    host: &mut impl Host,
+    pipes: &PipeRegistry,
+) -> RenderResult {
+    interpret_with_slot_and_pipes(source, file, host, &[], pipes)
 }
 
 /// Like [`interpret`], inserting `slot` nodes at each `<ng-content>` projection.
@@ -42,6 +54,18 @@ pub fn interpret_with_slot(
     file: &str,
     host: &mut impl Host,
     slot: &[VNode],
+) -> RenderResult {
+    interpret_with_slot_and_pipes(source, file, host, slot, PipeRegistry::builtins())
+}
+
+/// Like [`interpret_with_slot`] with an explicit [`PipeRegistry`].
+#[must_use]
+pub fn interpret_with_slot_and_pipes(
+    source: &str,
+    file: &str,
+    host: &mut impl Host,
+    slot: &[VNode],
+    pipes: &PipeRegistry,
 ) -> RenderResult {
     let mut parsed = parse(source, file);
     let mut issues: Vec<RuntimeIssue> = parsed
@@ -57,7 +81,7 @@ pub fn interpret_with_slot(
         };
     }
     classify_bindings(&mut parsed.template, &builtin_tag_io());
-    let mut out = render_with_slot(&parsed.template, host, slot);
+    let mut out = render_with_slot_and_pipes(&parsed.template, host, slot, pipes);
     issues.append(&mut out.issues);
     RenderResult {
         nodes: out.nodes,
@@ -74,8 +98,20 @@ pub fn render(template: &Template, host: &mut impl Host) -> RenderResult {
 /// Interpret `template`, projecting `slot` at each `<ng-content>`.
 #[must_use]
 pub fn render_with_slot(template: &Template, host: &mut impl Host, slot: &[VNode]) -> RenderResult {
+    render_with_slot_and_pipes(template, host, slot, PipeRegistry::builtins())
+}
+
+/// Like [`render_with_slot`] with an explicit [`PipeRegistry`].
+#[must_use]
+pub fn render_with_slot_and_pipes(
+    template: &Template,
+    host: &mut impl Host,
+    slot: &[VNode],
+    pipes: &PipeRegistry,
+) -> RenderResult {
     let mut ctx = Ctx {
         host,
+        pipes,
         frames: Vec::new(),
         issues: Vec::new(),
         slot,
@@ -216,10 +252,18 @@ fn render_for<H: Host>(block: &ForBlock, ctx: &mut Ctx<'_, H>) -> Vec<VNode> {
 }
 
 fn eval_expr<H: Host>(expr: &Expr, ctx: &mut Ctx<'_, H>) -> Value {
+    if let Expr::Pipe { expr, name, args } = expr {
+        let left = eval_expr(expr, ctx);
+        let arg_vals: Vec<Value> = args.iter().map(|arg| eval_expr(arg, ctx)).collect();
+        return ctx
+            .pipes
+            .apply(name, &left, &arg_vals)
+            .unwrap_or(Value::Unit);
+    }
     if let Some(v) = resolve_frame(expr, ctx) {
         return v;
     }
-    eval(expr, ctx.host).unwrap_or(Value::Unit)
+    eval_with_pipes(expr, ctx.host, ctx.pipes).unwrap_or(Value::Unit)
 }
 
 fn resolve_frame<H: Host>(expr: &Expr, ctx: &mut Ctx<'_, H>) -> Option<Value> {

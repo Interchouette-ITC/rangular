@@ -15,7 +15,7 @@ pub fn parse(input: &str) -> ParseResult {
         issues: Vec::new(),
     };
     p.skip_ws();
-    let expr = p.parse_ternary();
+    let expr = p.parse_pipe();
     p.skip_ws();
     if p.pos < p.src.len() {
         p.error(p.pos, p.src.len(), "unexpected tokens in expression");
@@ -27,6 +27,33 @@ pub fn parse(input: &str) -> ParseResult {
 }
 
 impl Parser<'_> {
+    /// `expr | pipe` / `expr | pipe:arg` chains (not `||`).
+    fn parse_pipe(&mut self) -> Option<Expr> {
+        let mut expr = self.parse_ternary()?;
+        loop {
+            self.skip_ws();
+            if !self.consume_pipe_bar() {
+                break;
+            }
+            self.skip_ws();
+            let name = self.parse_ident()?;
+            let mut args = Vec::new();
+            loop {
+                self.skip_ws();
+                if !self.consume(":") {
+                    break;
+                }
+                args.push(self.parse_ternary()?);
+            }
+            expr = Expr::Pipe {
+                expr: Box::new(expr),
+                name,
+                args,
+            };
+        }
+        Some(expr)
+    }
+
     fn parse_ternary(&mut self) -> Option<Expr> {
         let mut expr = self.parse_or()?;
         self.skip_ws();
@@ -53,6 +80,13 @@ impl Parser<'_> {
             };
         }
         Some(expr)
+    }
+
+    fn consume_pipe_bar(&mut self) -> bool {
+        if self.src[self.pos..].starts_with("||") {
+            return false;
+        }
+        self.consume("|")
     }
 
     fn parse_or(&mut self) -> Option<Expr> {
@@ -147,7 +181,7 @@ impl Parser<'_> {
         }
         if self.peek() == Some('(') {
             self.bump();
-            let inner = self.parse_ternary()?;
+            let inner = self.parse_pipe()?;
             self.skip_ws();
             if self.peek() == Some(')') {
                 self.bump();
@@ -184,13 +218,13 @@ impl Parser<'_> {
         if self.peek() == Some(')') {
             return Vec::new();
         }
-        let mut args = vec![self.parse_ternary().unwrap_or(Expr::Ident(String::new()))];
+        let mut args = vec![self.parse_pipe().unwrap_or(Expr::Ident(String::new()))];
         loop {
             self.skip_ws();
             if !self.consume(",") {
                 break;
             }
-            args.push(self.parse_ternary().unwrap_or(Expr::Ident(String::new())));
+            args.push(self.parse_pipe().unwrap_or(Expr::Ident(String::new())));
         }
         args
     }
