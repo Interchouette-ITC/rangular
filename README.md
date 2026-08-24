@@ -81,4 +81,4 @@ How to add fixtures: [`tests/fixtures/README.md`](tests/fixtures/README.md) and
 
 ## License
 
-MIT. See [`LICENSE`](LICENSE).
+Apache-2.0. See [`LICENSE`](LICENSE).
