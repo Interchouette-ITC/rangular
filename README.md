@@ -99,29 +99,36 @@ rangular-host = { path = "../rangular/crates/rangular-host" }
 
 ### Panels
 
-Keep one folder per panel (`seed_bar.html` + `seed_bar.scss` + a Rust host). In
-`build.rs`, compile HTML with `rangular_aot::compile_named` and SCSS with
-`rangular_css::compile_scss` (flat CSS for Leptos CSR). Write the AOT Rust to
-`OUT_DIR/rangular/{fn_name}.rs`.
+Keep one folder per panel (see
+[`tests/fixtures/components/`](tests/fixtures/components/) for real examples:
+`color-field`, `chrome-header`, `asset-icon`). Each panel is `.html` + `.scss`
+plus a Rust host. In `build.rs`, compile HTML with `rangular_aot::compile_named`
+and SCSS with `rangular_css::compile_scss` (flat CSS for Leptos CSR). Write the
+AOT Rust to `OUT_DIR/rangular/{fn_name}.rs`.
 
 ```rust
-let aot = rangular_aot::compile_named(&html, "src/components/seed_bar/seed_bar.html", "seed_bar_view");
-std::fs::write(out_dir.join("seed_bar_view.rs"), &aot.code)?;
+let aot = rangular_aot::compile_named(
+    &html,
+    "src/components/color_field/color_field.html",
+    "color_field_view",
+);
+std::fs::write(out_dir.join("color_field_view.rs"), &aot.code)?;
 ```
 
 In the panel module, `include!` that file, implement `rangular_host::Host`, wrap
 state in `HostCell`, and call the generated view:
 
 ```rust
-include!(concat!(env!("OUT_DIR"), "/rangular/seed_bar_view.rs"));
+include!(concat!(env!("OUT_DIR"), "/rangular/color_field_view.rs"));
 
-let host = HostCell::new(SeedBarHost { /* signals */ });
-seed_bar_view(host)
+let host = HostCell::new(ColorFieldHost { /* signals */ });
+color_field_view(host)
 ```
 
 Language details: [`docs/SPEC.md`](docs/SPEC.md). Layout of fixtures:
 [`tests/fixtures/README.md`](tests/fixtures/README.md).
 
+## Goals
 
 | Goal               | Approach                                               |
 | ------------------ | ------------------------------------------------------ |
