@@ -15,9 +15,7 @@ pub use rangular_macros as macros;
 pub use rangular_parser as parser;
 pub use rangular_runtime as runtime;
 
-pub use registry::{
-    ComponentEntry, Registry, APP_ACCESSORIES, APP_PREVIEW, APP_ROOT, APP_SEED_BAR, APP_SITE_HEADER,
-};
+pub use registry::{ComponentEntry, Registry, APP_ASSET_ICON, APP_CHROME_HEADER, APP_COLOR_FIELD};
 
 /// Workspace package version.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

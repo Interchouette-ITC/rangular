@@ -2,12 +2,10 @@ use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-/// Custom element / panel tags for a typical app shell.
-pub const APP_ROOT: &str = "app-root";
-pub const APP_SITE_HEADER: &str = "app-site-header";
-pub const APP_SEED_BAR: &str = "app-seed-bar";
-pub const APP_PREVIEW: &str = "app-preview";
-pub const APP_ACCESSORIES: &str = "app-accessories";
+/// Example panel tags aligned with `tests/fixtures/components/`.
+pub const APP_COLOR_FIELD: &str = "app-color-field";
+pub const APP_CHROME_HEADER: &str = "app-chrome-header";
+pub const APP_ASSET_ICON: &str = "app-asset-icon";
 
 /// Metadata for a registered component tag.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -29,16 +27,14 @@ impl Registry {
         Self::default()
     }
 
-    /// Register the default panel tags for the app shell.
+    /// Register example panel tags that match the fixture corpus.
     #[must_use]
-    pub fn with_default_panels() -> Self {
+    pub fn with_example_panels() -> Self {
         let mut reg = Self::new();
         for (tag, name) in [
-            (APP_ROOT, "AppRoot"),
-            (APP_SITE_HEADER, "SiteHeader"),
-            (APP_SEED_BAR, "SeedBar"),
-            (APP_PREVIEW, "PreviewPanel"),
-            (APP_ACCESSORIES, "AccessoriesPanel"),
+            (APP_COLOR_FIELD, "ColorField"),
+            (APP_CHROME_HEADER, "ChromeHeader"),
+            (APP_ASSET_ICON, "AssetIcon"),
         ] {
             reg.register_tag(tag, name);
         }
@@ -84,11 +80,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn default_panels_resolve() {
-        let reg = Registry::with_default_panels();
+    fn example_panels_resolve() {
+        let reg = Registry::with_example_panels();
         assert_eq!(
-            reg.resolve(APP_SEED_BAR).map(|e| e.name.as_str()),
-            Some("SeedBar")
+            reg.resolve(APP_COLOR_FIELD).map(|e| e.name.as_str()),
+            Some("ColorField")
         );
         assert!(reg.resolve("nope").is_none());
     }

@@ -78,48 +78,43 @@ Handler names resolve through the host `call` API.
 
 Literals (string, number, bool), identifiers and dotted paths, unary `!`,
 binary `&&`, `||`, `==`, `!=`, parenthesis, and handler calls such as
-`onGenerate()` or `seedChange($event)`.
+`togglePalette()` or `onColorInput($event)`.
 
 **Not in v0.1:** pipes, ternary, nullish coalescing, assignment, arbitrary
 method chains beyond what the host exposes.
 
-## Reference template: seed bar
+## Reference template: color-field
 
-Illustrative panel markup (lives in consuming apps, not in this repo corpus):
+Canonical example from
+[`tests/fixtures/components/color-field/`](../tests/fixtures/components/color-field/)
+(also `chrome-header`, `asset-icon` in the same folder):
 
 ```html
-<section class="seed-bar" aria-label="Seed controls">
-  <label for="seed">Seed</label>
+<div class="color-field">
+  <span class="color-field__label">{{ label }}</span>
   <input
-    id="seed"
-    type="text"
-    [value]="seed"
-    (input)="seedChange($event)"
-    spellcheck="false"
-    autocomplete="off"
+    [id]="inputId"
+    type="color"
+    class="color-field__color"
+    [value]="value"
+    (input)="onColorInput($event)"
   />
   <button
-    class="btn btn-primary"
     type="button"
-    [disabled]="generateDisabled"
-    (click)="onGenerate()"
+    class="color-field__toggle"
+    [class.color-field__toggle--open]="paletteOpen"
+    [attr.aria-expanded]="paletteOpen"
+    (click)="togglePalette()"
   >
-    Generate
+    Palette
   </button>
-  <button
-    class="btn btn-secondary"
-    type="button"
-    [disabled]="randomDisabled"
-    (click)="onRandom()"
-  >
-    Random
-  </button>
-</section>
+</div>
 ```
 
-The controller exposes `seed`, `generateDisabled`, `randomDisabled`, and the
-handler methods. Class names such as `btn` and `btn-primary` are **global** app
-CSS; rangular passes them through on the element unchanged.
+The host exposes bindings such as `label`, `value`, `paletteOpen`, and the
+handler methods. Class names that are only **global** app utilities (for example
+`.btn`) pass through unscoped; component classes such as `.color-field` are
+scoped by encapsulation when you use that path.
 
 ## Component SCSS (v0.1)
 
@@ -157,28 +152,28 @@ test/tooling only (`encapsulate_css`).
 
 ## Host API (shared by AOT and runtime)
 
-| Operation          | Purpose                                              |
-| ------------------ | ---------------------------------------------------- |
-| `get(path)`        | Read a binding value (`seed`, `generateDisabled`, …) |
-| `set(path, value)` | Two-way / input side effects when needed             |
-| `call(name, args)` | Invoke controller handlers                           |
-| Event bridge       | Map `(click)` etc. to host callables                 |
+| Operation          | Purpose                                          |
+| ------------------ | ------------------------------------------------ |
+| `get(path)`        | Read a binding value (`label`, `paletteOpen`, …) |
+| `set(path, value)` | Two-way / input side effects when needed         |
+| `call(name, args)` | Invoke controller handlers                       |
+| Event bridge       | Map `(click)` etc. to host callables             |
 
 ## Inject / registry
 
 Typed services use `Registry::provide` / `Registry::inject` (TypeId map). Panel
-custom tags resolve through the same registry:
+custom tags resolve through the same registry. Apps call `register_tag` for their
+own panels. `Registry::with_example_panels()` registers tags that match the
+fixture corpus:
 
-| Tag               | Component        |
-| ----------------- | ---------------- |
-| `app-root`        | AppRoot          |
-| `app-site-header` | SiteHeader       |
-| `app-seed-bar`    | SeedBar          |
-| `app-preview`     | PreviewPanel     |
-| `app-accessories` | AccessoriesPanel |
+| Tag                 | Component    |
+| ------------------- | ------------ |
+| `app-color-field`   | ColorField   |
+| `app-chrome-header` | ChromeHeader |
+| `app-asset-icon`    | AssetIcon    |
 
-`Registry::with_default_panels()` registers those tags. At the Leptos app edge,
-apps map this to `provide_context` / `use_context` as needed.
+At the Leptos app edge, apps map this to `provide_context` / `use_context` as
+needed.
 
 ## Diagnostics
 

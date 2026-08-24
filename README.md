@@ -99,29 +99,36 @@ rangular-host = { path = "../rangular/crates/rangular-host" }
 
 ### Panels
 
-Keep one folder per panel (`seed_bar.html` + `seed_bar.scss` + a Rust host). In
-`build.rs`, compile HTML with `rangular_aot::compile_named` and SCSS with
-`rangular_css::compile_scss` (flat CSS for Leptos CSR). Write the AOT Rust to
-`OUT_DIR/rangular/{fn_name}.rs`.
+Keep one folder per panel (see
+[`tests/fixtures/components/`](tests/fixtures/components/) for real examples:
+`color-field`, `chrome-header`, `asset-icon`). Each panel is `.html` + `.scss`
+plus a Rust host. In `build.rs`, compile HTML with `rangular_aot::compile_named`
+and SCSS with `rangular_css::compile_scss` (flat CSS for Leptos CSR). Write the
+AOT Rust to `OUT_DIR/rangular/{fn_name}.rs`.
 
 ```rust
-let aot = rangular_aot::compile_named(&html, "src/components/seed_bar/seed_bar.html", "seed_bar_view");
-std::fs::write(out_dir.join("seed_bar_view.rs"), &aot.code)?;
+let aot = rangular_aot::compile_named(
+    &html,
+    "src/components/color_field/color_field.html",
+    "color_field_view",
+);
+std::fs::write(out_dir.join("color_field_view.rs"), &aot.code)?;
 ```
 
 In the panel module, `include!` that file, implement `rangular_host::Host`, wrap
 state in `HostCell`, and call the generated view:
 
 ```rust
-include!(concat!(env!("OUT_DIR"), "/rangular/seed_bar_view.rs"));
+include!(concat!(env!("OUT_DIR"), "/rangular/color_field_view.rs"));
 
-let host = HostCell::new(SeedBarHost { /* signals */ });
-seed_bar_view(host)
+let host = HostCell::new(ColorFieldHost { /* signals */ });
+color_field_view(host)
 ```
 
 Language details: [`docs/SPEC.md`](docs/SPEC.md). Layout of fixtures:
 [`tests/fixtures/README.md`](tests/fixtures/README.md).
 
+## Goals
 
 | Goal               | Approach                                               |
 | ------------------ | ------------------------------------------------------ |
@@ -134,23 +141,24 @@ Language details: [`docs/SPEC.md`](docs/SPEC.md). Layout of fixtures:
 
 **v0.1 targets the browser DOM.** That is the contract in
 [`docs/SPEC.md`](docs/SPEC.md): Leptos CSR / wasm. Native desktop widget toolkits
-are **out of scope**.
+(egui, iced, GTK, and similar) are **out of scope**.
 
 ### Want Angular-like on the desktop?
 
-Look at [Angust](https://github.com/TudorOrban/Angust) (native / desktop-oriented
-components and HTML templates) and the [Angular Rust](https://github.com/angular-rust)
-ecosystem. Different stack, useful reading; not what
-**[rangular](https://github.com/Interchouette-ITC/rangular)** implements.
+[Angust](https://github.com/TudorOrban/Angust) was proposing that path: native /
+desktop-oriented components and HTML templates. Look there, and at the
+[Angular Rust](https://github.com/angular-rust) ecosystem, if you want widgets
+outside a webview.
 
-### Shipping a desktop app anyway?
+### Shipping a desktop app with rangular
 
 [Tauri](https://v2.tauri.app/) (and similar shells) host a **webview**. Your UI
-is still a web app. A Leptos + Trunk build that uses
+is still a web app: a Leptos + Trunk build that uses
 **[rangular](https://github.com/Interchouette-ITC/rangular)** panels can run
-inside that webview the same way it runs in Chrome. That is an **indirect**
-desktop path: **[rangular](https://github.com/Interchouette-ITC/rangular)** still
-speaks DOM / wasm, not egui / iced / GTK.
+inside that webview the same way it runs in Chrome.
+
+**[rangular](https://github.com/Interchouette-ITC/rangular)** still speaks DOM /
+wasm, not egui / iced / GTK.
 
 ```mermaid
 flowchart TB
@@ -161,11 +169,9 @@ flowchart TB
   end
 ```
 
-No Tauri-specific crate in this repo today. If your frontend already works under
-Trunk, you are most of the way there.
+A Tauri demo that reuses the fixture panels is planned for this repository.
 
 ## Working on this repo
-
 
 ```bash
 make check   # cargo check --workspace
