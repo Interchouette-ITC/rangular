@@ -89,8 +89,9 @@ Teaching fixtures:
 `Registry` stores input / output names per tag (`app-io-child`, `app-chrome-header`).
 [`classify_bindings`](../crates/rangular-parser/src/component_io.rs) rewrites matching
 `[prop]` / `(event)` into `Input` / `Output` attrs. AOT emits hyphenated tags as
-`div[data-rangular-component=…]` host shells; runtime snapshots use `input:` /
-`output:` labels. Full view-fn composition remains a follow-up.
+`div[data-rangular-component=…]` host shells with `data-input-*` /
+`data-output-*` attrs; runtime snapshots use `input:` / `output:` labels.
+Full view-fn composition remains a follow-up.
 
 ### Control flow
 

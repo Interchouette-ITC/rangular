@@ -252,17 +252,16 @@ fn lower_one_attr(attr: &Attr, st: &TokenStream) -> TokenStream {
                 }},
             )
         }
-        Attr::Event { name, expr, .. } | Attr::Output { name, expr, .. } => {
-            lower_dom_or_output_event(name, expr, st)
+        Attr::Event { name, expr, .. } => lower_dom_event(name, expr, st),
+        Attr::Output { name, expr, .. } => {
+            let attr_name = format!("data-output-{name}");
+            let handler = rangular_parser::event_handler_name(expr);
+            static_attr(&attr_name, handler)
         }
     }
 }
 
-fn lower_dom_or_output_event(
-    name: &str,
-    expr: &rangular_expr::Expr,
-    st: &TokenStream,
-) -> TokenStream {
+fn lower_dom_event(name: &str, expr: &rangular_expr::Expr, st: &TokenStream) -> TokenStream {
     let handler = rangular_parser::event_handler_name(expr);
     let ex = expr_tokens(expr);
     event_attr(
