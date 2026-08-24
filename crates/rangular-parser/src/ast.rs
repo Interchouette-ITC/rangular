@@ -14,14 +14,24 @@ pub enum Node {
     Comment(String, Span),
     If(IfBlock),
     For(ForBlock),
-    /// Angular-shaped content projection (`<ng-content>`).
+    /// Angular-shaped content projection (`<ng-content>` / optional `select`).
     Projection(Projection),
+    /// Deferred fragment (`<ng-template #ref>…</ng-template>`).
+    NgTemplate(NgTemplate),
 }
 
-/// Default content projection slot (`<ng-content>` / optional `select`).
+/// Default or named content projection slot (`<ng-content>` / `select`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Projection {
     pub select: Option<String>,
+    pub span: Span,
+}
+
+/// Named template fragment stamped via `[ngTemplateOutlet]`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct NgTemplate {
+    pub name: String,
+    pub body: Vec<Node>,
     pub span: Span,
 }
 
@@ -73,6 +83,8 @@ pub enum Attr {
         expr: Expr,
         span: Span,
     },
+    /// Template reference variable (`#card` on `ng-template`).
+    Ref { name: String, span: Span },
 }
 
 #[derive(Clone, Debug, PartialEq)]

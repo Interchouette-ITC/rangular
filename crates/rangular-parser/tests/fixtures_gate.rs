@@ -13,6 +13,7 @@ const REQUIRED_FIXTURES: &[&str] = &[
     "html/io-parent.html",
     "html/pipes.html",
     "html/two-way.html",
+    "html/template-outlet.html",
     "components/item-list/item-list.html",
     "components/chrome-header/chrome-header.html",
     "components/color-field/color-field.html",
@@ -21,6 +22,8 @@ const REQUIRED_FIXTURES: &[&str] = &[
     "components/layout-shell/layout-shell.scss",
     "components/io-child/io-child.html",
     "components/io-child/io-child.scss",
+    "components/named-slots/named-slots.html",
+    "components/named-slots/named-slots.scss",
 ];
 
 #[test]
@@ -49,6 +52,9 @@ fn spec_mentions_fixture_gate_paths() {
         "EventPayload",
         "pipes",
         "two-way",
+        "named-slots",
+        "template-outlet",
+        "ngTemplateOutlet",
     ] {
         assert!(
             spec.contains(needle),

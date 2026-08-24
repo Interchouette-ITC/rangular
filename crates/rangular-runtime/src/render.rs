@@ -1,21 +1,14 @@
+use std::collections::HashMap;
+
 use rangular_expr::{eval_with_pipes, Expr, PipeRegistry};
 use rangular_host::{Host, Value};
 use rangular_parser::{
-    builtin_tag_io, classify_bindings, parse, Attr, Diagnostic, Element, ForBlock, IfBlock, Node,
-    Severity, Template,
+    builtin_tag_io, classify_bindings, collect_ng_templates, collect_projection_selects, parse,
+    template_outlet_ref, Attr, Diagnostic, Element, ForBlock, IfBlock, Node, Severity, Template,
 };
 
 use crate::error::{RenderResult, RuntimeIssue};
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum VNode {
-    Element {
-        tag: String,
-        attrs: Vec<(String, String)>,
-        children: Vec<Self>,
-    },
-    Text(String),
-}
+use crate::slots::{ProjectionBag, VNode};
 
 struct Frame {
     name: String,
@@ -27,7 +20,8 @@ struct Ctx<'a, H: Host> {
     pipes: &'a PipeRegistry,
     frames: Vec<Frame>,
     issues: Vec<RuntimeIssue>,
-    slot: &'a [VNode],
+    slots: &'a ProjectionBag,
+    templates: HashMap<String, Vec<Node>>,
 }
 
 /// Parse `source` then render. Parse errors become runtime issues; never panics on content.
@@ -44,10 +38,11 @@ pub fn interpret_with_pipes(
     host: &mut impl Host,
     pipes: &PipeRegistry,
 ) -> RenderResult {
-    interpret_with_slot_and_pipes(source, file, host, &[], pipes)
+    interpret_with_slots_and_pipes(source, file, host, &ProjectionBag::default(), pipes)
 }
 
-/// Like [`interpret`], inserting `slot` nodes at each `<ng-content>` projection.
+/// Like [`interpret`], inserting flat `slot` roots at default `<ng-content>`
+/// (and partitioning when the template has `select`).
 #[must_use]
 pub fn interpret_with_slot(
     source: &str,
@@ -81,7 +76,51 @@ pub fn interpret_with_slot_and_pipes(
         };
     }
     classify_bindings(&mut parsed.template, &builtin_tag_io());
-    let mut out = render_with_slot_and_pipes(&parsed.template, host, slot, pipes);
+    let selects = collect_projection_selects(&parsed.template.nodes);
+    let bag = ProjectionBag::from_flat(slot, &selects);
+    let mut out = render_with_slots_and_pipes(&parsed.template, host, &bag, pipes);
+    issues.append(&mut out.issues);
+    RenderResult {
+        nodes: out.nodes,
+        issues,
+    }
+}
+
+/// Interpret with an explicit named/default projection bag.
+#[must_use]
+pub fn interpret_with_slots(
+    source: &str,
+    file: &str,
+    host: &mut impl Host,
+    slots: &ProjectionBag,
+) -> RenderResult {
+    interpret_with_slots_and_pipes(source, file, host, slots, PipeRegistry::builtins())
+}
+
+/// Like [`interpret_with_slots`] with an explicit [`PipeRegistry`].
+#[must_use]
+pub fn interpret_with_slots_and_pipes(
+    source: &str,
+    file: &str,
+    host: &mut impl Host,
+    slots: &ProjectionBag,
+    pipes: &PipeRegistry,
+) -> RenderResult {
+    let mut parsed = parse(source, file);
+    let mut issues: Vec<RuntimeIssue> = parsed
+        .diagnostics
+        .iter()
+        .filter(|d| d.severity == Severity::Error)
+        .map(diag_issue)
+        .collect();
+    if !issues.is_empty() {
+        return RenderResult {
+            nodes: Vec::new(),
+            issues,
+        };
+    }
+    classify_bindings(&mut parsed.template, &builtin_tag_io());
+    let mut out = render_with_slots_and_pipes(&parsed.template, host, slots, pipes);
     issues.append(&mut out.issues);
     RenderResult {
         nodes: out.nodes,
@@ -95,7 +134,7 @@ pub fn render(template: &Template, host: &mut impl Host) -> RenderResult {
     render_with_slot(template, host, &[])
 }
 
-/// Interpret `template`, projecting `slot` at each `<ng-content>`.
+/// Interpret `template`, projecting flat `slot` roots (partitioned if needed).
 #[must_use]
 pub fn render_with_slot(template: &Template, host: &mut impl Host, slot: &[VNode]) -> RenderResult {
     render_with_slot_and_pipes(template, host, slot, PipeRegistry::builtins())
@@ -109,15 +148,40 @@ pub fn render_with_slot_and_pipes(
     slot: &[VNode],
     pipes: &PipeRegistry,
 ) -> RenderResult {
+    let selects = collect_projection_selects(&template.nodes);
+    let bag = ProjectionBag::from_flat(slot, &selects);
+    render_with_slots_and_pipes(template, host, &bag, pipes)
+}
+
+/// Interpret with a prepared [`ProjectionBag`].
+#[must_use]
+pub fn render_with_slots(
+    template: &Template,
+    host: &mut impl Host,
+    slots: &ProjectionBag,
+) -> RenderResult {
+    render_with_slots_and_pipes(template, host, slots, PipeRegistry::builtins())
+}
+
+/// Like [`render_with_slots`] with an explicit [`PipeRegistry`].
+#[must_use]
+pub fn render_with_slots_and_pipes(
+    template: &Template,
+    host: &mut impl Host,
+    slots: &ProjectionBag,
+    pipes: &PipeRegistry,
+) -> RenderResult {
+    let templates: HashMap<String, Vec<Node>> =
+        collect_ng_templates(&template.nodes).into_iter().collect();
     let mut ctx = Ctx {
         host,
         pipes,
         frames: Vec::new(),
         issues: Vec::new(),
-        slot,
+        slots,
+        templates,
     };
     if template.nodes.is_empty() {
-        // Same code as AOT empty-template (`RANG401`) so parity compares agree.
         ctx.issues
             .push(RuntimeIssue::error("RANG401", "empty template"));
         return RenderResult {
@@ -145,16 +209,31 @@ fn render_nodes<H: Host>(nodes: &[Node], ctx: &mut Ctx<'_, H>) -> Vec<VNode> {
 
 fn render_node<H: Host>(node: &Node, ctx: &mut Ctx<'_, H>) -> Vec<VNode> {
     match node {
-        Node::Element(el) => vec![render_element(el, ctx)],
+        Node::Element(el) => {
+            if let Some(name) = template_outlet_ref(&el.attrs) {
+                return stamp_template(name, ctx);
+            }
+            if el.tag == "ng-container" {
+                return render_nodes(&el.children, ctx);
+            }
+            vec![render_element(el, ctx)]
+        }
         Node::Text(text, _) => vec![VNode::Text(text.clone())],
         Node::Interpolation(expr, _) => {
             vec![VNode::Text(display_value(&eval_expr(expr, ctx)))]
         }
-        Node::Comment(_, _) => Vec::new(),
-        Node::Projection(_) => ctx.slot.to_vec(),
+        Node::Comment(_, _) | Node::NgTemplate(_) => Vec::new(),
+        Node::Projection(proj) => ctx.slots.for_select(proj.select.as_deref()).to_vec(),
         Node::If(block) => render_if(block, ctx),
         Node::For(block) => render_for(block, ctx),
     }
+}
+
+fn stamp_template<H: Host>(name: &str, ctx: &mut Ctx<'_, H>) -> Vec<VNode> {
+    let Some(body) = ctx.templates.get(name).cloned() else {
+        return Vec::new();
+    };
+    render_nodes(&body, ctx)
 }
 
 fn render_element<H: Host>(el: &Element, ctx: &mut Ctx<'_, H>) -> VNode {
@@ -183,6 +262,8 @@ fn render_attrs<H: Host>(attrs: &[Attr], ctx: &mut Ctx<'_, H>) -> Vec<(String, S
             Attr::Static {
                 name, value: None, ..
             } => out.push((name.clone(), String::new())),
+            Attr::Ref { .. } => {}
+            Attr::Property { name, .. } if name == "ngTemplateOutlet" => {}
             Attr::Property { name, expr, .. } if name == "disabled" => {
                 let disabled = match eval_expr(expr, ctx) {
                     Value::Bool(b) => b,

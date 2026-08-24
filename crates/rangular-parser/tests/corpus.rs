@@ -135,6 +135,40 @@ fn two_way_desugars_to_property_and_input_event() {
 }
 
 #[test]
+fn named_slots_parse_select() {
+    let path = fixture_root().join("components/named-slots/named-slots.html");
+    let src = std::fs::read_to_string(path).unwrap();
+    let parsed = parse(&src, "named-slots.html");
+    assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+    let selects = rangular_parser::collect_projection_selects(&parsed.template.nodes);
+    assert_eq!(selects, vec![".header".to_owned()]);
+    assert!(rangular_parser::has_default_projection(
+        &parsed.template.nodes
+    ));
+}
+
+#[test]
+fn template_outlet_parses_ref() {
+    let path = fixture_root().join("html/template-outlet.html");
+    let src = std::fs::read_to_string(path).unwrap();
+    let parsed = parse(&src, "template-outlet.html");
+    assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+    let section = parsed
+        .template
+        .nodes
+        .iter()
+        .find_map(|n| match n {
+            Node::Element(el) if el.tag == "section" => Some(el),
+            _ => None,
+        })
+        .expect("section");
+    assert!(section
+        .children
+        .iter()
+        .any(|c| { matches!(c, Node::NgTemplate(t) if t.name == "card") }));
+}
+
+#[test]
 fn garbage_input_never_panics() {
     for sample in [
         "<<<>",

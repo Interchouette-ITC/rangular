@@ -29,6 +29,13 @@ pub enum IrNode {
     Projection {
         has_select: bool,
     },
+    NgTemplate {
+        name: String,
+        body: Vec<Self>,
+    },
+    TemplateOutlet {
+        name: String,
+    },
 }
 
 /// Attribute / event binding kind on an element (no evaluated values).
@@ -64,10 +71,19 @@ fn from_node(node: &Node) -> Option<IrNode> {
         Node::Projection(proj) => Some(IrNode::Projection {
             has_select: proj.select.is_some(),
         }),
+        Node::NgTemplate(t) => Some(IrNode::NgTemplate {
+            name: t.name.clone(),
+            body: from_nodes(&t.body),
+        }),
     }
 }
 
 fn from_element(el: &Element) -> IrNode {
+    if let Some(name) = crate::projection::template_outlet_ref(&el.attrs) {
+        return IrNode::TemplateOutlet {
+            name: name.to_owned(),
+        };
+    }
     let children = if el.self_closing {
         Vec::new()
     } else {
@@ -75,7 +91,21 @@ fn from_element(el: &Element) -> IrNode {
     };
     IrNode::Element {
         tag: el.tag.clone(),
-        bindings: el.attrs.iter().map(from_attr).collect(),
+        bindings: el
+            .attrs
+            .iter()
+            .filter(|a| !matches!(a, Attr::Ref { .. }))
+            .filter(|a| {
+                !matches!(
+                    a,
+                    Attr::Property {
+                        name,
+                        ..
+                    } if name == "ngTemplateOutlet"
+                )
+            })
+            .map(from_attr)
+            .collect(),
         children,
     }
 }
@@ -94,6 +124,9 @@ fn from_attr(attr: &Attr) -> IrBinding {
         Attr::Output { name, expr, .. } => IrBinding::Output {
             name: name.clone(),
             handler: event_handler_name(expr).to_owned(),
+        },
+        Attr::Ref { name, .. } => IrBinding::Static {
+            name: format!("#{name}"),
         },
     }
 }
@@ -223,6 +256,21 @@ fn write_node(node: &IrNode, depth: usize, out: &mut String) {
             if *has_select {
                 out.push_str(" select");
             }
+            out.push('\n');
+        }
+        IrNode::NgTemplate { name, body } => {
+            out.push_str(&pad);
+            out.push_str("ng-template #");
+            out.push_str(name);
+            out.push('\n');
+            for child in body {
+                write_node(child, depth + 1, out);
+            }
+        }
+        IrNode::TemplateOutlet { name } => {
+            out.push_str(&pad);
+            out.push_str("ngTemplateOutlet:");
+            out.push_str(name);
             out.push('\n');
         }
     }

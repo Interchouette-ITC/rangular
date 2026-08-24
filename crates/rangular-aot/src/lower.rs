@@ -1,6 +1,11 @@
+use std::collections::HashMap;
+
 use proc_macro2::{Literal, Punct, Spacing, TokenStream, TokenTree};
 use quote::{format_ident, quote};
-use rangular_parser::{Attr, Element, ForBlock, IfBlock, Node, Template};
+use rangular_parser::{
+    collect_ng_templates, collect_projection_selects, has_default_projection, select_param_name,
+    template_outlet_ref, Attr, Element, ForBlock, IfBlock, Node, Projection, Template,
+};
 
 use crate::error::{AotIssue, EmitResult, EmitTokens};
 use crate::expr_quote::expr_tokens;
@@ -50,21 +55,44 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
             issues,
         };
     }
+    let templates: HashMap<String, Vec<Node>> =
+        collect_ng_templates(&template.nodes).into_iter().collect();
     let scope = Scope::root();
-    let Some(body) = lower_nodes(&template.nodes, &mut issues, &scope) else {
+    let Some(body) = lower_nodes(&template.nodes, &mut issues, &scope, &templates) else {
         return EmitTokens {
             tokens: proc_macro2::TokenStream::new(),
             issues,
         };
     };
     let ident = format_ident!("{fn_name}");
-    let with_slot = has_projection(&template.nodes);
-    let tokens = if with_slot {
+    let selects = collect_projection_selects(&template.nodes);
+    let has_default = has_default_projection(&template.nodes);
+    let tokens = if selects.is_empty() && has_projection(&template.nodes) {
+        // Default-only `<ng-content>`: keep single `children` (AppRoot habit).
         quote! {
             #[allow(clippy::needless_pass_by_value, clippy::redundant_clone)]
             pub fn #ident<H: rangular_host::Host + 'static>(
                 host: rangular_aot::HostCell<H>,
                 children: Children,
+            ) -> impl IntoView {
+                let _ = &host;
+                view! { #body }
+            }
+        }
+    } else if !selects.is_empty() {
+        let mut params = Vec::new();
+        for select in &selects {
+            let pname = format_ident!("{}", select_param_name(select));
+            params.push(quote! { #pname: Children });
+        }
+        if has_default {
+            params.push(quote! { children: Children });
+        }
+        quote! {
+            #[allow(clippy::needless_pass_by_value, clippy::redundant_clone)]
+            pub fn #ident<H: rangular_host::Host + 'static>(
+                host: rangular_aot::HostCell<H>,
+                #(#params),*
             ) -> impl IntoView {
                 let _ = &host;
                 view! { #body }
@@ -88,6 +116,7 @@ fn has_projection(nodes: &[Node]) -> bool {
     nodes.iter().any(|node| match node {
         Node::Projection(_) => true,
         Node::Element(el) => has_projection(&el.children),
+        Node::NgTemplate(t) => has_projection(&t.body),
         Node::If(block) => {
             has_projection(&block.then_branch)
                 || block
@@ -104,18 +133,20 @@ fn lower_nodes(
     nodes: &[Node],
     issues: &mut Vec<AotIssue>,
     scope: &Scope<'_>,
+    templates: &HashMap<String, Vec<Node>>,
 ) -> Option<TokenStream> {
     if nodes.is_empty() {
         return Some(quote! {});
     }
     let parts: Vec<_> = nodes
         .iter()
-        .filter_map(|node| lower_node(node, issues, scope))
+        .filter_map(|node| lower_node(node, issues, scope, templates))
         .collect();
     if parts.is_empty() {
-        // Only omitted nodes (comments): still a valid empty fragment.
-        // Bare `<ng-content>` lowers to `{children()}` and is not omitted.
-        if nodes.iter().all(|n| matches!(n, Node::Comment(_, _))) {
+        if nodes
+            .iter()
+            .all(|n| matches!(n, Node::Comment(_, _) | Node::NgTemplate(_)))
+        {
             return Some(quote! {});
         }
         issues.push(AotIssue::error("RANG401", "no lowerable template nodes"));
@@ -124,9 +155,14 @@ fn lower_nodes(
     Some(quote! { #(#parts)* })
 }
 
-fn lower_node(node: &Node, issues: &mut Vec<AotIssue>, scope: &Scope<'_>) -> Option<TokenStream> {
+fn lower_node(
+    node: &Node,
+    issues: &mut Vec<AotIssue>,
+    scope: &Scope<'_>,
+    templates: &HashMap<String, Vec<Node>>,
+) -> Option<TokenStream> {
     match node {
-        Node::Element(el) => lower_element(el, issues, scope),
+        Node::Element(el) => lower_element(el, issues, scope, templates),
         Node::Text(text, _) => Some(quote! { #text }),
         Node::Interpolation(expr, _) => {
             let ex = expr_tokens(expr);
@@ -136,10 +172,16 @@ fn lower_node(node: &Node, issues: &mut Vec<AotIssue>, scope: &Scope<'_>) -> Opt
                 move || host.prop_str_scoped(&#ex, #st)
             }})
         }
-        Node::Comment(_, _) => None,
-        Node::Projection(_) => Some(quote! { {children()} }),
-        Node::If(block) => lower_if(block, issues, scope),
-        Node::For(block) => lower_for(block, issues),
+        Node::Comment(_, _) | Node::NgTemplate(_) => None,
+        Node::Projection(Projection { select, .. }) => select.as_ref().map_or_else(
+            || Some(quote! { {children()} }),
+            |sel| {
+                let pname = format_ident!("{}", select_param_name(sel));
+                Some(quote! { {#pname()} })
+            },
+        ),
+        Node::If(block) => lower_if(block, issues, scope, templates),
+        Node::For(block) => lower_for(block, issues, templates),
     }
 }
 
@@ -147,13 +189,25 @@ fn lower_element(
     el: &Element,
     issues: &mut Vec<AotIssue>,
     scope: &Scope<'_>,
+    templates: &HashMap<String, Vec<Node>>,
 ) -> Option<TokenStream> {
+    if let Some(name) = template_outlet_ref(&el.attrs) {
+        let Some(body) = templates.get(name) else {
+            issues.push(AotIssue::error(
+                "RANG401",
+                format!("unknown ngTemplateOutlet ref `{name}`"),
+            ));
+            return None;
+        };
+        return lower_nodes(body, issues, scope, templates);
+    }
+    if el.tag == "ng-container" {
+        return lower_nodes(&el.children, issues, scope, templates);
+    }
     let attrs = lower_attrs(&el.attrs, scope);
-    let children = lower_children(&el.children, el.self_closing, issues, scope)?;
+    let children = lower_children(&el.children, el.self_closing, issues, scope, templates)?;
     if el.tag.contains('-') {
         let tag_lit = el.tag.as_str();
-        // Hyphenated component tags are not valid Rust idents; emit a host div
-        // that preserves the tag name for runtime/CSS hooks.
         if el.self_closing {
             Some(quote! {
                 <div data-rangular-component=#tag_lit #attrs />
@@ -178,17 +232,30 @@ fn lower_children(
     self_closing: bool,
     issues: &mut Vec<AotIssue>,
     scope: &Scope<'_>,
+    templates: &HashMap<String, Vec<Node>>,
 ) -> Option<TokenStream> {
     if self_closing {
         return Some(quote! {});
     }
-    lower_nodes(children, issues, scope)
+    lower_nodes(children, issues, scope, templates)
 }
 
 fn lower_attrs(attrs: &[Attr], scope: &Scope<'_>) -> TokenStream {
     let mut tokens = Vec::new();
     let st = scope.scope_tokens();
     for attr in attrs {
+        if matches!(attr, Attr::Ref { .. }) {
+            continue;
+        }
+        if matches!(
+            attr,
+            Attr::Property {
+                name,
+                ..
+            } if name == "ngTemplateOutlet"
+        ) {
+            continue;
+        }
         tokens.push(lower_one_attr(attr, &st));
     }
     if tokens.is_empty() {
@@ -258,6 +325,7 @@ fn lower_one_attr(attr: &Attr, st: &TokenStream) -> TokenStream {
             let handler = rangular_parser::event_handler_name(expr);
             static_attr(&attr_name, handler)
         }
+        Attr::Ref { .. } => quote! {},
     }
 }
 
@@ -288,12 +356,17 @@ fn lower_dom_event(name: &str, expr: &rangular_expr::Expr, st: &TokenStream) -> 
     )
 }
 
-fn lower_if(block: &IfBlock, issues: &mut Vec<AotIssue>, scope: &Scope<'_>) -> Option<TokenStream> {
+fn lower_if(
+    block: &IfBlock,
+    issues: &mut Vec<AotIssue>,
+    scope: &Scope<'_>,
+    templates: &HashMap<String, Vec<Node>>,
+) -> Option<TokenStream> {
     let cond = expr_tokens(&block.cond);
     let st = scope.scope_tokens();
-    let then_view = lower_nodes(&block.then_branch, issues, scope)?;
+    let then_view = lower_nodes(&block.then_branch, issues, scope, templates)?;
     if let Some(else_branch) = &block.else_branch {
-        let else_view = lower_nodes(else_branch, issues, scope)?;
+        let else_view = lower_nodes(else_branch, issues, scope, templates)?;
         Some(quote! {{
             let host = host.clone();
             move || {
@@ -316,12 +389,16 @@ fn lower_if(block: &IfBlock, issues: &mut Vec<AotIssue>, scope: &Scope<'_>) -> O
     }
 }
 
-fn lower_for(block: &ForBlock, issues: &mut Vec<AotIssue>) -> Option<TokenStream> {
+fn lower_for(
+    block: &ForBlock,
+    issues: &mut Vec<AotIssue>,
+    templates: &HashMap<String, Vec<Node>>,
+) -> Option<TokenStream> {
     let iter = expr_tokens(&block.iter);
     let item_name = block.item.as_str();
     let item_ident = format_ident!("{}", item_name);
     let scope = Scope::with_loop_item(item_name);
-    let body = lower_nodes(&block.body, issues, &scope)?;
+    let body = lower_nodes(&block.body, issues, &scope, templates)?;
     let st = scope.scope_tokens();
     let key = block.track.as_ref().map_or_else(
         || quote! { |#item_ident| #item_ident.clone() },

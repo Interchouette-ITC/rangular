@@ -67,6 +67,7 @@ fn classify_nodes<S: ::std::hash::BuildHasher>(
                 }
             }
             Node::For(block) => classify_nodes(&mut block.body, tags),
+            Node::NgTemplate(t) => classify_nodes(&mut t.body, tags),
             Node::Text(_, _)
             | Node::Interpolation(_, _)
             | Node::Comment(_, _)
