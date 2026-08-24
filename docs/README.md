@@ -4,8 +4,9 @@
   <img src="assets/logo-128.png" alt="rangular mark" width="96" height="96" />
 </p>
 
-Start at the [root README](../README.md) for a friendly overview. This folder
-holds the contract and contributor habits.
+Start at the [root README](../README.md) for a friendly overview, including how
+to depend on git `dev` until crates.io. This folder holds the contract and
+contributor habits.
 
 | Doc | What it is |
 | --- | --- |

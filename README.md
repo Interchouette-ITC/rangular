@@ -56,21 +56,72 @@ flowchart LR
   leptos --> dom
 ```
 
-| Piece | Role today |
-| ----- | ---------- |
-| Language | v0.1 contract in [`docs/SPEC.md`](docs/SPEC.md) |
-| Parser / expr / host | Core subset |
-| AOT | `rangular-aot` + `rangular-macros` |
-| Runtime | `rangular-runtime` (parity / tooling) |
-| SCSS | `rangular-css` (`compile_scss` or encapsulate; Bootstrap utilities stay global) |
-| Registry | Panel tags + typed `provide` / `inject` |
-| Growth | Fixture corpus in [`tests/fixtures/`](tests/fixtures/) |
+| Piece                | Role today                                                                      |
+| -------------------- | ------------------------------------------------------------------------------- |
+| Language             | v0.1 contract in [`docs/SPEC.md`](docs/SPEC.md)                                 |
+| Parser / expr / host | Core subset                                                                     |
+| AOT                  | `rangular-aot` + `rangular-macros`                                              |
+| Runtime              | `rangular-runtime` (parity / tooling)                                           |
+| SCSS                 | `rangular-css` (`compile_scss` or encapsulate; Bootstrap utilities stay global) |
+| Registry             | Panel tags + typed `provide` / `inject`                                         |
+| Growth               | Fixture corpus in [`tests/fixtures/`](tests/fixtures/)                          |
 
 Honest subset, not full Angular. New syntax lands through fixtures and semver.
 Unsupported input yields `RANG*` diagnostics; templates must never panic the process.
 
+## Use it in your project
 
-## Goals
+Not on [crates.io](https://crates.io/) yet. Until then, depend on git `dev`
+(or a sibling path checkout). You need a [Leptos](https://leptos.dev/) CSR app
+(Trunk / wasm) and a `build.rs` that compiles each panel.
+
+### Cargo (git)
+
+```toml
+[dependencies]
+leptos = { version = "0.8", features = ["csr"] }
+rangular-aot = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
+rangular-host = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
+
+[build-dependencies]
+rangular-aot = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
+rangular-css = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
+```
+
+Pin a commit with `rev = "…"` when you want a frozen tree. A local clone works
+the same way:
+
+```toml
+rangular-aot = { path = "../rangular/crates/rangular-aot" }
+rangular-css = { path = "../rangular/crates/rangular-css" }
+rangular-host = { path = "../rangular/crates/rangular-host" }
+```
+
+### Panels
+
+Keep one folder per panel (`seed_bar.html` + `seed_bar.scss` + a Rust host). In
+`build.rs`, compile HTML with `rangular_aot::compile_named` and SCSS with
+`rangular_css::compile_scss` (flat CSS for Leptos CSR). Write the AOT Rust to
+`OUT_DIR/rangular/{fn_name}.rs`.
+
+```rust
+let aot = rangular_aot::compile_named(&html, "src/components/seed_bar/seed_bar.html", "seed_bar_view");
+std::fs::write(out_dir.join("seed_bar_view.rs"), &aot.code)?;
+```
+
+In the panel module, `include!` that file, implement `rangular_host::Host`, wrap
+state in `HostCell`, and call the generated view:
+
+```rust
+include!(concat!(env!("OUT_DIR"), "/rangular/seed_bar_view.rs"));
+
+let host = HostCell::new(SeedBarHost { /* signals */ });
+seed_bar_view(host)
+```
+
+Language details: [`docs/SPEC.md`](docs/SPEC.md). Layout of fixtures:
+[`tests/fixtures/README.md`](tests/fixtures/README.md).
+
 
 | Goal               | Approach                                               |
 | ------------------ | ------------------------------------------------------ |
@@ -113,7 +164,8 @@ flowchart TB
 No Tauri-specific crate in this repo today. If your frontend already works under
 Trunk, you are most of the way there.
 
-## Quick start
+## Working on this repo
+
 
 ```bash
 make check   # cargo check --workspace
