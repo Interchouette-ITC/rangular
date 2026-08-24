@@ -1,4 +1,4 @@
-use rangular_parser::{parse, Diagnostic};
+use rangular_parser::{builtin_tag_io, classify_bindings, parse, Diagnostic};
 
 use crate::error::{AotIssue, EmitResult, EmitTokens};
 use crate::lower::{emit_rust, emit_rust_tokens};
@@ -10,7 +10,7 @@ pub fn compile(source: &str, fn_name: &str) -> EmitResult {
 
 #[must_use]
 pub fn compile_named(source: &str, file: &str, fn_name: &str) -> EmitResult {
-    let parsed = parse(source, file);
+    let mut parsed = parse(source, file);
     let mut issues: Vec<AotIssue> = parsed
         .diagnostics
         .iter()
@@ -23,6 +23,7 @@ pub fn compile_named(source: &str, file: &str, fn_name: &str) -> EmitResult {
             issues,
         };
     }
+    classify_bindings(&mut parsed.template, &builtin_tag_io());
     let mut out = emit_rust(&parsed.template, fn_name);
     issues.append(&mut out.issues);
     EmitResult {
@@ -38,7 +39,7 @@ pub fn compile_tokens(source: &str, fn_name: &str) -> EmitTokens {
 
 #[must_use]
 pub fn compile_tokens_named(source: &str, file: &str, fn_name: &str) -> EmitTokens {
-    let parsed = parse(source, file);
+    let mut parsed = parse(source, file);
     let issues: Vec<AotIssue> = parsed
         .diagnostics
         .iter()
@@ -51,6 +52,7 @@ pub fn compile_tokens_named(source: &str, file: &str, fn_name: &str) -> EmitToke
             issues,
         };
     }
+    classify_bindings(&mut parsed.template, &builtin_tag_io());
     emit_rust_tokens(&parsed.template, fn_name)
 }
 

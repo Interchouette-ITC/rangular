@@ -17,10 +17,11 @@ pub use snapshot::snapshot;
 /// Structural binding IR for `source` (shared with AOT parity).
 #[must_use]
 pub fn structural_ir(source: &str, file: &str) -> Option<(Vec<IrNode>, String)> {
-    let parsed = rangular_parser::parse(source, file);
+    let mut parsed = rangular_parser::parse(source, file);
     if !parsed.ok() {
         return None;
     }
+    rangular_parser::classify_bindings(&mut parsed.template, &rangular_parser::builtin_tag_io());
     let nodes = binding_ir(&parsed.template);
     let snap = binding_ir_snapshot(&nodes);
     Some((nodes, snap))

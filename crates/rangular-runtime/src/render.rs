@@ -1,7 +1,8 @@
 use rangular_expr::{eval, Expr};
 use rangular_host::{Host, Value};
 use rangular_parser::{
-    parse, Attr, Diagnostic, Element, ForBlock, IfBlock, Node, Severity, Template,
+    builtin_tag_io, classify_bindings, parse, Attr, Diagnostic, Element, ForBlock, IfBlock, Node,
+    Severity, Template,
 };
 
 use crate::error::{RenderResult, RuntimeIssue};
@@ -42,7 +43,7 @@ pub fn interpret_with_slot(
     host: &mut impl Host,
     slot: &[VNode],
 ) -> RenderResult {
-    let parsed = parse(source, file);
+    let mut parsed = parse(source, file);
     let mut issues: Vec<RuntimeIssue> = parsed
         .diagnostics
         .iter()
@@ -55,6 +56,7 @@ pub fn interpret_with_slot(
             issues,
         };
     }
+    classify_bindings(&mut parsed.template, &builtin_tag_io());
     let mut out = render_with_slot(&parsed.template, host, slot);
     issues.append(&mut out.issues);
     RenderResult {
@@ -166,6 +168,18 @@ fn render_attrs<H: Host>(attrs: &[Attr], ctx: &mut Ctx<'_, H>) -> Vec<(String, S
             Attr::Event { name, expr, .. } => {
                 out.push((
                     format!("on:{name}"),
+                    rangular_parser::event_handler_name(expr).to_owned(),
+                ));
+            }
+            Attr::Input { name, expr, .. } => {
+                out.push((
+                    format!("input:{name}"),
+                    display_value(&eval_expr(expr, ctx)),
+                ));
+            }
+            Attr::Output { name, expr, .. } => {
+                out.push((
+                    format!("output:{name}"),
                     rangular_parser::event_handler_name(expr).to_owned(),
                 ));
             }

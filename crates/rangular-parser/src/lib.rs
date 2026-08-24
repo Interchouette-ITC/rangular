@@ -1,4 +1,5 @@
 mod ast;
+mod component_io;
 mod diag;
 mod expr;
 mod ir;
@@ -6,6 +7,7 @@ mod parser;
 mod span;
 
 pub use ast::{Attr, Element, ForBlock, IfBlock, Node, Projection, Template};
+pub use component_io::{builtin_tag_io, classify_bindings, TagIo};
 pub use diag::{Diagnostic, Severity};
 pub use expr::{BinOp, Expr, Literal, UnOp};
 pub use ir::{

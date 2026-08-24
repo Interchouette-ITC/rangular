@@ -39,6 +39,8 @@ pub enum IrBinding {
     Attribute { name: String },
     Class { name: String },
     Event { event: String, handler: String },
+    Input { name: String },
+    Output { name: String, handler: String },
 }
 
 /// Lower a parsed template to structural IR (comments omitted).
@@ -86,6 +88,11 @@ fn from_attr(attr: &Attr) -> IrBinding {
         Attr::Class { name, .. } => IrBinding::Class { name: name.clone() },
         Attr::Event { name, expr, .. } => IrBinding::Event {
             event: name.clone(),
+            handler: event_handler_name(expr).to_owned(),
+        },
+        Attr::Input { name, .. } => IrBinding::Input { name: name.clone() },
+        Attr::Output { name, expr, .. } => IrBinding::Output {
+            name: name.clone(),
             handler: event_handler_name(expr).to_owned(),
         },
     }
@@ -242,6 +249,18 @@ fn write_binding(binding: &IrBinding, out: &mut String) {
         IrBinding::Event { event, handler } => {
             out.push_str("on:");
             out.push_str(event);
+            out.push('=');
+            out.push('"');
+            out.push_str(handler);
+            out.push('"');
+        }
+        IrBinding::Input { name } => {
+            out.push_str("input:");
+            out.push_str(name);
+        }
+        IrBinding::Output { name, handler } => {
+            out.push_str("output:");
+            out.push_str(name);
             out.push('=');
             out.push('"');
             out.push_str(handler);
