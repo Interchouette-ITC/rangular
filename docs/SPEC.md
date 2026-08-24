@@ -8,14 +8,15 @@ releases may remove or rename supported constructs only with a migration note.
 
 ## Scope
 
-| In scope                                       | Out of scope (v0.1)             |
-| ---------------------------------------------- | ------------------------------- |
-| Web DOM via Leptos CSR                         | Full Angular framework          |
-| External `.html` templates                     | Markup inside Rust controllers  |
-| Component `.scss` (compiled then encapsulated) | Pipes, i18n, NgModule           |
-| AOT (production default)                       | Claiming runtime parity in prod |
-| Runtime interpreter (tests/tooling)            | Native desktop GUI toolkits     |
-| Fixture-driven growth                          | Silent ignore of unknown syntax |
+| In scope                                       | Out of scope (v0.1)                                      |
+| ---------------------------------------------- | -------------------------------------------------------- |
+| Web DOM via Leptos CSR                         | Full Angular framework                                   |
+| External `.html` templates                     | Markup inside Rust controllers                           |
+| Component `.scss` (compiled then encapsulated) | Pipes, two-way banana `[(…)]`, named slots / `ng-template` |
+| AOT (production default)                       | i18n, NgModule, Angular DI                               |
+| Runtime interpreter (tests/tooling)            | Claiming runtime as the production path                  |
+| Fixture-driven growth                          | Native desktop GUI toolkits                              |
+| Default `<ng-content>`, `EventPayload`, Input/Output | Silent ignore of unknown syntax                    |
 
 **Desktop shells with a webview** (for example Tauri) are still the web path:
 the UI is Leptos CSR / wasm inside the webview. They are **not** a separate
@@ -69,14 +70,17 @@ Handler names resolve through the host `call` API. `$event` is a typed
 
 ### Content projection
 
-| Surface syntax        | Meaning                                      |
-| --------------------- | -------------------------------------------- |
-| `<ng-content></ng-content>` | Default projection slot (layout shells) |
+| Surface syntax              | Meaning                                      |
+| --------------------------- | -------------------------------------------- |
+| `<ng-content></ng-content>` | Default projection slot (layout shells)      |
 
 Fixture: [`tests/fixtures/components/layout-shell/`](../tests/fixtures/components/layout-shell/).
 AOT view factories that contain `<ng-content>` take a Leptos `Children` argument
 and insert `{children()}` at the slot. Runtime uses `interpret_with_slot` /
 `render_with_slot` to inject projected `VNode`s.
+
+**Not in v0.1:** `<ng-content select="…">`, `<ng-template #ref>`, or
+`ngTemplateOutlet`.
 
 ### Component Input / Output (growth)
 
@@ -109,8 +113,9 @@ Literals (string, number, bool), identifiers and dotted paths, unary `!`,
 binary `&&`, `||`, `==`, `!=`, parenthesis, and handler calls such as
 `togglePalette()` or `onColorInput($event)`.
 
-**Not in v0.1:** pipes, ternary, nullish coalescing, assignment, arbitrary
-method chains beyond what the host exposes.
+**Not in v0.1:** pipes (`{{ x | number }}`), ternary, nullish coalescing,
+assignment, two-way banana `[(…)]`, arbitrary method chains beyond what the
+host exposes.
 
 ## Reference template: color-field
 

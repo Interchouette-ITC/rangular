@@ -290,11 +290,19 @@ How to add fixtures: [`tests/fixtures/README.md`](tests/fixtures/README.md) and
 
 ## Roadmap
 
-- Keep AOT and runtime aligned on the fixture corpus
-- Grow the subset only when fixtures land
-- Content projection / slots for layout shells
-- Stronger host typing and event payloads
+Shipped on `dev` (fixture-backed):
+
+- [x] AOT and runtime aligned on the fixture corpus (parity / shared IR)
+- [x] Fixture gate for planned constructs (`REQUIRED_FIXTURES`)
+- [x] Default content projection (`<ng-content>`) for layout shells
+- [x] Typed `$event` / `EventPayload` on the Host
+- [x] Component Input / Output on registered tags
+
+Still future:
+
 - crates.io when the v0.1 surface is stable
+- Pipes, two-way banana `[(…)]`, named projection / `ng-template` (not in v0.1 yet)
+- Grow the subset only when fixtures land (habit stays)
 - **Other Rust UI targets?** Today AOT lowers only to Leptos. Separate
   backends for [Dioxus](https://dioxuslabs.com/), [egui](https://www.egui.rs/),
   and [iced](https://iced.rs/) are an open question: worth the maintenance cost
