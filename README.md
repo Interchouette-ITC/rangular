@@ -261,7 +261,25 @@ flowchart TB
   end
 ```
 
-A Tauri demo that reuses the fixture components is planned for this repository.
+### Browser demo (live)
+
+Try the fixture components in your browser:
+
+```bash
+make demo
+# → http://127.0.0.1:4180/
+```
+
+Docker (same SPA, nginx):
+
+```bash
+docker pull interchouette/rangular-demo:dev
+docker run --rm -p 8080:8080 interchouette/rangular-demo:dev
+```
+
+Live: https://rangular.interchouette.net/
+
+Details: [`demo/README.md`](demo/README.md).
 
 ## Working on this repo
 

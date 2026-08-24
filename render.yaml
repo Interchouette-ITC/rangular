@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: rangular-demo
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    dockerfilePath: docker/Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    domains:
+      - rangular.interchouette.net
+    autoDeploy: true

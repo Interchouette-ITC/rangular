@@ -1,0 +1,21 @@
+[package]
+name = "rangular-demo"
+description = "Browser demo for rangular (Leptos CSR + fixture components)"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+
+[dependencies]
+console_error_panic_hook = "0.1"
+js-sys = "0.3"
+leptos = { version = "0.8", features = ["csr"] }
+rangular-aot = { path = "../crates/rangular-aot" }
+rangular-expr = { path = "../crates/rangular-expr" }
+rangular-host = { path = "../crates/rangular-host" }
+wasm-bindgen = "0.2"
+web-sys = { version = "0.3", features = ["Window", "KeyboardEvent", "Event", "HtmlInputElement"] }
+
+[build-dependencies]
+rangular-aot = { path = "../crates/rangular-aot" }
+rangular-css = { path = "../crates/rangular-css" }
