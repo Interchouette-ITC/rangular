@@ -107,7 +107,7 @@ How to add fixtures: [`tests/fixtures/README.md`](tests/fixtures/README.md) and
 - Stronger host typing and event payloads
 - crates.io when the v0.1 surface is stable
 
-## Docs and brand
+## Docs
 
 <p align="center">
   <img src="docs/assets/logo-128.png" alt="rangular mark" width="72" height="72" />
@@ -116,11 +116,11 @@ How to add fixtures: [`tests/fixtures/README.md`](tests/fixtures/README.md) and
 - [`docs/SPEC.md`](docs/SPEC.md) - language contract (in / out of scope)
 - [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) - fixtures and PR habits
 - [`docs/README.md`](docs/README.md) - docs index and related projects
-- Logo assets: [`docs/assets/`](docs/assets/) (`logo.png`, `logo-256.png`, `logo-128.png`)
+- Logo files: [`docs/assets/`](docs/assets/) (`logo.png`, `logo-256.png`, `logo-128.png`)
 
-The mark pairs an Angular-shaped shield with [Ferris](https://rustacean.net/)
-for a friendly “Rust + familiar templates” signal. Use the sized PNGs in docs
-and READMEs; keep the full `logo.png` when you need print / hero resolution.
+The shield + [Ferris](https://rustacean.net/) mark is just a friendly project
+logo, not a product brand system. Use the sized PNGs in docs; keep `logo.png`
+when you need a larger version.
 
 ## License
 

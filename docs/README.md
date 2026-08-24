@@ -11,7 +11,7 @@ holds the contract and contributor habits.
 | --- | --- |
 | [`SPEC.md`](SPEC.md) | Language contract for **0.1.x** (what is in / out of scope) |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Fixtures, diagnostics, PR habits |
-| [`assets/`](assets/) | Brand marks (`logo.png`, `logo-256.png`, `logo-128.png`) |
+| [`assets/`](assets/) | Project logo (`logo.png`, `logo-256.png`, `logo-128.png`) |
 
 ## Scope in one glance
 
