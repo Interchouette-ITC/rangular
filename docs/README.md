@@ -17,8 +17,8 @@ contributor habits.
 
 - **In:** browser DOM via Leptos CSR / wasm, external `.html` + `.scss`, AOT by
   default, runtime for tests.
-- **Out (v0.1):** full Angular; named slots; i18n / NgModule / DI; **native
-  desktop GUI toolkits**.
+- **Out (v0.1):** full Angular; i18n / NgModule / DI; **native desktop GUI
+  toolkits**.
 
 A [Tauri](https://v2.tauri.app/) (or similar) **webview** still counts as the
 browser path: you ship the same wasm UI inside a desktop shell. That is not a

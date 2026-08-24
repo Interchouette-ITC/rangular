@@ -66,6 +66,30 @@ fn two_way_emits_leptos_view() {
 }
 
 #[test]
+fn named_slots_emits_slot_params() {
+    let html = include_str!("../../../tests/fixtures/components/named-slots/named-slots.html");
+    assert_emits(html, "named_slots_view", "named-slots");
+    let out = compile(html, "named_slots_view");
+    assert!(
+        out.code.contains("slot_header: Children") || out.code.contains("slot_header:Children"),
+        "expected slot_header param:\n{}",
+        out.code
+    );
+}
+
+#[test]
+fn template_outlet_emits_stamped_body() {
+    let html = include_str!("../../../tests/fixtures/html/template-outlet.html");
+    assert_emits(html, "template_outlet_view", "template-outlet");
+    let out = compile(html, "template_outlet_view");
+    assert!(
+        out.code.contains("card") || out.code.contains("label"),
+        "expected stamped template body:\n{}",
+        out.code
+    );
+}
+
+#[test]
 fn banana_hostcell_sets_via_dom_event() {
     use std::cell::RefCell;
     use std::rc::Rc;

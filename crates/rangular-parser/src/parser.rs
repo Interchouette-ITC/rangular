@@ -1,4 +1,4 @@
-use crate::ast::{Attr, Element, ForBlock, IfBlock, Node, Projection, Template};
+use crate::ast::{Attr, Element, ForBlock, IfBlock, NgTemplate, Node, Projection, Template};
 use crate::banana::{banana_event_name, banana_write_expr};
 use crate::diag::Diagnostic;
 use crate::expr::{parse_into, Expr};
@@ -128,6 +128,21 @@ impl<'a> Parser<'a> {
                 _ => None,
             });
             return Some(Node::Projection(Projection { select, span }));
+        }
+        if tag == "ng-template" {
+            let name = attrs.iter().find_map(|attr| match attr {
+                Attr::Ref { name, .. } => Some(name.clone()),
+                _ => None,
+            });
+            let Some(name) = name else {
+                self.error(span, "ng-template requires a #ref name");
+                return None;
+            };
+            return Some(Node::NgTemplate(NgTemplate {
+                name,
+                body: children,
+                span,
+            }));
         }
         let el = Element {
             tag,
@@ -368,6 +383,12 @@ impl<'a> Parser<'a> {
                 }
                 continue;
             }
+            if self.peek() == Some('#') {
+                if let Some(attr) = self.parse_ref_attr(attr_start) {
+                    attrs.push(attr);
+                }
+                continue;
+            }
             if self.peek() == Some('*') {
                 if let Some(directive) = self.parse_structural(attr_start) {
                     match directive {
@@ -495,6 +516,15 @@ impl<'a> Parser<'a> {
         Some(Attr::Event {
             name,
             expr,
+            span: Span::new(pos(start), pos(self.pos)),
+        })
+    }
+
+    fn parse_ref_attr(&mut self, start: usize) -> Option<Attr> {
+        self.bump(); // #
+        let name = self.read_attr_name()?;
+        Some(Attr::Ref {
+            name,
             span: Span::new(pos(start), pos(self.pos)),
         })
     }

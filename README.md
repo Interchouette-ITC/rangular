@@ -299,11 +299,11 @@ Shipped on `dev` (fixture-backed):
 - [x] Component Input / Output on registered tags
 - [x] Pipes (`uppercase`, `lowercase`, `number`, `json` + custom registry)
 - [x] Two-way banana `[(prop)]` (Host `get` / `set`)
+- [x] Named `<ng-content select>` + `ng-template` / `[ngTemplateOutlet]`
 
 Still future:
 
 - crates.io when the v0.1 surface is stable
-- Named projection / `ng-template` (not in v0.1 yet)
 - Grow the subset only when fixtures land (habit stays)
 - **Other Rust UI targets?** Today AOT lowers only to Leptos. Separate
   backends for [Dioxus](https://dioxuslabs.com/), [egui](https://www.egui.rs/),

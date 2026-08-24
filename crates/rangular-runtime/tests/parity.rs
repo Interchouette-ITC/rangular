@@ -577,6 +577,72 @@ fn two_way_runtime_snapshot() {
 }
 
 #[test]
+fn named_slots_partition_projection() {
+    let src =
+        std::fs::read_to_string(fixture_root().join("components/named-slots/named-slots.html"))
+            .unwrap();
+    let mut host = EmptyHost;
+    let slot = vec![
+        rangular_runtime::VNode::Element {
+            tag: "h1".into(),
+            attrs: vec![("class".into(), "header".into())],
+            children: vec![rangular_runtime::VNode::Text("Title".into())],
+        },
+        rangular_runtime::VNode::Element {
+            tag: "p".into(),
+            attrs: vec![],
+            children: vec![rangular_runtime::VNode::Text("Body".into())],
+        },
+    ];
+    let out = rangular_runtime::interpret_with_slot(&src, "named-slots.html", &mut host, &slot);
+    assert!(out.ok(), "{:?}", out.issues);
+    let snap = out.snapshot();
+    assert!(snap.contains("Title"), "{snap}");
+    assert!(snap.contains("Body"), "{snap}");
+    assert!(snap.contains("named-slots__header"), "{snap}");
+    assert!(compile(&src, "named_slots_view").ok());
+    let ir = rangular_aot::structural_ir(&src, "named-slots.html")
+        .unwrap()
+        .1;
+    assert!(ir.contains("ng-content select"), "{ir}");
+    let aot = compile(&src, "named_slots_view");
+    assert!(
+        aot.code.contains("slot_header")
+            && (aot.code.contains("children: Children") || aot.code.contains("children:Children")),
+        "expected named + default Children params:\n{}",
+        aot.code
+    );
+}
+
+#[test]
+fn template_outlet_stamps_fragment() {
+    struct LabelHost;
+
+    impl Host for LabelHost {
+        fn get(&self, name: &str) -> Option<Value> {
+            (name == "label").then(|| Value::Str("Card".into()))
+        }
+
+        fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+            Ok(Value::Unit)
+        }
+    }
+
+    let src = std::fs::read_to_string(fixture_root().join("html/template-outlet.html")).unwrap();
+    let mut host = LabelHost;
+    let out = interpret(&src, "template-outlet.html", &mut host);
+    assert!(out.ok(), "{:?}", out.issues);
+    let snap = out.snapshot();
+    assert!(snap.contains("Card"), "{snap}");
+    assert!(snap.contains("card"), "{snap}");
+    assert!(!snap.contains("ng-template"), "{snap}");
+    assert!(compile(&src, "template_outlet_view").ok());
+    let ir = binding_ir_snapshot(&binding_ir(&parse(&src, "template-outlet.html").template));
+    assert!(ir.contains("ng-template #card"), "{ir}");
+    assert!(ir.contains("ngTemplateOutlet:card"), "{ir}");
+}
+
+#[test]
 fn garbage_never_panics() {
     for sample in ["<<<>", "{{", "@if (", "<div *unknown=\"x\">"] {
         let aot = compile(sample, "broken");

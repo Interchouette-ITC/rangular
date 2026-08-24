@@ -12,11 +12,12 @@ releases may remove or rename supported constructs only with a migration note.
 | ---------------------------------------------- | -------------------------------------------------------- |
 | Web DOM via Leptos CSR                         | Full Angular framework                                   |
 | External `.html` templates                     | Markup inside Rust controllers                           |
-| Component `.scss` (compiled then encapsulated) | Named slots / `ng-template`                          |
+| Component `.scss` (compiled then encapsulated) | Full Angular forms / NgModel                         |
 | AOT (production default)                       | i18n, NgModule, Angular DI                               |
 | Runtime interpreter (tests/tooling)            | Claiming runtime as the production path                  |
 | Fixture-driven growth                          | Native desktop GUI toolkits                              |
-| Default `<ng-content>`, `EventPayload`, Input/Output, pipes, banana | Silent ignore of unknown syntax       |
+| Default + named `<ng-content>`, `EventPayload`, Input/Output, pipes, banana, `ng-template` outlet | Silent ignore of unknown syntax |
+
 
 **Desktop shells with a webview** (for example Tauri) are still the web path:
 the UI is Leptos CSR / wasm inside the webview. They are **not** a separate
@@ -84,17 +85,31 @@ Handler names resolve through the host `call` API. `$event` is a typed
 
 ### Content projection
 
-| Surface syntax              | Meaning                                      |
-| --------------------------- | -------------------------------------------- |
-| `<ng-content></ng-content>` | Default projection slot (layout shells)      |
+| Surface syntax                    | Meaning                                                         |
+| --------------------------------- | --------------------------------------------------------------- |
+| `<ng-content></ng-content>`       | Default projection slot                                         |
+| `<ng-content select="…">`         | Named slot; match projected roots (tag / `.class` / `[attr]`) |
 
-Fixture: [`tests/fixtures/components/layout-shell/`](../tests/fixtures/components/layout-shell/).
-AOT view factories that contain `<ng-content>` take a Leptos `Children` argument
-and insert `{children()}` at the slot. Runtime uses `interpret_with_slot` /
-`render_with_slot` to inject projected `VNode`s.
+Fixture (default): [`tests/fixtures/components/layout-shell/`](../tests/fixtures/components/layout-shell/).
+Fixture (named): [`tests/fixtures/components/named-slots/`](../tests/fixtures/components/named-slots/).
 
-**Not in v0.1:** `<ng-content select="…">`, `<ng-template #ref>`, or
-`ngTemplateOutlet`.
+Default-only templates keep a single Leptos `Children` argument. Templates with
+`select` take additional `Children` params named from the select
+(`.header` → `slot_header`) plus `children` for the default slot when present.
+Runtime partitions projected roots with [`ProjectionBag`](../crates/rangular-runtime/src/slots.rs).
+
+### `ng-template` and outlet
+
+| Surface syntax                         | Meaning                                      |
+| -------------------------------------- | -------------------------------------------- |
+| `<ng-template #ref>…</ng-template>`    | Named fragment; not rendered until stamped   |
+| `[ngTemplateOutlet]="ref"`             | Stamp that fragment (fixture syntax)         |
+
+Typically hosted on `<ng-container>`. Fixture:
+[`tests/fixtures/html/template-outlet.html`](../tests/fixtures/html/template-outlet.html).
+
+**Not in v0.1:** `@ContentChild` / `@ViewChild`, `ngProjectAs`, `*ngTemplateOutlet`
+micro-syntax (use `[ngTemplateOutlet]`).
 
 ### Component Input / Output (growth)
 
@@ -298,7 +313,8 @@ both success and expected unsupported cases.
 4. Parity tests require AOT and runtime to agree on in-subset fixtures.
 5. **Gate:** `rangular-parser` integration test `required_fixtures_exist` fails
    if a planned construct path is missing; SPEC must name the fixture paths for
-   `EventPayload`, `ng-content`, `layout-shell`, `io-child`, `pipes`, and `two-way`.
+   `EventPayload`, `ng-content`, `layout-shell`, `io-child`, `pipes`, `two-way`,
+   `named-slots`, and `template-outlet`.
 
 ## SemVer summary
 
