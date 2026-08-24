@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use proc_macro2::{Literal, Punct, Spacing, TokenStream, TokenTree};
 use quote::{format_ident, quote};
+use rangular_expr::Expr;
 use rangular_parser::{
     collect_ng_templates, collect_projection_selects, has_default_projection, select_param_name,
     template_outlet_ref, Attr, Element, ForBlock, IfBlock, Node, Projection, Template,
@@ -24,15 +25,122 @@ impl Scope<'_> {
             loop_item: Some(name),
         }
     }
+}
 
-    fn scope_tokens(&self) -> TokenStream {
-        self.loop_item.map_or_else(
-            || quote! { None, None },
-            |item| {
-                let id = format_ident!("{item}");
-                quote! { Some(#item), Some(#id.as_str()) }
-            },
-        )
+fn scope_args(scope: &Scope<'_>) -> TokenStream {
+    scope.loop_item.map_or_else(
+        || quote! { None, None },
+        |item| quote! { Some(#item), Some(__rangular_loop.as_str()) },
+    )
+}
+
+fn scoped_closure_body(scope: &Scope<'_>, invoke: &TokenStream) -> TokenStream {
+    scope.loop_item.map_or_else(
+        || quote! { move || #invoke },
+        |_item| {
+            quote! {
+                move || {
+                    let __rangular_loop = std::sync::Arc::clone(&__rangular_loop_store.get_value());
+                    #invoke
+                }
+            }
+        },
+    )
+}
+
+fn hoist_host_closure(
+    hoist: &mut HoistState,
+    scope: &Scope<'_>,
+    invoke: &TokenStream,
+) -> TokenStream {
+    let invoke = scoped_closure_body(scope, invoke);
+    hoist.hoist_closure(&invoke)
+}
+
+fn hoist_event_closure(
+    hoist: &mut HoistState,
+    scope: &Scope<'_>,
+    event_name: &str,
+    ev_ty: &TokenStream,
+    body: &TokenStream,
+) -> TokenStream {
+    let ev = if event_name == "error" {
+        format_ident!("_ev")
+    } else {
+        format_ident!("ev")
+    };
+    let closure = scope.loop_item.map_or_else(
+        || {
+            quote! {
+                move |#ev: #ev_ty| {
+                    #body
+                }
+            }
+        },
+        |_item| {
+            quote! {
+                move |#ev: #ev_ty| {
+                    let __rangular_loop = std::sync::Arc::clone(&__rangular_loop_store.get_value());
+                    #body
+                }
+            }
+        },
+    );
+    hoist.hoist_closure(&closure)
+}
+
+struct HoistState {
+    expr_lets: Vec<TokenStream>,
+    closure_lets: Vec<TokenStream>,
+}
+
+impl HoistState {
+    const fn new() -> Self {
+        Self {
+            expr_lets: Vec::new(),
+            closure_lets: Vec::new(),
+        }
+    }
+
+    fn prelude(&self) -> TokenStream {
+        let expr_lets = &self.expr_lets;
+        let closure_lets = &self.closure_lets;
+        quote! {
+            #(#expr_lets)*
+            #(#closure_lets)*
+        }
+    }
+
+    fn hoist_expr(&mut self, expr: &Expr) -> TokenStream {
+        let n = self.expr_lets.len();
+        let id = format_ident!("__rangular_e{n}");
+        let init = expr_tokens(expr);
+        self.expr_lets.push(quote! {
+            let #id: &'static rangular_expr::Expr = Box::leak(Box::new(#init));
+        });
+        quote! { #id }
+    }
+
+    fn hoist_closure(&mut self, closure: &TokenStream) -> TokenStream {
+        let n = self.closure_lets.len();
+        let id = format_ident!("__rangular_f{n}");
+        let closure = closure.clone();
+        self.closure_lets.push(quote! {
+            let #id = leptos::prelude::StoredValue::new(std::sync::Arc::new({
+                let host = host.clone();
+                #closure
+            }));
+        });
+        quote! { #id }
+    }
+
+    fn hoist_view_closure(&mut self, view: &TokenStream) -> TokenStream {
+        let n = self.closure_lets.len();
+        let id = format_ident!("__rangular_f{n}");
+        self.closure_lets.push(quote! {
+            let #id = leptos::prelude::StoredValue::new(std::sync::Arc::new(move || view! { #view }));
+        });
+        quote! { #id }
     }
 }
 
@@ -58,23 +166,26 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
     let templates: HashMap<String, Vec<Node>> =
         collect_ng_templates(&template.nodes).into_iter().collect();
     let scope = Scope::root();
-    let Some(body) = lower_nodes(&template.nodes, &mut issues, &scope, &templates) else {
+    let mut hoist = HoistState::new();
+    let Some(body) = lower_nodes(&template.nodes, &mut issues, &scope, &templates, &mut hoist)
+    else {
         return EmitTokens {
             tokens: proc_macro2::TokenStream::new(),
             issues,
         };
     };
+    let prelude = hoist.prelude();
     let ident = format_ident!("{fn_name}");
     let selects = collect_projection_selects(&template.nodes);
     let has_default = has_default_projection(&template.nodes);
     let tokens = if selects.is_empty() && has_projection(&template.nodes) {
-        // Default-only `<ng-content>`: keep single `children` (AppRoot habit).
         quote! {
             #[allow(clippy::needless_pass_by_value, clippy::redundant_clone)]
             pub fn #ident<H: rangular_host::Host + 'static>(
                 host: rangular_aot::HostCell<H>,
                 children: Children,
             ) -> impl IntoView {
+                #prelude
                 let _ = &host;
                 view! { #body }
             }
@@ -94,6 +205,7 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
                 host: rangular_aot::HostCell<H>,
                 #(#params),*
             ) -> impl IntoView {
+                #prelude
                 let _ = &host;
                 view! { #body }
             }
@@ -104,6 +216,7 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
             pub fn #ident<H: rangular_host::Host + 'static>(
                 host: rangular_aot::HostCell<H>,
             ) -> impl IntoView {
+                #prelude
                 let _ = &host;
                 view! { #body }
             }
@@ -134,13 +247,14 @@ fn lower_nodes(
     issues: &mut Vec<AotIssue>,
     scope: &Scope<'_>,
     templates: &HashMap<String, Vec<Node>>,
+    hoist: &mut HoistState,
 ) -> Option<TokenStream> {
     if nodes.is_empty() {
         return Some(quote! {});
     }
     let parts: Vec<_> = nodes
         .iter()
-        .filter_map(|node| lower_node(node, issues, scope, templates))
+        .filter_map(|node| lower_node(node, issues, scope, templates, hoist))
         .collect();
     if parts.is_empty() {
         if nodes
@@ -160,17 +274,20 @@ fn lower_node(
     issues: &mut Vec<AotIssue>,
     scope: &Scope<'_>,
     templates: &HashMap<String, Vec<Node>>,
+    hoist: &mut HoistState,
 ) -> Option<TokenStream> {
     match node {
-        Node::Element(el) => lower_element(el, issues, scope, templates),
-        Node::Text(text, _) => Some(quote! { #text }),
+        Node::Element(el) => lower_element(el, issues, scope, templates, hoist),
+        Node::Text(text, _) => {
+            let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
+            Some(quote! { #collapsed })
+        }
         Node::Interpolation(expr, _) => {
-            let ex = expr_tokens(expr);
-            let st = scope.scope_tokens();
-            Some(quote! {{
-                let host = host.clone();
-                move || host.prop_str_scoped(&#ex, #st)
-            }})
+            let ex = hoist.hoist_expr(expr);
+            let args = scope_args(scope);
+            let read =
+                hoist_host_closure(hoist, scope, &quote! { host.prop_str_scoped(#ex, #args) });
+            Some(quote! { {move || #read.get_value()()} })
         }
         Node::Comment(_, _) | Node::NgTemplate(_) => None,
         Node::Projection(Projection { select, .. }) => select.as_ref().map_or_else(
@@ -180,8 +297,8 @@ fn lower_node(
                 Some(quote! { {#pname()} })
             },
         ),
-        Node::If(block) => lower_if(block, issues, scope, templates),
-        Node::For(block) => lower_for(block, issues, templates),
+        Node::If(block) => lower_if(block, issues, scope, templates, hoist),
+        Node::For(block) => lower_for(block, issues, templates, hoist),
     }
 }
 
@@ -190,6 +307,7 @@ fn lower_element(
     issues: &mut Vec<AotIssue>,
     scope: &Scope<'_>,
     templates: &HashMap<String, Vec<Node>>,
+    hoist: &mut HoistState,
 ) -> Option<TokenStream> {
     if let Some(name) = template_outlet_ref(&el.attrs) {
         let Some(body) = templates.get(name) else {
@@ -199,13 +317,20 @@ fn lower_element(
             ));
             return None;
         };
-        return lower_nodes(body, issues, scope, templates);
+        return lower_nodes(body, issues, scope, templates, hoist);
     }
     if el.tag == "ng-container" {
-        return lower_nodes(&el.children, issues, scope, templates);
+        return lower_nodes(&el.children, issues, scope, templates, hoist);
     }
-    let attrs = lower_attrs(&el.attrs, scope);
-    let children = lower_children(&el.children, el.self_closing, issues, scope, templates)?;
+    let attrs = lower_attrs(&el.attrs, scope, hoist);
+    let children = lower_children(
+        &el.children,
+        el.self_closing,
+        issues,
+        scope,
+        templates,
+        hoist,
+    )?;
     if el.tag.contains('-') {
         let tag_lit = el.tag.as_str();
         if el.self_closing {
@@ -233,16 +358,16 @@ fn lower_children(
     issues: &mut Vec<AotIssue>,
     scope: &Scope<'_>,
     templates: &HashMap<String, Vec<Node>>,
+    hoist: &mut HoistState,
 ) -> Option<TokenStream> {
     if self_closing {
         return Some(quote! {});
     }
-    lower_nodes(children, issues, scope, templates)
+    lower_nodes(children, issues, scope, templates, hoist)
 }
 
-fn lower_attrs(attrs: &[Attr], scope: &Scope<'_>) -> TokenStream {
+fn lower_attrs(attrs: &[Attr], scope: &Scope<'_>, hoist: &mut HoistState) -> TokenStream {
     let mut tokens = Vec::new();
-    let st = scope.scope_tokens();
     for attr in attrs {
         if matches!(attr, Attr::Ref { .. }) {
             continue;
@@ -256,7 +381,7 @@ fn lower_attrs(attrs: &[Attr], scope: &Scope<'_>) -> TokenStream {
         ) {
             continue;
         }
-        tokens.push(lower_one_attr(attr, &st));
+        tokens.push(lower_one_attr(attr, scope, hoist));
     }
     if tokens.is_empty() {
         quote! {}
@@ -265,7 +390,8 @@ fn lower_attrs(attrs: &[Attr], scope: &Scope<'_>) -> TokenStream {
     }
 }
 
-fn lower_one_attr(attr: &Attr, st: &TokenStream) -> TokenStream {
+fn lower_one_attr(attr: &Attr, scope: &Scope<'_>, hoist: &mut HoistState) -> TokenStream {
+    let args = scope_args(scope);
     match attr {
         Attr::Static {
             name,
@@ -276,50 +402,37 @@ fn lower_one_attr(attr: &Attr, st: &TokenStream) -> TokenStream {
             name, value: None, ..
         } => html_name(name),
         Attr::Property { name, expr, .. } if name == "disabled" => {
-            let ex = expr_tokens(expr);
-            prop_attr(
-                name,
-                &quote! {{
-                    let host = host.clone();
-                    move || host.eval_bool_scoped(&#ex, #st)
-                }},
-            )
+            let ex = hoist.hoist_expr(expr);
+            let handler =
+                hoist_host_closure(hoist, scope, &quote! { host.eval_bool_scoped(#ex, #args) });
+            prop_attr(name, &handler)
         }
         Attr::Property { name, expr, .. } => {
-            let ex = expr_tokens(expr);
-            prop_attr(
-                name,
-                &quote! {{
-                    let host = host.clone();
-                    move || host.prop_str_scoped(&#ex, #st)
-                }},
-            )
+            let ex = hoist.hoist_expr(expr);
+            let handler =
+                hoist_host_closure(hoist, scope, &quote! { host.prop_str_scoped(#ex, #args) });
+            prop_attr(name, &handler)
         }
         Attr::Attribute { name, expr, .. } | Attr::Input { name, expr, .. } => {
             let attr_name = match attr {
                 Attr::Input { name, .. } => format!("data-input-{name}"),
                 _ => name.clone(),
             };
-            let ex = expr_tokens(expr);
-            attr_binding(
-                &attr_name,
-                &quote! {{
-                    let host = host.clone();
-                    move || host.prop_str_scoped(&#ex, #st)
-                }},
-            )
+            let ex = hoist.hoist_expr(expr);
+            let handler =
+                hoist_host_closure(hoist, scope, &quote! { host.prop_str_scoped(#ex, #args) });
+            attr_binding(&attr_name, &handler)
         }
         Attr::Class { name, expr, .. } => {
-            let ex = expr_tokens(expr);
-            class_attr(
-                name,
-                &quote! {{
-                    let host = host.clone();
-                    move || host.eval_truthy_scoped(&#ex, #st)
-                }},
-            )
+            let ex = hoist.hoist_expr(expr);
+            let handler = hoist_host_closure(
+                hoist,
+                scope,
+                &quote! { host.eval_truthy_scoped(#ex, #args) },
+            );
+            class_attr(name, &handler)
         }
-        Attr::Event { name, expr, .. } => lower_dom_event(name, expr, st),
+        Attr::Event { name, expr, .. } => lower_dom_event(name, expr, scope, hoist),
         Attr::Output { name, expr, .. } => {
             let attr_name = format!("data-output-{name}");
             let handler = rangular_parser::event_handler_name(expr);
@@ -329,31 +442,52 @@ fn lower_one_attr(attr: &Attr, st: &TokenStream) -> TokenStream {
     }
 }
 
-fn lower_dom_event(name: &str, expr: &rangular_expr::Expr, st: &TokenStream) -> TokenStream {
-    let handler = rangular_parser::event_handler_name(expr);
-    let ex = expr_tokens(expr);
-    event_attr(
-        name,
-        &quote! {{
-            let host = host.clone();
-            move |ev| {
-                let event_value = {
-                    use wasm_bindgen::JsCast;
-                    ev.target()
-                        .and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok())
-                        .map(|el| el.value())
-                        .unwrap_or_default()
-                };
-                host.emit_dom_event_call_scoped(
-                    #handler,
-                    &#ex,
-                    #name,
-                    event_value,
-                    #st,
-                );
+fn event_value_tokens(event_name: &str) -> TokenStream {
+    if event_name == "error" {
+        quote! { String::new() }
+    } else {
+        quote! {
+            {
+                use wasm_bindgen::JsCast;
+                ev.target()
+                    .and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok())
+                    .map(|el| el.value())
+                    .unwrap_or_default()
             }
-        }},
-    )
+        }
+    }
+}
+
+fn event_param_type(event_name: &str) -> TokenStream {
+    match event_name {
+        "click" | "dblclick" | "auxclick" => quote! { web_sys::MouseEvent },
+        "error" => quote! { web_sys::ErrorEvent },
+        _ => quote! { web_sys::Event },
+    }
+}
+
+fn lower_dom_event(
+    name: &str,
+    expr: &Expr,
+    scope: &Scope<'_>,
+    hoist: &mut HoistState,
+) -> TokenStream {
+    let handler = rangular_parser::event_handler_name(expr);
+    let ex = hoist.hoist_expr(expr);
+    let args = scope_args(scope);
+    let ev_ty = event_param_type(name);
+    let event_value = event_value_tokens(name);
+    let callback = hoist_event_closure(
+        hoist,
+        scope,
+        name,
+        &ev_ty,
+        &quote! {
+            let event_value = #event_value;
+            host.emit_dom_event_call_scoped(#handler, #ex, #name, event_value, #args);
+        },
+    );
+    event_attr(name, &callback)
 }
 
 fn lower_if(
@@ -361,28 +495,35 @@ fn lower_if(
     issues: &mut Vec<AotIssue>,
     scope: &Scope<'_>,
     templates: &HashMap<String, Vec<Node>>,
+    hoist: &mut HoistState,
 ) -> Option<TokenStream> {
-    let cond = expr_tokens(&block.cond);
-    let st = scope.scope_tokens();
-    let then_view = lower_nodes(&block.then_branch, issues, scope, templates)?;
+    let cond = hoist.hoist_expr(&block.cond);
+    let args = scope_args(scope);
+    let then_view = lower_nodes(&block.then_branch, issues, scope, templates, hoist)?;
     if let Some(else_branch) = &block.else_branch {
-        let else_view = lower_nodes(else_branch, issues, scope, templates)?;
-        Some(quote! {{
-            let host = host.clone();
-            move || {
-                if host.eval_truthy_scoped(&#cond, #st) {
-                    view! { #then_view }.into_any()
-                } else {
-                    view! { #else_view }.into_any()
-                }
-            }
-        }})
-    } else {
+        let else_view = lower_nodes(else_branch, issues, scope, templates, hoist)?;
+        let when = hoist_host_closure(
+            hoist,
+            scope,
+            &quote! { host.eval_truthy_scoped(#cond, #args) },
+        );
+        let fallback = hoist.hoist_view_closure(&quote! { #else_view });
         Some(quote! {
-            <Show when={
-                let host = host.clone();
-                move || host.eval_truthy_scoped(&#cond, #st)
-            }>
+            <Show
+                when=move || #when.get_value()()
+                fallback=move || #fallback.get_value()()
+            >
+                #then_view
+            </Show>
+        })
+    } else {
+        let when = hoist_host_closure(
+            hoist,
+            scope,
+            &quote! { host.eval_truthy_scoped(#cond, #args) },
+        );
+        Some(quote! {
+            <Show when=move || #when.get_value()()>
                 #then_view
             </Show>
         })
@@ -393,48 +534,60 @@ fn lower_for(
     block: &ForBlock,
     issues: &mut Vec<AotIssue>,
     templates: &HashMap<String, Vec<Node>>,
+    hoist: &mut HoistState,
 ) -> Option<TokenStream> {
-    let iter = expr_tokens(&block.iter);
+    let iter = hoist.hoist_expr(&block.iter);
     let item_name = block.item.as_str();
     let item_ident = format_ident!("{}", item_name);
     let scope = Scope::with_loop_item(item_name);
-    let body = lower_nodes(&block.body, issues, &scope, templates)?;
-    let st = scope.scope_tokens();
+    let mut body_hoist = HoistState::new();
+    let body = lower_nodes(&block.body, issues, &scope, templates, &mut body_hoist)?;
+    let body_prelude = body_hoist.prelude();
+    let each = hoist.hoist_closure(&quote! { move || host.eval_list(#iter) });
+    let item_lit = item_name;
     let key = block.track.as_ref().map_or_else(
-        || quote! { |#item_ident| #item_ident.clone() },
+        || quote! { |#item_ident: &String| #item_ident.clone() },
         |track| {
-            let tr = expr_tokens(track);
-            quote! {{
-                let host = host.clone();
-                move |#item_ident| host.prop_str_scoped(&#tr, #st)
-            }}
+            let tr = hoist.hoist_expr(track);
+            let key_fn = hoist.hoist_closure(&quote! {
+                move |#item_ident: &String| {
+                    let __rangular_item = #item_ident.clone();
+                    host.prop_str_scoped(#tr, Some(#item_lit), Some(__rangular_item.as_str()))
+                }
+            });
+            quote! { move |#item_ident: &String| #key_fn.get_value()(#item_ident) }
         },
     );
     Some(quote! {
-        <For
-            each={
-                let host = host.clone();
-                move || host.eval_list(&#iter)
+        <For each=move || #each.get_value()() key=#key let:#item_ident>
+            {
+                let __rangular_loop_store = leptos::prelude::StoredValue::new(std::sync::Arc::new(
+                    #item_ident.clone(),
+                ));
+                #body_prelude
+                view! { #body }
             }
-            key=#key
-            let:#item_ident
-        >
-            #body
         </For>
     })
 }
 
 fn html_name(name: &str) -> TokenStream {
     let mut out = TokenStream::new();
-    for (i, part) in name.split('-').enumerate() {
-        if i > 0 {
-            let dash = Punct::new('-', Spacing::Joint);
-            out.extend([TokenTree::Punct(dash)]);
-        }
+    let mut first = true;
+    let mut after_empty = false;
+    for part in name.split('-') {
         if part.is_empty() {
+            out.extend([TokenTree::Punct(Punct::new('-', Spacing::Joint))]);
+            out.extend([TokenTree::Punct(Punct::new('-', Spacing::Joint))]);
+            after_empty = true;
             continue;
         }
+        if !first && !after_empty {
+            out.extend([TokenTree::Punct(Punct::new('-', Spacing::Joint))]);
+        }
+        after_empty = false;
         out.extend([TokenTree::Ident(format_ident!("{part}"))]);
+        first = false;
     }
     out
 }
@@ -460,28 +613,27 @@ fn prefix_attr(prefix: &str, name: &str, value: &TokenStream) -> TokenStream {
 }
 
 fn prop_attr(name: &str, value: &TokenStream) -> TokenStream {
-    prefix_attr("prop", name, value)
+    let handler = quote! { move || #value.get_value()() };
+    prefix_attr("prop", name, &handler)
 }
 
 fn attr_binding(name: &str, value: &TokenStream) -> TokenStream {
-    prefix_attr("attr", name, value)
-}
-
-fn class_attr(name: &str, value: &TokenStream) -> TokenStream {
-    let mut out = TokenStream::new();
-    out.extend([TokenTree::Ident(format_ident!("class"))]);
-    let colon = Punct::new(':', Spacing::Joint);
-    out.extend([TokenTree::Punct(colon)]);
-    let paren = proc_macro2::Group::new(proc_macro2::Delimiter::Parenthesis, html_name(name));
-    out.extend([TokenTree::Group(paren)]);
-    let eq = Punct::new('=', Spacing::Joint);
-    out.extend([TokenTree::Punct(eq)]);
-    out.extend(value.clone());
+    let handler = quote! { move || #value.get_value()() };
+    let mut out = html_name(name);
+    out.extend([TokenTree::Punct(Punct::new('=', Spacing::Joint))]);
+    out.extend(handler);
     out
 }
 
+fn class_attr(name: &str, value: &TokenStream) -> TokenStream {
+    let lit = Literal::string(name);
+    let handler = quote! { move || #value.get_value()() };
+    quote! { class=(#lit, #handler) }
+}
+
 fn event_attr(name: &str, value: &TokenStream) -> TokenStream {
-    prefix_attr("on", name, value)
+    let handler = quote! { move |ev| #value.get_value()(ev) };
+    prefix_attr("on", name, &handler)
 }
 
 const fn sanitize_tag(tag: &str) -> &str {

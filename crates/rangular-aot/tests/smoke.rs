@@ -30,6 +30,12 @@ fn color_field_parse_has_nodes() {
 }
 
 #[test]
+fn chrome_header_emits_leptos_view() {
+    let html = include_str!("../../../tests/fixtures/components/chrome-header/chrome-header.html");
+    assert_emits(html, "chrome_header_view", "chrome-header");
+}
+
+#[test]
 fn color_field_emits_leptos_view() {
     let html = include_str!("../../../tests/fixtures/components/color-field/color-field.html");
     assert_emits(html, "color_field_view", "color-field");

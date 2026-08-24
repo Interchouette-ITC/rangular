@@ -1,9 +1,28 @@
 # Browser demo
 
-Leptos CSR app that AOT-compiles fixture templates from `tests/fixtures/`:
+Leptos CSR app that AOT-compiles the full fixture corpus from `tests/fixtures/`:
 
-- `html/seed-bar` - inputs, `[disabled]`, `(click)`
-- `components/item-list` - `{{ }}`, `@for`
+**Components** (`tests/fixtures/components/`):
+
+- `chrome-header` - bindings, `(click)`, keyboard `M`
+- `color-field` - `@for`, inputs, palette
+- `item-list` - `{{ }}`, `@for`
+- `asset-icon` - `@if`, `[src]`, letter fallback
+- `layout-shell` - `<ng-content>` projection
+- `named-slots` - `<ng-content select>` + default slot
+- `io-child` - child IO surface (used inside `io-parent` panel)
+
+**HTML fixtures** (`tests/fixtures/html/`):
+
+- `seed-bar` - seed input, Generate / Random (Random drives demo state)
+- `pipes` - `{{ value | pipe }}`
+- `two-way` - `[(value)]` banana binding
+- `field-required` - Host `required` validation
+- `event-payload` - typed `$event` / `EventPayload`
+- `template-outlet` - `ng-template` + `[ngTemplateOutlet]`
+- `io-parent` - parent IO shape (live child wired in demo host)
+
+Use **Random** on the seed bar (or fixture panels reacting to the shared tick) to cycle demo state.
 
 ## Run locally
 

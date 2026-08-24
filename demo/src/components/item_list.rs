@@ -4,15 +4,45 @@ use rangular_host::{Host, HostError, Value};
 
 include!(concat!(env!("OUT_DIR"), "/rangular/item_list_view.rs"));
 
+const FIXTURE_NAMES: [&str; 14] = [
+    "chrome-header",
+    "color-field",
+    "item-list",
+    "asset-icon",
+    "layout-shell",
+    "named-slots",
+    "io-parent",
+    "pipes",
+    "two-way",
+    "field-required",
+    "event-payload",
+    "template-outlet",
+    "seed-bar",
+    "io-child",
+];
+
 #[component]
-pub fn ItemListPanel() -> impl IntoView {
-    let title = RwSignal::new(String::from("Fixture items"));
-    let items = RwSignal::new(vec![
-        "chrome-header".to_owned(),
-        "color-field".to_owned(),
-        "item-list".to_owned(),
-        "asset-icon".to_owned(),
-    ]);
+pub fn ItemListPanel(tick: RwSignal<u32>) -> impl IntoView {
+    let title = RwSignal::new(String::from("Fixture components"));
+    let items = RwSignal::new(FIXTURE_NAMES.iter().map(|s| (*s).to_owned()).collect());
+
+    Effect::new(move |_| {
+        let n = tick.get();
+        if n == 0 {
+            return;
+        }
+        let offset = (n as usize) % FIXTURE_NAMES.len();
+        let rotated: Vec<String> = FIXTURE_NAMES
+            .iter()
+            .cycle()
+            .skip(offset)
+            .take(FIXTURE_NAMES.len())
+            .copied()
+            .map(str::to_string)
+            .collect();
+        items.set(rotated);
+        title.set(format!("Fixture components (seed {n})"));
+    });
 
     item_list_view(HostCell::new(ItemListHost { title, items }))
 }
