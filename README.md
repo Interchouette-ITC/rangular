@@ -300,10 +300,12 @@ Shipped on `dev` (fixture-backed):
 - [x] Pipes (`uppercase`, `lowercase`, `number`, `json` + custom registry)
 - [x] Two-way banana `[(prop)]` (Host `get` / `set`)
 - [x] Named `<ng-content select>` + `ng-template` / `[ngTemplateOutlet]`
+- [x] Host-side `required` validation pattern (fixture; not NgModel)
 
 Still future:
 
 - crates.io when the v0.1 surface is stable
+- Full Angular forms / `NgModel` / reactive validators
 - Grow the subset only when fixtures land (habit stays)
 - **Other Rust UI targets?** Today AOT lowers only to Leptos. Separate
   backends for [Dioxus](https://dioxuslabs.com/), [egui](https://www.egui.rs/),
