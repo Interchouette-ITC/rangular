@@ -2,6 +2,22 @@
   display: block;
 }
 
+.layout-shell__chrome h1 {
+  margin: 0 0 0.375rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--app-section-header-text, #e8e8e8);
+}
+
 .layout-shell__stage {
-  min-height: 4rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--app-border, #434651);
+  border-radius: 0.375rem;
+  background: var(--app-surface-elevated, #2a2e39);
+  font-size: 0.875rem;
+  color: var(--app-text-muted, #787b86);
+
+  :where(p) {
+    margin: 0;
+  }
 }

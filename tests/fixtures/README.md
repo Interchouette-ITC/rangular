@@ -15,7 +15,7 @@ This directory is the **corpus** that drives
 1. Create a folder under `tests/fixtures/components/<name>/`.
 2. Add `<name>.html` and `<name>.scss`.
 3. Prefer real Angular patterns you want supported: `{{ }}`, `[prop]`, `(event)`,
-   `@if` / `@for`, `:host`, SCSS nesting, `ng-content` / `select`, pipes (`|`),
+   `@if` / `@for`, `:host`, SCSS nesting, `rg-content` / `ng-content` / `select`, pipes (`|`),
    banana (`[(…)]`), `ng-template` / outlet, etc.
 4. If the syntax is **not yet in SPEC v0.x**, either:
    - extend the parser/SCSS/backends to support it, **or**
@@ -53,8 +53,8 @@ tests/fixtures/
     chrome-header/   # [attr], [class], (click), {{ }}
     color-field/     # @for, [disabled], (click), :host
     asset-icon/      # @if / @else, [src], :host
-    layout-shell/    # ng-content projection slot
-    named-slots/     # ng-content select=".header" + default
+    layout-shell/    # rg-content projection slot
+    named-slots/     # rg-content select=".header" + default
     io-child/        # child surface for [label] / mute output pattern
   README.md          # this file
 ```

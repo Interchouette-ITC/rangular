@@ -27,10 +27,19 @@ impl Scope<'_> {
     }
 }
 
-fn scope_args(scope: &Scope<'_>) -> TokenStream {
+fn scope_loop(scope: &Scope<'_>) -> TokenStream {
     scope.loop_item.map_or_else(
-        || quote! { None, None },
-        |item| quote! { Some(#item), Some(__rangular_loop.as_str()) },
+        || quote! { rangular_host::LoopScope::NONE },
+        |item| {
+            quote! {
+                rangular_host::LoopScope {
+                    item_name: Some(#item),
+                    item_val: Some(__rangular_loop.as_str()),
+                    index: Some(__rangular_index),
+                    count: Some(__rangular_count),
+                }
+            }
+        },
     )
 }
 
@@ -41,6 +50,8 @@ fn scoped_closure_body(scope: &Scope<'_>, invoke: &TokenStream) -> TokenStream {
             quote! {
                 move || {
                     let __rangular_loop = std::sync::Arc::clone(&__rangular_loop_store.get_value());
+                    let __rangular_index = __rangular_index;
+                    let __rangular_count = __rangular_count;
                     #invoke
                 }
             }
@@ -127,7 +138,7 @@ impl HoistState {
         let closure = closure.clone();
         self.closure_lets.push(quote! {
             let #id = leptos::prelude::StoredValue::new(std::sync::Arc::new({
-                let host = host.clone();
+                let host = __rangular_host.get_value().clone();
                 #closure
             }));
         });
@@ -185,8 +196,8 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
                 host: rangular_aot::HostCell<H>,
                 children: Children,
             ) -> impl IntoView {
+                let __rangular_host = leptos::prelude::StoredValue::new(host);
                 #prelude
-                let _ = &host;
                 view! { #body }
             }
         }
@@ -205,8 +216,8 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
                 host: rangular_aot::HostCell<H>,
                 #(#params),*
             ) -> impl IntoView {
+                let __rangular_host = leptos::prelude::StoredValue::new(host);
                 #prelude
-                let _ = &host;
                 view! { #body }
             }
         }
@@ -216,8 +227,8 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
             pub fn #ident<H: rangular_host::Host + 'static>(
                 host: rangular_aot::HostCell<H>,
             ) -> impl IntoView {
+                let __rangular_host = leptos::prelude::StoredValue::new(host);
                 #prelude
-                let _ = &host;
                 view! { #body }
             }
         }
@@ -284,9 +295,12 @@ fn lower_node(
         }
         Node::Interpolation(expr, _) => {
             let ex = hoist.hoist_expr(expr);
-            let args = scope_args(scope);
-            let read =
-                hoist_host_closure(hoist, scope, &quote! { host.prop_str_scoped(#ex, #args) });
+            let loop_scope = scope_loop(scope);
+            let read = hoist_host_closure(
+                hoist,
+                scope,
+                &quote! { host.prop_str_scoped(#ex, #loop_scope) },
+            );
             Some(quote! { {move || #read.get_value()()} })
         }
         Node::Comment(_, _) | Node::NgTemplate(_) => None,
@@ -391,7 +405,7 @@ fn lower_attrs(attrs: &[Attr], scope: &Scope<'_>, hoist: &mut HoistState) -> Tok
 }
 
 fn lower_one_attr(attr: &Attr, scope: &Scope<'_>, hoist: &mut HoistState) -> TokenStream {
-    let args = scope_args(scope);
+    let loop_scope = scope_loop(scope);
     match attr {
         Attr::Static {
             name,
@@ -403,14 +417,20 @@ fn lower_one_attr(attr: &Attr, scope: &Scope<'_>, hoist: &mut HoistState) -> Tok
         } => html_name(name),
         Attr::Property { name, expr, .. } if name == "disabled" => {
             let ex = hoist.hoist_expr(expr);
-            let handler =
-                hoist_host_closure(hoist, scope, &quote! { host.eval_bool_scoped(#ex, #args) });
+            let handler = hoist_host_closure(
+                hoist,
+                scope,
+                &quote! { host.eval_bool_scoped(#ex, #loop_scope) },
+            );
             prop_attr(name, &handler)
         }
         Attr::Property { name, expr, .. } => {
             let ex = hoist.hoist_expr(expr);
-            let handler =
-                hoist_host_closure(hoist, scope, &quote! { host.prop_str_scoped(#ex, #args) });
+            let handler = hoist_host_closure(
+                hoist,
+                scope,
+                &quote! { host.prop_str_scoped(#ex, #loop_scope) },
+            );
             prop_attr(name, &handler)
         }
         Attr::Attribute { name, expr, .. } | Attr::Input { name, expr, .. } => {
@@ -419,8 +439,11 @@ fn lower_one_attr(attr: &Attr, scope: &Scope<'_>, hoist: &mut HoistState) -> Tok
                 _ => name.clone(),
             };
             let ex = hoist.hoist_expr(expr);
-            let handler =
-                hoist_host_closure(hoist, scope, &quote! { host.prop_str_scoped(#ex, #args) });
+            let handler = hoist_host_closure(
+                hoist,
+                scope,
+                &quote! { host.prop_str_scoped(#ex, #loop_scope) },
+            );
             attr_binding(&attr_name, &handler)
         }
         Attr::Class { name, expr, .. } => {
@@ -428,7 +451,7 @@ fn lower_one_attr(attr: &Attr, scope: &Scope<'_>, hoist: &mut HoistState) -> Tok
             let handler = hoist_host_closure(
                 hoist,
                 scope,
-                &quote! { host.eval_truthy_scoped(#ex, #args) },
+                &quote! { host.eval_truthy_scoped(#ex, #loop_scope) },
             );
             class_attr(name, &handler)
         }
@@ -443,10 +466,12 @@ fn lower_one_attr(attr: &Attr, scope: &Scope<'_>, hoist: &mut HoistState) -> Tok
 }
 
 fn event_value_tokens(event_name: &str) -> TokenStream {
-    if event_name == "error" {
-        quote! { String::new() }
-    } else {
-        quote! {
+    match event_name {
+        "error" | "load" => quote! { String::new() },
+        "click" | "dblclick" | "auxclick" => {
+            quote! { format!("{},{}", ev.client_x(), ev.client_y()) }
+        }
+        _ => quote! {
             {
                 use wasm_bindgen::JsCast;
                 ev.target()
@@ -454,7 +479,7 @@ fn event_value_tokens(event_name: &str) -> TokenStream {
                     .map(|el| el.value())
                     .unwrap_or_default()
             }
-        }
+        },
     }
 }
 
@@ -474,7 +499,7 @@ fn lower_dom_event(
 ) -> TokenStream {
     let handler = rangular_parser::event_handler_name(expr);
     let ex = hoist.hoist_expr(expr);
-    let args = scope_args(scope);
+    let loop_scope = scope_loop(scope);
     let ev_ty = event_param_type(name);
     let event_value = event_value_tokens(name);
     let callback = hoist_event_closure(
@@ -484,7 +509,7 @@ fn lower_dom_event(
         &ev_ty,
         &quote! {
             let event_value = #event_value;
-            host.emit_dom_event_call_scoped(#handler, #ex, #name, event_value, #args);
+            host.emit_dom_event_call_scoped(#handler, #ex, #name, event_value, #loop_scope);
         },
     );
     event_attr(name, &callback)
@@ -498,14 +523,14 @@ fn lower_if(
     hoist: &mut HoistState,
 ) -> Option<TokenStream> {
     let cond = hoist.hoist_expr(&block.cond);
-    let args = scope_args(scope);
+    let loop_scope = scope_loop(scope);
     let then_view = lower_nodes(&block.then_branch, issues, scope, templates, hoist)?;
     if let Some(else_branch) = &block.else_branch {
         let else_view = lower_nodes(else_branch, issues, scope, templates, hoist)?;
         let when = hoist_host_closure(
             hoist,
             scope,
-            &quote! { host.eval_truthy_scoped(#cond, #args) },
+            &quote! { host.eval_truthy_scoped(#cond, #loop_scope) },
         );
         let fallback = hoist.hoist_view_closure(&quote! { #else_view });
         Some(quote! {
@@ -520,7 +545,7 @@ fn lower_if(
         let when = hoist_host_closure(
             hoist,
             scope,
-            &quote! { host.eval_truthy_scoped(#cond, #args) },
+            &quote! { host.eval_truthy_scoped(#cond, #loop_scope) },
         );
         Some(quote! {
             <Show when=move || #when.get_value()()>
@@ -543,24 +568,57 @@ fn lower_for(
     let mut body_hoist = HoistState::new();
     let body = lower_nodes(&block.body, issues, &scope, templates, &mut body_hoist)?;
     let body_prelude = body_hoist.prelude();
-    let each = hoist.hoist_closure(&quote! { move || host.eval_list(#iter) });
+    let each = hoist.hoist_closure(&quote! {
+        move || {
+            let list = host.eval_list(#iter);
+            let count = list.len();
+            list.into_iter()
+                .enumerate()
+                .map(|(index, item)| (index, count, item))
+                .collect::<Vec<(usize, usize, String)>>()
+        }
+    });
     let item_lit = item_name;
     let key = block.track.as_ref().map_or_else(
-        || quote! { |#item_ident: &String| #item_ident.clone() },
+        || {
+            quote! {
+                |row: &(usize, usize, String)| {
+                    let (_, _, item) = row;
+                    item.clone()
+                }
+            }
+        },
         |track| {
             let tr = hoist.hoist_expr(track);
             let key_fn = hoist.hoist_closure(&quote! {
-                move |#item_ident: &String| {
-                    let __rangular_item = #item_ident.clone();
-                    host.prop_str_scoped(#tr, Some(#item_lit), Some(__rangular_item.as_str()))
+                move |row: &(usize, usize, String)| {
+                    let (__rangular_index, __rangular_count, item) = row;
+                    host.prop_str_scoped(
+                        #tr,
+                        rangular_host::LoopScope {
+                            item_name: Some(#item_lit),
+                            item_val: Some(item.as_str()),
+                            index: Some(*__rangular_index),
+                            count: Some(*__rangular_count),
+                        },
+                    )
                 }
             });
-            quote! { move |#item_ident: &String| #key_fn.get_value()(#item_ident) }
+            quote! {
+                move |row: &(usize, usize, String)| {
+                    #key_fn.get_value()(row)
+                }
+            }
         },
     );
     Some(quote! {
-        <For each=move || #each.get_value()() key=#key let:#item_ident>
+        <For
+            each=move || #each.get_value()()
+            key=#key
+            let:row
+        >
             {
+                let (__rangular_index, __rangular_count, #item_ident) = row.clone();
                 let __rangular_loop_store = leptos::prelude::StoredValue::new(std::sync::Arc::new(
                     #item_ident.clone(),
                 ));

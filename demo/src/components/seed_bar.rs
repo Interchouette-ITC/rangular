@@ -1,81 +1,76 @@
 use leptos::prelude::*;
-use rangular_aot::HostCell;
-use rangular_host::{EventPayload, Host, HostError, Value};
-
-include!(concat!(env!("OUT_DIR"), "/rangular/seed_bar_view.rs"));
+use std::fmt::Write as _;
 
 #[component]
-pub fn SeedBarPanel(tick: RwSignal<u32>, on_randomize: Callback<()>) -> impl IntoView {
+pub fn SeedBarPanel(applied_seed: RwSignal<String>) -> impl IntoView {
     let seed = RwSignal::new(String::from("demo-seed"));
-    let busy = RwSignal::new(false);
-    let worker_ready = RwSignal::new(true);
-    let generated_for = RwSignal::new(String::new());
+    let random_seq = RwSignal::new(0_u32);
 
-    Effect::new(move |_| {
-        let n = tick.get();
-        if n == 0 {
-            return;
-        }
-        seed.set(format!("seed-{n}"));
-        generated_for.set(String::new());
-    });
-
-    seed_bar_view(HostCell::new(SeedBarHost {
-        seed,
-        busy,
-        worker_ready,
-        generated_for,
-        on_randomize,
-    }))
+    view! {
+        <div class="seed-bar-wrap">
+            <section class="seed-bar" aria-label="Seed controls">
+                <label for="demo-seed-input">"Seed"</label>
+                <input
+                    id="demo-seed-input"
+                    type="text"
+                    bind:value=seed
+                    spellcheck="false"
+                    autocomplete="off"
+                />
+                <button
+                    class="btn btn-primary"
+                    type="button"
+                    prop:disabled=move || {
+                        generate_disabled(&seed.get(), &applied_seed.get())
+                    }
+                    on:click=move |_| apply_seed(&seed, applied_seed)
+                >
+                    "Generate"
+                </button>
+                <button
+                    class="btn btn-secondary"
+                    type="button"
+                    on:click=move |_| {
+                        random_seq.update(|n| {
+                            *n = n.wrapping_add(1);
+                            if *n == 0 {
+                                *n = 1;
+                            }
+                        });
+                        let next = random_seed_hex(random_seq.get_untracked());
+                        seed.set(next.clone());
+                        applied_seed.set(next);
+                    }
+                >
+                    "Random"
+                </button>
+            </section>
+        </div>
+    }
 }
 
-struct SeedBarHost {
-    seed: RwSignal<String>,
-    busy: RwSignal<bool>,
-    worker_ready: RwSignal<bool>,
-    generated_for: RwSignal<String>,
-    on_randomize: Callback<()>,
+fn generate_disabled(seed: &str, applied: &str) -> bool {
+    let draft = seed.trim();
+    draft.is_empty() || draft == applied
 }
 
-impl SeedBarHost {
-    fn generate_disabled(&self) -> bool {
-        !self.worker_ready.get()
-            || self.busy.get()
-            || (!self.generated_for.get_untracked().is_empty()
-                && self.generated_for.get_untracked() == self.seed.get_untracked())
+fn apply_seed(seed: &RwSignal<String>, applied_seed: RwSignal<String>) {
+    let current = seed.get().trim().to_owned();
+    if current.is_empty() {
+        return;
     }
-
-    fn random_disabled(&self) -> bool {
-        !self.worker_ready.get() || self.busy.get()
-    }
+    applied_seed.set(current);
 }
 
-impl Host for SeedBarHost {
-    fn get(&self, name: &str) -> Option<Value> {
-        match name {
-            "seed" => Some(Value::Str(self.seed.get())),
-            "generateDisabled" => Some(Value::Bool(self.generate_disabled())),
-            "randomDisabled" => Some(Value::Bool(self.random_disabled())),
-            _ => None,
-        }
+fn random_seed_hex(seq: u32) -> String {
+    let mut out = String::with_capacity(16);
+    let mut state = seq.wrapping_add(0xA5A5_1234);
+    for _ in 0..8 {
+        state = state
+            .wrapping_mul(0x9E37_79B9)
+            .wrapping_add(0x517C_C911);
+        let b = (state >> 24) as u8;
+        let _ = write!(out, "{b:02x}");
     }
-
-    fn call(&mut self, name: &str, args: &[Value]) -> Result<Value, HostError> {
-        match name {
-            "seedChange" => {
-                if let Some(EventPayload::Input { value }) = args.first().and_then(|v| v.as_event())
-                {
-                    self.seed.set(value.clone());
-                }
-            }
-            "onGenerate" => {
-                self.generated_for.set(self.seed.get_untracked());
-            }
-            "onRandom" => {
-                self.on_randomize.run(());
-            }
-            _ => {}
-        }
-        Ok(Value::Unit)
-    }
+    out
 }

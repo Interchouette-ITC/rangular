@@ -3,10 +3,12 @@ use rangular_aot::HostCell;
 use rangular_host::{Host, HostError, Value};
 use wasm_bindgen::JsCast;
 
+use crate::demo_seed::{mix, seed_to_tick};
+
 include!(concat!(env!("OUT_DIR"), "/rangular/chrome_header_view.rs"));
 
 #[component]
-pub fn ChromeHeaderPanel(tick: RwSignal<u32>) -> impl IntoView {
+pub fn ChromeHeaderPanel(applied_seed: RwSignal<String>) -> impl IntoView {
     let muted = RwSignal::new(false);
     let enabled_count = RwSignal::new(2_u32);
     let total_count = RwSignal::new(5_u32);
@@ -16,9 +18,13 @@ pub fn ChromeHeaderPanel(tick: RwSignal<u32>) -> impl IntoView {
     });
 
     Effect::new(move |_| {
-        let _ = tick.get();
-        let total = 3 + (js_random_u32() % 8);
-        let enabled = 1 + (js_random_u32() % total);
+        let seed = applied_seed.get();
+        if seed.is_empty() {
+            return;
+        }
+        let n = seed_to_tick(&seed);
+        let total = 3 + (mix(n, 1) % 8);
+        let enabled = 1 + (mix(n, 2) % total.max(1));
         total_count.set(total);
         enabled_count.set(enabled);
     });
@@ -77,11 +83,4 @@ impl Host for ChromeHeaderHost {
         }
         Ok(Value::Unit)
     }
-}
-
-fn js_random_u32() -> u32 {
-    let n = js_sys::Math::random();
-    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-    let scaled = (n * f64::from(u32::MAX)).round() as u32;
-    scaled
 }

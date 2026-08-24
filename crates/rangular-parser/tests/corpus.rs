@@ -148,6 +148,21 @@ fn named_slots_parse_select() {
 }
 
 #[test]
+fn ng_content_alias_parses_like_rg_content() {
+    let src = r#"<div class="stage"><ng-content select=".header"></ng-content><ng-content></ng-content></div>"#;
+    let parsed = parse(src, "ng-content.html");
+    assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+    let selects = rangular_parser::collect_projection_selects(&parsed.template.nodes);
+    assert_eq!(selects, vec![".header".to_owned()]);
+    assert!(rangular_parser::has_default_projection(
+        &parsed.template.nodes
+    ));
+    assert!(rangular_parser::is_projection_tag("ng-content"));
+    assert!(rangular_parser::is_projection_tag("rg-content"));
+    assert!(!rangular_parser::is_projection_tag("ng-template"));
+}
+
+#[test]
 fn template_outlet_parses_ref() {
     let path = fixture_root().join("html/template-outlet.html");
     let src = std::fs::read_to_string(path).unwrap();

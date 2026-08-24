@@ -3,25 +3,27 @@ use leptos::prelude::*;
 use super::IoChildPanel;
 
 #[component]
-pub fn IoParentPanel(tick: RwSignal<u32>) -> impl IntoView {
-    let heading = RwSignal::new(String::from("Alerts"));
-    let child_label = RwSignal::new(String::from("Sounds"));
-    let muted = RwSignal::new(true);
+pub fn IoChildDemoPanel(applied_seed: RwSignal<String>) -> impl IntoView {
+    let label = RwSignal::new(String::from("Feature flag"));
+    let muted = RwSignal::new(false);
 
     Effect::new(move |_| {
-        let n = tick.get();
-        if n == 0 {
+        let seed = applied_seed.get();
+        if seed.is_empty() {
+            label.set(String::from("Feature flag"));
+            muted.set(false);
             return;
         }
-        heading.set(format!("Alerts (seed {n})"));
-        child_label.set(format!("Channel {n}"));
+        let n = crate::demo_seed::seed_to_tick(&seed);
+        label.set(format!("Channel {n}"));
         muted.set(n.is_multiple_of(2));
     });
 
     view! {
-        <section class="io-parent" aria-label="Parent child IO sample">
-            <h2>{move || heading.get()}</h2>
-            <IoChildPanel label=child_label muted=muted />
-        </section>
+        <div class="io-child-line">
+            <span class="io-child-line__title">{move || label.get()}</span>
+            <span class="io-child-line__muted">{move || if muted.get() { "true" } else { "false" }}</span>
+            <IoChildPanel label=label muted=muted />
+        </div>
     }
 }

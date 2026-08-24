@@ -77,6 +77,7 @@ body {
   border-radius: 0.5rem;
   padding: 1rem;
   margin-bottom: 1rem;
+  scroll-margin-top: 1rem;
 }
 
 .demo__panel + .demo__panel {
@@ -89,6 +90,32 @@ body {
 
 .demo__hero .seed-bar {
   margin-top: 0.75rem;
+}
+
+.demo__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.85rem;
+}
+
+.demo__nav-link {
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: var(--app-surface-elevated);
+  color: var(--app-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.demo__nav-link:hover {
+  color: #fff;
+  border-color: var(--app-accent);
+  background: var(--app-surface-hover);
 }
 
 .demo__randomize {
@@ -122,6 +149,13 @@ body {
 
 .demo__panel-head .demo__panel-title {
   margin: 0;
+}
+
+.demo__panel-hint {
+  margin: -0.35rem 0 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--app-text-muted);
+  line-height: 1.4;
 }
 
 .demo__panel-mark {

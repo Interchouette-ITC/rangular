@@ -8,16 +8,16 @@ Leptos CSR app that AOT-compiles the full fixture corpus from `tests/fixtures/`:
 - `color-field` - `@for`, inputs, palette
 - `item-list` - `{{ }}`, `@for`
 - `asset-icon` - `@if`, `[src]`, letter fallback
-- `layout-shell` - `<ng-content>` projection
-- `named-slots` - `<ng-content select>` + default slot
-- `io-child` - child IO surface (used inside `io-parent` panel)
+- `layout-shell` - `<rg-content>` projection
+- `named-slots` - `<rg-content select>` + default slot
+- `io-child` - `[label]` / `[muted]` in, `(muteToggle)` out
 
 **HTML fixtures** (`tests/fixtures/html/`):
 
 - `seed-bar` - seed input, Generate / Random (Random drives demo state)
-- `pipes` - `{{ value | pipe }}`
-- `two-way` - `[(value)]` banana binding
-- `field-required` - Host `required` validation
+- `pipes` - builtins (`uppercase`, `lowercase`, `number`, `json`) + demo custom `crab`
+- `two-way` - `[(value)]` banana: type in the field (view → Host) or **Push from Host** (Host → view); mirror line shows Host state
+- `field-required` - Host `required` validation + `nameDirty` (error after edit)
 - `event-payload` - typed `$event` / `EventPayload`
 - `template-outlet` - `ng-template` + `[ngTemplateOutlet]`
 - `io-parent` - parent IO shape (live child wired in demo host)

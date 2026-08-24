@@ -312,12 +312,12 @@ Shipped on `dev` (fixture-backed):
 
 - [x] AOT and runtime aligned on the fixture corpus (parity / shared IR)
 - [x] Fixture gate for planned constructs (`REQUIRED_FIXTURES`)
-- [x] Default content projection (`<ng-content>`) for layout shells
+- [x] Default content projection (`<rg-content>`; `<ng-content>` alias) for layout shells
 - [x] Typed `$event` / `EventPayload` on the Host
 - [x] Component Input / Output on registered tags
 - [x] Pipes (`uppercase`, `lowercase`, `number`, `json` + custom registry)
 - [x] Two-way banana `[(prop)]` (Host `get` / `set`)
-- [x] Named `<ng-content select>` + `ng-template` / `[ngTemplateOutlet]`
+- [x] Named `<rg-content select>` + `ng-template` / `[ngTemplateOutlet]`
 - [x] Host-side `required` validation pattern (fixture; not NgModel)
 
 Still future:

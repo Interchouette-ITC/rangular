@@ -1,17 +1,26 @@
 use leptos::prelude::*;
 
+use crate::demo_seed::seed_to_tick;
+
 const CRAB_COUNT: u32 = 7;
 const MARK_COUNT: u32 = 6;
 const ASSET_ICON_SRC: &str = "/logo-256.png";
 
 #[component]
-pub fn DemoDecor(tick: RwSignal<u32>) -> impl IntoView {
+pub fn DemoDecor(applied_seed: RwSignal<String>) -> impl IntoView {
     view! {
-        <div class="demo-decor" class=("demo-decor--shuffle", move || tick.get() > 0) aria-hidden="true">
+        <div
+            class="demo-decor"
+            class=("demo-decor--shuffle", move || !applied_seed.get().is_empty())
+            aria-hidden="true"
+        >
             {(0..CRAB_COUNT)
                 .map(|index| {
                     view! {
-                        <span class="demo-decor__crab" style=move || decor_style(tick.get(), index, 0)>
+                        <span
+                            class="demo-decor__crab"
+                            style=move || decor_style(&applied_seed.get(), index, 0)
+                        >
                             "🦀"
                         </span>
                     }
@@ -23,7 +32,7 @@ pub fn DemoDecor(tick: RwSignal<u32>) -> impl IntoView {
                         view! {
                             <span
                                 class="asset-icon demo-decor__mark"
-                                style=move || mark_style(tick.get(), index)
+                                style=move || mark_style(&applied_seed.get(), index)
                             >
                                 <img class="asset-icon__img" src=ASSET_ICON_SRC alt="" />
                             </span>
@@ -35,7 +44,8 @@ pub fn DemoDecor(tick: RwSignal<u32>) -> impl IntoView {
     }
 }
 
-fn mark_style(tick: u32, index: u32) -> String {
+fn mark_style(seed: &str, index: u32) -> String {
+    let tick = seed_to_tick(seed);
     if tick == 0 {
         style_from_hash(decor_hash(0, index, 1), 1, true)
     } else {
@@ -43,8 +53,8 @@ fn mark_style(tick: u32, index: u32) -> String {
     }
 }
 
-fn decor_style(seed: u32, index: u32, kind: u32) -> String {
-    style_from_hash(decor_hash(seed, index, kind), kind, false)
+fn decor_style(seed: &str, index: u32, kind: u32) -> String {
+    style_from_hash(decor_hash(seed_to_tick(seed), index, kind), kind, false)
 }
 
 const fn decor_hash(seed: u32, index: u32, kind: u32) -> u32 {

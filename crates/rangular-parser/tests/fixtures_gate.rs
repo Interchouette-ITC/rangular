@@ -49,6 +49,7 @@ fn spec_mentions_fixture_gate_paths() {
         "event-payload",
         "layout-shell",
         "io-child",
+        "rg-content",
         "ng-content",
         "EventPayload",
         "pipes",

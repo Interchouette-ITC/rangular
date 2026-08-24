@@ -1,13 +1,15 @@
 <section class="field-required" aria-label="Required field">
-  <label for="name">Name</label>
-  <input
-    id="name"
-    type="text"
-    [(value)]="name"
-    spellcheck="false"
-    autocomplete="off"
-  />
-  @if (nameInvalid) {
-  <p class="error" role="alert">{{ nameError }}</p>
-  }
+  <div class="field-required__row">
+    <label class="field-required__label" for="name">Name</label>
+    <input
+      id="name"
+      type="text"
+      [(value)]="name"
+      spellcheck="false"
+      autocomplete="off"
+    />
+    @if (nameInvalid && nameDirty) {
+    <p class="error" role="alert">{{ nameError }}</p>
+    }
+  </div>
 </section>

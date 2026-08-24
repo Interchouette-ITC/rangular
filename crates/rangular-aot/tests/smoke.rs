@@ -138,6 +138,44 @@ fn banana_hostcell_sets_via_dom_event() {
 }
 
 #[test]
+fn hostcell_dom_event_passes_dollar_event_to_handler() {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    use rangular_aot::HostCell;
+    use rangular_expr::{parse, Host, Value};
+    use rangular_host::{EventPayload, HostError};
+
+    struct CaptureHost {
+        args: Rc<RefCell<Vec<Value>>>,
+    }
+
+    impl Host for CaptureHost {
+        fn get(&self, _: &str) -> Option<Value> {
+            None
+        }
+
+        fn call(&mut self, _: &str, args: &[Value]) -> Result<Value, HostError> {
+            *self.args.borrow_mut() = args.to_vec();
+            Ok(Value::Unit)
+        }
+    }
+
+    let args = Rc::new(RefCell::new(Vec::new()));
+    let cell = HostCell::new(CaptureHost {
+        args: Rc::clone(&args),
+    });
+    let handler = parse("onInput($event)").expr.expect("expr");
+    cell.emit_dom_event_call("onInput", &handler, "input", "typed".into());
+    let got = args.borrow().clone();
+    assert_eq!(got.len(), 1);
+    assert!(matches!(
+        got[0].as_event(),
+        Some(EventPayload::Input { value }) if value == "typed"
+    ));
+}
+
+#[test]
 fn garbage_input_returns_issues_not_empty_code() {
     let out = compile("<@broken", "broken_view");
     assert!(!out.ok());

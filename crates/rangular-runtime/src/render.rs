@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use rangular_expr::{eval_with_pipes, Expr, PipeRegistry};
-use rangular_host::{Host, Value};
+use rangular_host::{for_implicit_value, Host, Value};
 use rangular_parser::{
     builtin_tag_io, classify_bindings, collect_ng_templates, collect_projection_selects, parse,
     template_outlet_ref, Attr, Diagnostic, Element, ForBlock, IfBlock, Node, Severity, Template,
@@ -19,6 +19,7 @@ struct Ctx<'a, H: Host> {
     host: &'a mut H,
     pipes: &'a PipeRegistry,
     frames: Vec<Frame>,
+    loop_depth: Vec<(usize, usize)>,
     issues: Vec<RuntimeIssue>,
     slots: &'a ProjectionBag,
     templates: HashMap<String, Vec<Node>>,
@@ -41,7 +42,7 @@ pub fn interpret_with_pipes(
     interpret_with_slots_and_pipes(source, file, host, &ProjectionBag::default(), pipes)
 }
 
-/// Like [`interpret`], inserting flat `slot` roots at default `<ng-content>`
+/// Like [`interpret`], inserting flat `slot` roots at default content projection (`rg-content` / `ng-content`)
 /// (and partitioning when the template has `select`).
 #[must_use]
 pub fn interpret_with_slot(
@@ -177,6 +178,7 @@ pub fn render_with_slots_and_pipes(
         host,
         pipes,
         frames: Vec::new(),
+        loop_depth: Vec::new(),
         issues: Vec::new(),
         slots,
         templates,
@@ -320,13 +322,16 @@ fn render_for<H: Host>(block: &ForBlock, ctx: &mut Ctx<'_, H>) -> Vec<VNode> {
         Value::List(items) => items,
         _ => Vec::new(),
     };
+    let count = items.len();
     let mut children = Vec::new();
-    for item in items {
+    for (index, item) in items.into_iter().enumerate() {
         ctx.frames.push(Frame {
             name: block.item.clone(),
             value: item,
         });
+        ctx.loop_depth.push((index, count));
         children.extend(render_nodes(&block.body, ctx));
+        ctx.loop_depth.pop();
         ctx.frames.pop();
     }
     children
@@ -349,12 +354,18 @@ fn eval_expr<H: Host>(expr: &Expr, ctx: &mut Ctx<'_, H>) -> Value {
 
 fn resolve_frame<H: Host>(expr: &Expr, ctx: &mut Ctx<'_, H>) -> Option<Value> {
     match expr {
-        Expr::Ident(name) => ctx
-            .frames
-            .iter()
-            .rev()
-            .find(|f| f.name == *name)
-            .map(|f| f.value.clone()),
+        Expr::Ident(name) => {
+            if let Some((index, count)) = ctx.loop_depth.last().copied() {
+                if let Some(value) = for_implicit_value(name, index, count) {
+                    return Some(value);
+                }
+            }
+            ctx.frames
+                .iter()
+                .rev()
+                .find(|f| f.name == *name)
+                .map(|f| f.value.clone())
+        }
         Expr::Call { callee, args } if !ctx.frames.is_empty() => {
             let Expr::Ident(callee_name) = callee.as_ref() else {
                 return None;
@@ -377,9 +388,10 @@ fn display_value(value: &Value) -> String {
             .collect::<Vec<_>>()
             .join(","),
         Value::Event(payload) => match payload {
-            rangular_host::EventPayload::Click => "event:click".into(),
+            rangular_host::EventPayload::Click { x, y } => format!("event:click:{x},{y}"),
             rangular_host::EventPayload::Input { value } => format!("event:input:{value}"),
             rangular_host::EventPayload::Error => "event:error".into(),
+            rangular_host::EventPayload::Load => "event:load".into(),
             rangular_host::EventPayload::Custom(inner) => {
                 format!("event:custom:{}", display_value(inner))
             }

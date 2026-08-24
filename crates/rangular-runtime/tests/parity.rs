@@ -397,6 +397,8 @@ fn item_list_runtime_snapshot() {
     assert!(snap.contains("Picks"), "{snap}");
     assert!(snap.contains("hat"), "{snap}");
     assert!(snap.contains("tie"), "{snap}");
+    assert!(snap.contains('0'), "{snap}");
+    assert!(snap.contains('1'), "{snap}");
     assert!(compile(&src, "item_list_view").ok());
 
     let ir = rangular_aot::structural_ir(&src, "item-list.html")
@@ -414,20 +416,21 @@ fn event_payload_fixture_ir_and_aot() {
     assert!(ir.contains(r#"on:input="onInput""#), "{ir}");
     assert!(ir.contains(r#"on:click="onClick""#), "{ir}");
     assert!(ir.contains(r#"on:error="onError""#), "{ir}");
+    assert!(ir.contains(r#"on:load="onLoad""#), "{ir}");
     assert!(compile(&src, "event_payload_view").ok());
     let mut host = EmptyHost;
     assert!(interpret(&src, "event-payload.html", &mut host).ok());
 }
 
 #[test]
-fn layout_shell_has_ng_content_ir() {
+fn layout_shell_has_rg_content_ir() {
     let src =
         std::fs::read_to_string(fixture_root().join("components/layout-shell/layout-shell.html"))
             .unwrap();
     let ir = rangular_aot::structural_ir(&src, "layout-shell.html")
         .unwrap()
         .1;
-    assert!(ir.contains("ng-content"), "{ir}");
+    assert!(ir.contains("rg-content"), "{ir}");
     assert!(compile(&src, "layout_shell_view").ok(), "AOT issues");
     let mut host = EmptyHost;
     assert!(interpret(&src, "layout-shell.html", &mut host).ok());
@@ -470,6 +473,23 @@ fn layout_shell_projects_runtime_slot() {
 }
 
 #[test]
+fn ng_content_alias_projects_runtime_slot() {
+    let src = r#"<main class="layout-shell"><div class="layout-shell__stage"><ng-content></ng-content></div></main>"#;
+    let mut host = EmptyHost;
+    let slot = vec![rangular_runtime::VNode::Element {
+        tag: "p".into(),
+        attrs: vec![],
+        children: vec![rangular_runtime::VNode::Text("panel".into())],
+    }];
+    let out = rangular_runtime::interpret_with_slot(src, "ng-content.html", &mut host, &slot);
+    assert!(out.ok(), "{:?}", out.issues);
+    let snap = out.snapshot();
+    assert!(snap.contains("<p>"), "{snap}");
+    assert!(snap.contains("panel"), "{snap}");
+    assert!(compile(src, "ng_content_shell_view").ok());
+}
+
+#[test]
 fn io_parent_classifies_inputs_and_outputs() {
     let src = std::fs::read_to_string(fixture_root().join("html/io-parent.html")).unwrap();
     let mut host = ParentHost {
@@ -496,6 +516,18 @@ fn io_parent_classifies_inputs_and_outputs() {
 
 #[test]
 fn pipes_runtime_snapshot() {
+    use rangular_expr::{EvalError, PipeRegistry};
+    use rangular_host::Value as HostValue;
+
+    #[allow(clippy::unnecessary_wraps)]
+    fn pipe_crab(value: &HostValue, _: &[HostValue]) -> Result<HostValue, EvalError> {
+        let text = match value {
+            HostValue::Str(s) => s.clone(),
+            _ => String::new(),
+        };
+        Ok(HostValue::Str(format!("{text} 🦀")))
+    }
+
     struct PipesHost;
 
     impl Host for PipesHost {
@@ -514,13 +546,16 @@ fn pipes_runtime_snapshot() {
 
     let src = std::fs::read_to_string(fixture_root().join("html/pipes.html")).unwrap();
     let mut host = PipesHost;
-    let out = interpret(&src, "pipes.html", &mut host);
+    let mut pipes = PipeRegistry::with_builtins();
+    pipes.register("crab", pipe_crab);
+    let out = rangular_runtime::interpret_with_pipes(&src, "pipes.html", &mut host, &pipes);
     assert!(out.ok(), "{:?}", out.issues);
     let snap = out.snapshot();
     assert!(snap.contains("HELLO"), "{snap}");
     assert!(snap.contains("hello"), "{snap}");
     assert!(snap.contains("42.5"), "{snap}");
     assert!(snap.contains(r#""Hello""#), "{snap}");
+    assert!(snap.contains("Hello 🦀"), "{snap}");
     assert!(snap.contains(r#"attr:title="HELLO""#), "{snap}");
     assert!(compile(&src, "pipes_view").ok());
 
@@ -549,7 +584,10 @@ fn two_way_runtime_snapshot() {
             Ok(())
         }
 
-        fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+        fn call(&mut self, name: &str, _: &[Value]) -> Result<Value, HostError> {
+            if name == "pushFromHost" {
+                self.seed = "host-push".into();
+            }
             Ok(Value::Unit)
         }
     }
@@ -561,6 +599,8 @@ fn two_way_runtime_snapshot() {
     let snap = out.snapshot();
     assert!(snap.contains(r#"prop:value="abc""#), "{snap}");
     assert!(snap.contains(r#"on:input="$bananaSet""#), "{snap}");
+    assert!(snap.contains(r#"on:click="pushFromHost""#), "{snap}");
+    assert!(snap.contains("Mirror:"), "{snap}");
     assert!(snap.contains(">abc<") || snap.contains("abc"), "{snap}");
     assert!(compile(&src, "two_way_view").ok());
 
@@ -582,12 +622,14 @@ fn field_required_host_validation() {
 
     struct FieldHost {
         name: String,
+        dirty: bool,
     }
 
     impl Host for FieldHost {
         fn get(&self, key: &str) -> Option<Value> {
             match key {
                 "name" => Some(Value::Str(self.name.clone())),
+                "nameDirty" => Some(Value::Bool(self.dirty)),
                 "nameInvalid" => Some(Value::Bool(required(&self.name).is_some())),
                 "nameError" => Some(Value::Str(required(&self.name).unwrap_or("").to_owned())),
                 _ => None,
@@ -596,6 +638,7 @@ fn field_required_host_validation() {
 
         fn set(&mut self, key: &str, value: Value) -> Result<(), HostError> {
             if key == "name" {
+                self.dirty = true;
                 if let Some(s) = value.as_str() {
                     self.name = s.to_owned();
                 }
@@ -611,16 +654,22 @@ fn field_required_host_validation() {
     let src = std::fs::read_to_string(fixture_root().join("html/field-required.html")).unwrap();
     let mut host = FieldHost {
         name: String::new(),
+        dirty: false,
     };
     let out = interpret(&src, "field-required.html", &mut host);
     assert!(out.ok(), "{:?}", out.issues);
     let snap = out.snapshot();
-    assert!(snap.contains("This field is required"), "{snap}");
     assert!(
-        snap.contains(r#"role="alert""#) || snap.contains("error"),
-        "{snap}"
+        !snap.contains("This field is required"),
+        "pristine empty field must not show error: {snap}"
     );
 
+    host.set("name", Value::Str(String::new())).unwrap();
+    let snap_dirty = interpret(&src, "field-required.html", &mut host).snapshot();
+    assert!(
+        snap_dirty.contains("This field is required"),
+        "{snap_dirty}"
+    );
     host.set("name", Value::Str("Ada".into())).unwrap();
     let snap_ok = interpret(&src, "field-required.html", &mut host).snapshot();
     assert!(!snap_ok.contains("This field is required"), "{snap_ok}");
@@ -655,7 +704,7 @@ fn named_slots_partition_projection() {
     let ir = rangular_aot::structural_ir(&src, "named-slots.html")
         .unwrap()
         .1;
-    assert!(ir.contains("ng-content select"), "{ir}");
+    assert!(ir.contains("rg-content select"), "{ir}");
     let aot = compile(&src, "named_slots_view");
     assert!(
         aot.code.contains("slot_header")

@@ -19,7 +19,9 @@ impl Value {
             Self::Num(n) => *n != 0.0,
             Self::List(items) => !items.is_empty(),
             Self::Event(EventPayload::Input { value }) => !value.is_empty(),
-            Self::Event(EventPayload::Click | EventPayload::Error) => true,
+            Self::Event(EventPayload::Click { .. } | EventPayload::Error | EventPayload::Load) => {
+                true
+            }
             Self::Event(EventPayload::Custom(inner)) => inner.is_truthy(),
             Self::Unit => false,
         }

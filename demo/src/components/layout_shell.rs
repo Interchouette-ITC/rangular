@@ -5,20 +5,21 @@ use rangular_host::{Host, HostError, Value};
 include!(concat!(env!("OUT_DIR"), "/rangular/layout_shell_view.rs"));
 
 #[component]
-pub fn LayoutShellPanel(tick: RwSignal<u32>) -> impl IntoView {
+pub fn LayoutShellPanel(applied_seed: RwSignal<String>) -> impl IntoView {
     let title = RwSignal::new(String::from("Layout shell"));
 
     Effect::new(move |_| {
-        let n = tick.get();
-        if n == 0 {
+        let seed = applied_seed.get();
+        if seed.is_empty() {
+            title.set(String::from("Layout shell"));
             return;
         }
-        title.set(format!("Layout shell (seed {n})"));
+        title.set(format!("Layout shell ({seed})"));
     });
 
     layout_shell_view(
         HostCell::new(LayoutShellHost { title }),
-        Box::new(|| view! { <p>"Projected panel body via ng-content"</p> }.into_any()),
+        Box::new(|| view! { <p>"Projected panel body via rg-content"</p> }.into_any()),
     )
 }
 

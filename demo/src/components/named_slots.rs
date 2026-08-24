@@ -17,17 +17,19 @@ impl Host for EmptyHost {
 }
 
 #[component]
-pub fn NamedSlotsPanel(tick: RwSignal<u32>) -> impl IntoView {
+pub fn NamedSlotsPanel(applied_seed: RwSignal<String>) -> impl IntoView {
     let header = RwSignal::new(String::from("Named header slot"));
     let body = RwSignal::new(String::from("Default slot body"));
 
     Effect::new(move |_| {
-        let n = tick.get();
-        if n == 0 {
+        let seed = applied_seed.get();
+        if seed.is_empty() {
+            header.set(String::from("Named header slot"));
+            body.set(String::from("Default slot body"));
             return;
         }
-        header.set(format!("Named header (seed {n})"));
-        body.set(format!("Default body (seed {n})"));
+        header.set(format!("Named header ({seed})"));
+        body.set(format!("Default body ({seed})"));
     });
 
     named_slots_view(

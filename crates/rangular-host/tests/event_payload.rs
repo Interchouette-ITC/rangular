@@ -27,8 +27,8 @@ impl Host for CaptureHost {
 #[test]
 fn from_dom_click_and_input() {
     assert_eq!(
-        EventPayload::from_dom("click", String::new()),
-        EventPayload::Click
+        EventPayload::from_dom("click", "12,34".into()),
+        EventPayload::Click { x: 12, y: 34 }
     );
     assert_eq!(
         EventPayload::from_dom("input", "abc".into()),
@@ -40,6 +40,26 @@ fn from_dom_click_and_input() {
         EventPayload::from_dom("error", String::new()),
         EventPayload::Error
     );
+}
+
+#[test]
+fn event_payload_demo_label() {
+    assert_eq!(
+        EventPayload::Click { x: 10, y: 20 }.demo_label(),
+        "Click { x: 10, y: 20 }"
+    );
+    assert_eq!(
+        EventPayload::Input {
+            value: "abc".into()
+        }
+        .demo_label(),
+        "Input { value: \"abc\" }"
+    );
+    assert_eq!(
+        EventPayload::from_dom("load", String::new()),
+        EventPayload::Load
+    );
+    assert_eq!(EventPayload::Load.demo_label(), "Load");
 }
 
 #[test]

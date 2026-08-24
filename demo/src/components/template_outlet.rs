@@ -7,14 +7,15 @@ include!(concat!(env!("OUT_DIR"), "/rangular/template_outlet_view.rs"));
 const LABELS: [&str; 4] = ["Card", "Panel", "Tile", "Stamp"];
 
 #[component]
-pub fn TemplateOutletPanel(tick: RwSignal<u32>) -> impl IntoView {
+pub fn TemplateOutletPanel(applied_seed: RwSignal<String>) -> impl IntoView {
     let label = RwSignal::new(String::from(LABELS[0]));
 
     Effect::new(move |_| {
-        let n = tick.get();
-        if n == 0 {
+        let seed = applied_seed.get();
+        if seed.is_empty() {
             return;
         }
+        let n = crate::demo_seed::seed_to_tick(&seed);
         label.set(LABELS[(n as usize) % LABELS.len()].to_owned());
     });
 

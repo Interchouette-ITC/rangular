@@ -252,7 +252,7 @@ fn write_node(node: &IrNode, depth: usize, out: &mut String) {
         }
         IrNode::Projection { has_select } => {
             out.push_str(&pad);
-            out.push_str("ng-content");
+            out.push_str("rg-content");
             if *has_select {
                 out.push_str(" select");
             }

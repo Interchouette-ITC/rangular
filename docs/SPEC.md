@@ -8,16 +8,15 @@ releases may remove or rename supported constructs only with a migration note.
 
 ## Scope
 
-| In scope                                       | Out of scope (v0.1)                                      |
-| ---------------------------------------------- | -------------------------------------------------------- |
-| Web DOM via Leptos CSR                         | Full Angular framework                                   |
-| External `.html` templates                     | Markup inside Rust controllers                           |
-| Component `.scss` (compiled then encapsulated) | Full Angular forms / NgModel                         |
-| AOT (production default)                       | i18n, NgModule, Angular DI                               |
-| Runtime interpreter (tests/tooling)            | Claiming runtime as the production path                  |
-| Fixture-driven growth                          | Native desktop GUI toolkits                              |
-| Default + named `<ng-content>`, `EventPayload`, Input/Output, pipes, banana, `ng-template` outlet | Silent ignore of unknown syntax |
-
+| In scope                                                                                                                             | Out of scope (v0.1)                     |
+| ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| Web DOM via Leptos CSR                                                                                                               | Full Angular framework                  |
+| External `.html` templates                                                                                                           | Markup inside Rust controllers          |
+| Component `.scss` (compiled then encapsulated)                                                                                       | Full Angular forms / NgModel            |
+| AOT (production default)                                                                                                             | i18n, NgModule, Angular DI              |
+| Runtime interpreter (tests/tooling)                                                                                                  | Claiming runtime as the production path |
+| Fixture-driven growth                                                                                                                | Native desktop GUI toolkits             |
+| Default + named `<rg-content>` (and Angular `<ng-content>` alias), `EventPayload`, Input/Output, pipes, banana, `ng-template` outlet | Silent ignore of unknown syntax         |
 
 **Desktop shells with a webview** (for example Tauri) are still the web path:
 the UI is Leptos CSR / wasm inside the webview. They are **not** a separate
@@ -60,10 +59,10 @@ Static attributes without brackets pass through unchanged.
 
 ### Two-way banana `[(…)]`
 
-| Surface syntax         | Desugars to                                              |
-| ---------------------- | -------------------------------------------------------- |
-| `[(value)]="seed"`     | `[value]="seed"` + `(input)` writeback via `Host::set`   |
-| `[(name)]="ident"`     | `[name]="ident"` + `(nameChange)` writeback via `Host::set` |
+| Surface syntax     | Desugars to                                                 |
+| ------------------ | ----------------------------------------------------------- |
+| `[(value)]="seed"` | `[value]="seed"` + `(input)` writeback via `Host::set`      |
+| `[(name)]="ident"` | `[name]="ident"` + `(nameChange)` writeback via `Host::set` |
 
 Parse expands banana into a property binding plus an event handler that calls
 internal `$bananaSet(ident, $event)`. AOT `HostCell` and the Host `set` path
@@ -78,10 +77,13 @@ and messages with helpers such as [`required`](../crates/rangular-host/src/valid
 / `required_value`, then expose bindings the template already understands
 (`@if`, `{{ }}`).
 
-| Pattern | Meaning |
-| ------- | ------- |
-| `nameInvalid` | Bool from Host (`required(…).is_some()`) |
-| `nameError` | Message string from Host (`required(…).unwrap_or("")`) |
+| Pattern       | Meaning                                                     |
+| ------------- | ----------------------------------------------------------- |
+| `nameInvalid` | Bool from Host (`required(…).is_some()`)                    |
+| `nameDirty`   | Bool; Host sets true on first user edit via two-way binding |
+| `nameError`   | Message string from Host (`required(…).unwrap_or("")`)      |
+
+Show the alert only when invalid **and** dirty: `@if (nameInvalid && nameDirty)` (Angular pristine field hides errors until edit).
 
 Fixture: [`tests/fixtures/html/field-required.html`](../tests/fixtures/html/field-required.html)
 (`[(value)]` plus `@if` alert). Full `NgModel`, `FormGroup`, and directive
@@ -95,16 +97,18 @@ validators remain out of scope (tracked as a follow-up issue).
 | `(input)="onInput($event)"` | Common form events                      |
 
 Handler names resolve through the host `call` API. `$event` is a typed
-[`EventPayload`](../crates/rangular-host/src/event.rs) (`Click`, `Input { value }`,
-`Error`, or `Custom`) exposed as `Value::Event` (see fixture
+[`EventPayload`](../crates/rangular-host/src/event.rs) (`Click { x, y }`, `Input { value }`,
+`Error`, `Load`, or `Custom`) exposed as `Value::Event` (see fixture
 [`tests/fixtures/html/event-payload.html`](../tests/fixtures/html/event-payload.html)).
 
 ### Content projection
 
-| Surface syntax                    | Meaning                                                         |
-| --------------------------------- | --------------------------------------------------------------- |
-| `<ng-content></ng-content>`       | Default projection slot                                         |
-| `<ng-content select="…">`         | Named slot; match projected roots (tag / `.class` / `[attr]`) |
+| Surface syntax              | Meaning                                                       |
+| --------------------------- | ------------------------------------------------------------- |
+| `<rg-content></rg-content>` | Default projection slot (preferred in rangular fixtures)      |
+| `<ng-content></ng-content>` | Same as above; Angular-compatible alias                       |
+| `<rg-content select="…">`   | Named slot; match projected roots (tag / `.class` / `[attr]`) |
+| `<ng-content select="…">`   | Same as above; Angular-compatible alias                       |
 
 Fixture (default): [`tests/fixtures/components/layout-shell/`](../tests/fixtures/components/layout-shell/).
 Fixture (named): [`tests/fixtures/components/named-slots/`](../tests/fixtures/components/named-slots/).
@@ -116,10 +120,10 @@ Runtime partitions projected roots with [`ProjectionBag`](../crates/rangular-run
 
 ### `ng-template` and outlet
 
-| Surface syntax                         | Meaning                                      |
-| -------------------------------------- | -------------------------------------------- |
-| `<ng-template #ref>…</ng-template>`    | Named fragment; not rendered until stamped   |
-| `[ngTemplateOutlet]="ref"`             | Stamp that fragment (fixture syntax)         |
+| Surface syntax                      | Meaning                                    |
+| ----------------------------------- | ------------------------------------------ |
+| `<ng-template #ref>…</ng-template>` | Named fragment; not rendered until stamped |
+| `[ngTemplateOutlet]="ref"`          | Stamp that fragment (fixture syntax)       |
 
 Typically hosted on `<ng-container>`. Fixture:
 [`tests/fixtures/html/template-outlet.html`](../tests/fixtures/html/template-outlet.html).
@@ -148,7 +152,7 @@ Full view-fn composition remains a follow-up.
 | --------------------------------------- | ------------------------------- |
 | `@if (cond) { … }`                      | Primary v0.1 conditional        |
 | `@else { … }`                           | Optional else block             |
-| `@for (item of list; track item) { … }` | Primary v0.1 loop               |
+| `@for (item of list; track item) { … }` | Primary v0.1 loop; `$index`, `$count`, `$first`, `$last`, `$even`, `$odd` in body |
 | `*ngIf="cond"`                          | Desugars to `@if` during parse  |
 | `*ngFor="let x of xs"`                  | Desugars to `@for` during parse |
 
@@ -161,11 +165,11 @@ and property / attribute bindings.
 
 ### Pipes
 
-| Surface syntax              | Meaning                                      |
-| --------------------------- | -------------------------------------------- |
-| `{{ value \| pipe }}`       | Apply named pipe to `value`                  |
-| `{{ value \| pipe:arg }}`   | Pipe with colon args                         |
-| `{{ a \| b \| c }}`         | Left-associative chain                       |
+| Surface syntax            | Meaning                     |
+| ------------------------- | --------------------------- |
+| `{{ value \| pipe }}`     | Apply named pipe to `value` |
+| `{{ value \| pipe:arg }}` | Pipe with colon args        |
+| `{{ a \| b \| c }}`       | Left-associative chain      |
 
 Builtins (pure transforms on eval): `uppercase`, `lowercase`, `number`, `json`.
 Apps register custom pipes on [`Registry::register_pipe`](../crates/rangular/src/registry.rs)
@@ -330,7 +334,7 @@ both success and expected unsupported cases.
 4. Parity tests require AOT and runtime to agree on in-subset fixtures.
 5. **Gate:** `rangular-parser` integration test `required_fixtures_exist` fails
    if a planned construct path is missing; SPEC must name the fixture paths for
-   `EventPayload`, `ng-content`, `layout-shell`, `io-child`, `pipes`, `two-way`,
+   `EventPayload`, `rg-content`, `ng-content`, `layout-shell`, `io-child`, `pipes`, `two-way`,
    `named-slots`, `template-outlet`, and `field-required`.
 
 ## SemVer summary

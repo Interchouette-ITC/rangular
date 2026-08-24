@@ -5,15 +5,15 @@ use rangular_host::{Host, HostError, Value};
 include!(concat!(env!("OUT_DIR"), "/rangular/two_way_view.rs"));
 
 #[component]
-pub fn TwoWayPanel(tick: RwSignal<u32>) -> impl IntoView {
+pub fn TwoWayPanel(applied_seed: RwSignal<String>) -> impl IntoView {
     let seed = RwSignal::new(String::from("abc"));
 
     Effect::new(move |_| {
-        let n = tick.get();
-        if n == 0 {
+        let value = applied_seed.get();
+        if value.is_empty() {
             return;
         }
-        seed.set(format!("seed-{n}"));
+        seed.set(value);
     });
 
     two_way_view(HostCell::new(TwoWayHost { seed }))
@@ -37,7 +37,10 @@ impl Host for TwoWayHost {
         Ok(())
     }
 
-    fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+    fn call(&mut self, name: &str, _: &[Value]) -> Result<Value, HostError> {
+        if name == "pushFromHost" {
+            self.seed.set(String::from("host-push"));
+        }
         Ok(Value::Unit)
     }
 }

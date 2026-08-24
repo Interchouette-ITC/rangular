@@ -4,37 +4,38 @@ use rangular_host::{EventPayload, Host, HostError, Value};
 
 include!(concat!(env!("OUT_DIR"), "/rangular/event_payload_view.rs"));
 
-#[component]
-pub fn EventPayloadPanel(tick: RwSignal<u32>) -> impl IntoView {
-    let draft = RwSignal::new(String::from("draft"));
-    let icon_src = RwSignal::new(String::from("/logo-256.png"));
-    let status = RwSignal::new(String::new());
+const LOGO_SRC: &str = "/logo-256.png";
+const BROKEN_SRC: &str = "/missing.png";
 
-    Effect::new(move |_| {
-        let n = tick.get();
-        if n == 0 {
-            return;
-        }
-        draft.set(format!("tick-{n}"));
-        icon_src.set(if n.is_multiple_of(4) {
-            "/missing.png".into()
-        } else {
-            "/logo-256.png".into()
-        });
-        status.set(String::new());
-    });
+#[component]
+pub fn EventPayloadPanel() -> impl IntoView {
+    let draft = RwSignal::new(String::new());
+    let icon_src = RwSignal::new(String::from(LOGO_SRC));
+    let img_broken = RwSignal::new(false);
+    let payload_label = RwSignal::new(String::from("—"));
 
     event_payload_view(HostCell::new(EventPayloadHost {
         draft,
         icon_src,
-        status,
+        img_broken,
+        payload_label,
     }))
 }
 
 struct EventPayloadHost {
     draft: RwSignal<String>,
     icon_src: RwSignal<String>,
-    status: RwSignal<String>,
+    img_broken: RwSignal<bool>,
+    payload_label: RwSignal<String>,
+}
+
+impl EventPayloadHost {
+    fn show_payload(&self, payload: &EventPayload) {
+        self.payload_label.set(payload.demo_label());
+        if let EventPayload::Input { value } = payload {
+            self.draft.set(value.clone());
+        }
+    }
 }
 
 impl Host for EventPayloadHost {
@@ -42,26 +43,35 @@ impl Host for EventPayloadHost {
         match name {
             "draft" => Some(Value::Str(self.draft.get())),
             "iconSrc" => Some(Value::Str(self.icon_src.get())),
-            "status" => Some(Value::Str(self.status.get())),
+            "imgActionLabel" => Some(Value::Str(if self.img_broken.get() {
+                "fix".into()
+            } else {
+                "break".into()
+            })),
+            "payloadLabel" => Some(Value::Str(self.payload_label.get())),
             _ => None,
         }
     }
 
     fn call(&mut self, name: &str, args: &[Value]) -> Result<Value, HostError> {
         match name {
-            "onInput" => {
-                if let Some(EventPayload::Input { value }) = args.first().and_then(|v| v.as_event())
-                {
-                    self.draft.set(value.clone());
-                    self.status.set(format!("input: {value}"));
+            "onInput" | "onClick" | "onError" | "onLoad" => {
+                if let Some(payload) = args.first().and_then(Value::as_event) {
+                    if matches!(payload, EventPayload::Error) {
+                        self.img_broken.set(true);
+                    }
+                    if matches!(payload, EventPayload::Load) {
+                        self.img_broken.set(false);
+                    }
+                    self.show_payload(payload);
                 }
             }
-            "onClick" => {
-                self.status.set("clicked".into());
-            }
-            "onError" => {
-                self.icon_src.set(String::new());
-                self.status.set("image error".into());
+            "onToggleImg" => {
+                if self.img_broken.get() {
+                    self.icon_src.set(String::from(LOGO_SRC));
+                } else {
+                    self.icon_src.set(String::from(BROKEN_SRC));
+                }
             }
             _ => {}
         }

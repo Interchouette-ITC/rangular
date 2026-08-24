@@ -12,18 +12,19 @@ const SWATCHES: [&str; 12] = [
 ];
 
 #[component]
-pub fn ColorFieldPanel(tick: RwSignal<u32>, accent: RwSignal<String>) -> impl IntoView {
+pub fn ColorFieldPanel(applied_seed: RwSignal<String>, accent: RwSignal<String>) -> impl IntoView {
     let hex_draft = RwSignal::new(accent.get_untracked());
     let palette_open = RwSignal::new(false);
     let has_override = RwSignal::new(accent.get_untracked() != DEFAULT_COLOR);
     let anchor_ref = NodeRef::<leptos::html::Div>::new();
 
     Effect::new(move |_| {
-        let n = tick.get();
-        if n == 0 {
+        let seed = applied_seed.get();
+        if seed.is_empty() {
             return;
         }
-        let idx = (n as usize) % SWATCHES.len();
+        let n = crate::demo_seed::seed_to_tick(&seed) as usize;
+        let idx = n % SWATCHES.len();
         apply_color(SWATCHES[idx], accent, hex_draft, has_override);
     });
 

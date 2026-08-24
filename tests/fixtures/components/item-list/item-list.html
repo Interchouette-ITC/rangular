@@ -2,7 +2,33 @@
   <h2>{{ title }}</h2>
   <ul>
     @for (item of items; track item) {
-    <li>{{ item }}</li>
+    <li>{{ $index }}. {{ item }}</li>
     }
   </ul>
+  <table class="item-list__implicit">
+    <thead>
+      <tr>
+        <th>item</th>
+        <th>$index</th>
+        <th>$count</th>
+        <th>$first</th>
+        <th>$last</th>
+        <th>$even</th>
+        <th>$odd</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (item of items; track item) {
+      <tr>
+        <td>{{ item }}</td>
+        <td>{{ $index }}</td>
+        <td>{{ $count }}</td>
+        <td>{{ $first }}</td>
+        <td>{{ $last }}</td>
+        <td>{{ $even }}</td>
+        <td>{{ $odd }}</td>
+      </tr>
+      }
+    </tbody>
+  </table>
 </section>

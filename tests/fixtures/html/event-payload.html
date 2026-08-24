@@ -1,9 +1,37 @@
-<section class="event-payload" aria-label="Event payload sample">
-  <input
-    type="text"
-    [value]="draft"
-    (input)="onInput($event)"
-  />
-  <button type="button" (click)="onClick($event)">Go</button>
-  <img alt="" [src]="iconSrc" (error)="onError($event)" />
+<section class="event-payload" aria-label="Event payload">
+  <div class="event-payload__controls">
+    <span class="event-payload__label">(input)</span>
+    <input
+      id="event-payload-input"
+      type="text"
+      placeholder="type"
+      spellcheck="false"
+      autocomplete="off"
+      [value]="draft"
+      (input)="onInput($event)"
+    />
+    <span class="event-payload__label">(click)</span>
+    <button type="button" class="event-payload__go" (click)="onClick($event)">
+      Go
+    </button>
+    <span class="event-payload__label">(error)</span>
+    <button
+      type="button"
+      class="event-payload__img-toggle"
+      (click)="onToggleImg($event)"
+    >
+      {{ imgActionLabel }}
+    </button>
+    <img
+      class="event-payload__logo"
+      alt=""
+      [src]="iconSrc"
+      (load)="onLoad($event)"
+      (error)="onError($event)"
+    />
+  </div>
+  <p class="event-payload__mirror">
+    <span class="event-payload__mirror-label">$event:</span>
+    <span class="event-payload__mirror-value">{{ payloadLabel }}</span>
+  </p>
 </section>

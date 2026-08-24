@@ -4,44 +4,34 @@ use rangular_host::{Host, HostError, Value};
 
 include!(concat!(env!("OUT_DIR"), "/rangular/item_list_view.rs"));
 
-const FIXTURE_NAMES: [&str; 14] = [
-    "chrome-header",
-    "color-field",
-    "item-list",
-    "asset-icon",
-    "layout-shell",
-    "named-slots",
-    "io-parent",
-    "pipes",
-    "two-way",
-    "field-required",
-    "event-payload",
-    "template-outlet",
-    "seed-bar",
-    "io-child",
+const DEMO_ITEMS: [&str; 3] = [
+    "Host exposes Vec<String>",
+    "@for + $index / track item",
+    "List rotates on Random",
 ];
 
 #[component]
-pub fn ItemListPanel(tick: RwSignal<u32>) -> impl IntoView {
-    let title = RwSignal::new(String::from("Fixture components"));
-    let items = RwSignal::new(FIXTURE_NAMES.iter().map(|s| (*s).to_owned()).collect());
+pub fn ItemListPanel(applied_seed: RwSignal<String>) -> impl IntoView {
+    let title = RwSignal::new(String::from("item-list (@for)"));
+    let items = RwSignal::new(DEMO_ITEMS.iter().map(|s| (*s).to_owned()).collect());
 
     Effect::new(move |_| {
-        let n = tick.get();
-        if n == 0 {
+        let seed = applied_seed.get();
+        if seed.is_empty() {
             return;
         }
-        let offset = (n as usize) % FIXTURE_NAMES.len();
-        let rotated: Vec<String> = FIXTURE_NAMES
+        let n = crate::demo_seed::seed_to_tick(&seed);
+        let offset = (n as usize) % DEMO_ITEMS.len();
+        let rotated: Vec<String> = DEMO_ITEMS
             .iter()
             .cycle()
             .skip(offset)
-            .take(FIXTURE_NAMES.len())
+            .take(DEMO_ITEMS.len())
             .copied()
             .map(str::to_string)
             .collect();
         items.set(rotated);
-        title.set(format!("Fixture components (seed {n})"));
+        title.set(format!("item-list (@for, {seed})"));
     });
 
     item_list_view(HostCell::new(ItemListHost { title, items }))

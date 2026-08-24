@@ -19,7 +19,7 @@ pub use color_field::ColorFieldPanel;
 pub use event_payload::EventPayloadPanel;
 pub use field_required::FieldRequiredPanel;
 pub use io_child::IoChildPanel;
-pub use io_parent::IoParentPanel;
+pub use io_parent::IoChildDemoPanel;
 pub use item_list::ItemListPanel;
 pub use layout_shell::LayoutShellPanel;
 pub use named_slots::NamedSlotsPanel;
