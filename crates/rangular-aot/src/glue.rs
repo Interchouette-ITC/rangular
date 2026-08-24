@@ -194,6 +194,15 @@ impl<H: Host> HostCell<H> {
         loop_name: Option<&str>,
         loop_val: Option<&str>,
     ) {
+        if let Some(path) = rangular_parser::banana_set_target(expr) {
+            let value = if event_name == "input" {
+                Value::Str(event_value)
+            } else {
+                Value::from(EventPayload::from_dom(event_name, event_value))
+            };
+            let _ = self.host.borrow_mut().set(path, value);
+            return;
+        }
         let payload = EventPayload::from_dom(event_name, event_value);
         let _ = self.host.borrow_mut().set("$event", Value::from(payload));
         self.emit_call_scoped(name, expr, loop_name, loop_val);

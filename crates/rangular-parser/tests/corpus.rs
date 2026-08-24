@@ -106,6 +106,35 @@ fn has_for(nodes: &[Node]) -> bool {
 }
 
 #[test]
+fn two_way_desugars_to_property_and_input_event() {
+    let path = fixture_root().join("html/two-way.html");
+    let src = std::fs::read_to_string(path).unwrap();
+    let parsed = parse(&src, "two-way.html");
+    assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+    let input = parsed
+        .template
+        .nodes
+        .iter()
+        .find_map(|n| match n {
+            Node::Element(el) if el.tag == "section" => el.children.iter().find_map(|c| match c {
+                Node::Element(child) if child.tag == "input" => Some(child),
+                _ => None,
+            }),
+            _ => None,
+        })
+        .expect("input");
+    assert!(input.attrs.iter().any(|a| matches!(
+        a,
+        rangular_parser::Attr::Property { name, .. } if name == "value"
+    )));
+    assert!(input.attrs.iter().any(|a| matches!(
+        a,
+        rangular_parser::Attr::Event { name, expr, .. }
+            if name == "input" && rangular_parser::banana_set_target(expr) == Some("seed")
+    )));
+}
+
+#[test]
 fn garbage_input_never_panics() {
     for sample in [
         "<<<>",

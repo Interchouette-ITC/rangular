@@ -12,11 +12,11 @@ releases may remove or rename supported constructs only with a migration note.
 | ---------------------------------------------- | -------------------------------------------------------- |
 | Web DOM via Leptos CSR                         | Full Angular framework                                   |
 | External `.html` templates                     | Markup inside Rust controllers                           |
-| Component `.scss` (compiled then encapsulated) | Two-way banana `[(…)]`, named slots / `ng-template`      |
+| Component `.scss` (compiled then encapsulated) | Named slots / `ng-template`                          |
 | AOT (production default)                       | i18n, NgModule, Angular DI                               |
 | Runtime interpreter (tests/tooling)            | Claiming runtime as the production path                  |
 | Fixture-driven growth                          | Native desktop GUI toolkits                              |
-| Default `<ng-content>`, `EventPayload`, Input/Output, pipes | Silent ignore of unknown syntax                 |
+| Default `<ng-content>`, `EventPayload`, Input/Output, pipes, banana | Silent ignore of unknown syntax       |
 
 **Desktop shells with a webview** (for example Tauri) are still the web path:
 the UI is Leptos CSR / wasm inside the webview. They are **not** a separate
@@ -53,8 +53,22 @@ encapsulation must not mangle global selectors the app loads separately.
 | `[prop]="expr"`       | DOM property binding        |
 | `[attr.name]="expr"`  | Attribute binding           |
 | `[class.name]="expr"` | Toggle CSS class on element |
+| `[(prop)]="ident"`    | Two-way banana (see below)  |
 
 Static attributes without brackets pass through unchanged.
+
+### Two-way banana `[(…)]`
+
+| Surface syntax         | Desugars to                                              |
+| ---------------------- | -------------------------------------------------------- |
+| `[(value)]="seed"`     | `[value]="seed"` + `(input)` writeback via `Host::set`   |
+| `[(name)]="ident"`     | `[name]="ident"` + `(nameChange)` writeback via `Host::set` |
+
+Parse expands banana into a property binding plus an event handler that calls
+internal `$bananaSet(ident, $event)`. AOT `HostCell` and the Host `set` path
+apply the write; no full `NgModel` / forms module.
+
+Fixture: [`tests/fixtures/html/two-way.html`](../tests/fixtures/html/two-way.html).
 
 ### Event bindings
 
@@ -128,9 +142,9 @@ Apps register custom pipes on [`Registry::register_pipe`](../crates/rangular/src
 
 Fixture: [`tests/fixtures/html/pipes.html`](../tests/fixtures/html/pipes.html).
 
-**Not in v0.1:** ternary, nullish coalescing, assignment, two-way banana
-`[(…)]`, impure pipe change-detection, arbitrary method chains beyond what the
-host exposes.
+**Not in v0.1:** ternary, nullish coalescing, assignment expressions (banana
+uses `Host::set` instead), impure pipe change-detection, arbitrary method
+chains beyond what the host exposes.
 
 ## Reference template: color-field
 
@@ -284,7 +298,7 @@ both success and expected unsupported cases.
 4. Parity tests require AOT and runtime to agree on in-subset fixtures.
 5. **Gate:** `rangular-parser` integration test `required_fixtures_exist` fails
    if a planned construct path is missing; SPEC must name the fixture paths for
-   `EventPayload`, `ng-content`, `layout-shell`, `io-child`, and `pipes`.
+   `EventPayload`, `ng-content`, `layout-shell`, `io-child`, `pipes`, and `two-way`.
 
 ## SemVer summary
 

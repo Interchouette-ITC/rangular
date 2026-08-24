@@ -1,4 +1,5 @@
 use crate::ast::{Attr, Element, ForBlock, IfBlock, Node, Projection, Template};
+use crate::banana::{banana_event_name, banana_write_expr};
 use crate::diag::Diagnostic;
 use crate::expr::{parse_into, Expr};
 use crate::span::{pos, Span};
@@ -352,7 +353,11 @@ impl<'a> Parser<'a> {
             }
             let attr_start = self.pos;
             if self.peek() == Some('[') {
-                if let Some(attr) = self.parse_binding_attr(attr_start) {
+                if self.src[self.pos..].starts_with("[(") {
+                    if let Some(pair) = self.parse_banana_attr(attr_start) {
+                        attrs.extend(pair);
+                    }
+                } else if let Some(attr) = self.parse_binding_attr(attr_start) {
                     attrs.push(attr);
                 }
                 continue;
@@ -421,6 +426,53 @@ impl<'a> Parser<'a> {
             "class" => Some(Attr::Class { name, expr, span }),
             _ => Some(Attr::Property { name, expr, span }),
         }
+    }
+
+    /// `[(prop)]="ident"` → `[prop]` + `(input|propChange)` writing via `$bananaSet`.
+    fn parse_banana_attr(&mut self, start: usize) -> Option<[Attr; 2]> {
+        self.bump(); // [
+        self.bump(); // (
+        let name = self.read_attr_name()?;
+        if self.peek() != Some(')') {
+            self.error(self.span_here(), "expected ')' in two-way binding");
+            return None;
+        }
+        self.bump();
+        if self.peek() != Some(']') {
+            self.error(self.span_here(), "expected ']' in two-way binding");
+            return None;
+        }
+        self.bump();
+        self.skip_ws();
+        if self.peek() != Some('=') {
+            self.error(self.span_here(), "expected '=' after two-way binding");
+            return None;
+        }
+        self.bump();
+        self.skip_ws();
+        if self.peek() != Some('"') && self.peek() != Some('\'') {
+            self.error(self.span_here(), "expected quoted expression");
+            return None;
+        }
+        let expr_src = self.read_quoted()?;
+        let expr = self.parse_expr_from(&expr_src)?;
+        let span = Span::new(pos(start), pos(self.pos));
+        if !matches!(expr, Expr::Ident(_)) {
+            self.warn(
+                span,
+                "two-way binding target should be an identifier for Host::set",
+            );
+        }
+        let event = banana_event_name(&name);
+        let write = banana_write_expr(&expr);
+        Some([
+            Attr::Property { name, expr, span },
+            Attr::Event {
+                name: event,
+                expr: write,
+                span,
+            },
+        ])
     }
 
     fn parse_event_attr(&mut self, start: usize) -> Option<Attr> {
