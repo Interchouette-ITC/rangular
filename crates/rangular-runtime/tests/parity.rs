@@ -577,6 +577,57 @@ fn two_way_runtime_snapshot() {
 }
 
 #[test]
+fn field_required_host_validation() {
+    use rangular_host::required;
+
+    struct FieldHost {
+        name: String,
+    }
+
+    impl Host for FieldHost {
+        fn get(&self, key: &str) -> Option<Value> {
+            match key {
+                "name" => Some(Value::Str(self.name.clone())),
+                "nameInvalid" => Some(Value::Bool(required(&self.name).is_some())),
+                "nameError" => Some(Value::Str(required(&self.name).unwrap_or("").to_owned())),
+                _ => None,
+            }
+        }
+
+        fn set(&mut self, key: &str, value: Value) -> Result<(), HostError> {
+            if key == "name" {
+                if let Some(s) = value.as_str() {
+                    self.name = s.to_owned();
+                }
+            }
+            Ok(())
+        }
+
+        fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+            Ok(Value::Unit)
+        }
+    }
+
+    let src = std::fs::read_to_string(fixture_root().join("html/field-required.html")).unwrap();
+    let mut host = FieldHost {
+        name: String::new(),
+    };
+    let out = interpret(&src, "field-required.html", &mut host);
+    assert!(out.ok(), "{:?}", out.issues);
+    let snap = out.snapshot();
+    assert!(snap.contains("This field is required"), "{snap}");
+    assert!(
+        snap.contains(r#"role="alert""#) || snap.contains("error"),
+        "{snap}"
+    );
+
+    host.set("name", Value::Str("Ada".into())).unwrap();
+    let snap_ok = interpret(&src, "field-required.html", &mut host).snapshot();
+    assert!(!snap_ok.contains("This field is required"), "{snap_ok}");
+    assert!(compile(&src, "field_required_view").ok());
+}
+
+#[test]
 fn named_slots_partition_projection() {
     let src =
         std::fs::read_to_string(fixture_root().join("components/named-slots/named-slots.html"))

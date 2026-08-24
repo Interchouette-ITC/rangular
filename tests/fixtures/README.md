@@ -45,6 +45,7 @@ tests/fixtures/
     io-parent.html       # parent↔child IO teaching shape
     pipes.html           # {{ value | pipe }} builtins
     two-way.html         # [(value)] banana Host get/set
+    field-required.html  # banana + Host required / error text
     template-outlet.html # ng-template #ref + [ngTemplateOutlet]
   scss/              # minimal SCSS / :host / Bootstrap coexist reproducers
   components/

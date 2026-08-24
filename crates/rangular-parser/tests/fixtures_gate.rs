@@ -13,6 +13,7 @@ const REQUIRED_FIXTURES: &[&str] = &[
     "html/io-parent.html",
     "html/pipes.html",
     "html/two-way.html",
+    "html/field-required.html",
     "html/template-outlet.html",
     "components/item-list/item-list.html",
     "components/chrome-header/chrome-header.html",
@@ -55,6 +56,8 @@ fn spec_mentions_fixture_gate_paths() {
         "named-slots",
         "template-outlet",
         "ngTemplateOutlet",
+        "field-required",
+        "required",
     ] {
         assert!(
             spec.contains(needle),

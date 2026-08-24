@@ -71,6 +71,22 @@ apply the write; no full `NgModel` / forms module.
 
 Fixture: [`tests/fixtures/html/two-way.html`](../tests/fixtures/html/two-way.html).
 
+### Host-side validation (minimal)
+
+Validation is **not** an Angular forms / `NgModel` module. Hosts compute validity
+and messages with helpers such as [`required`](../crates/rangular-host/src/validate.rs)
+/ `required_value`, then expose bindings the template already understands
+(`@if`, `{{ }}`).
+
+| Pattern | Meaning |
+| ------- | ------- |
+| `nameInvalid` | Bool from Host (`required(…).is_some()`) |
+| `nameError` | Message string from Host (`required(…).unwrap_or("")`) |
+
+Fixture: [`tests/fixtures/html/field-required.html`](../tests/fixtures/html/field-required.html)
+(`[(value)]` plus `@if` alert). Full `NgModel`, `FormGroup`, and directive
+validators remain out of scope (tracked as a follow-up issue).
+
 ### Event bindings
 
 | Surface syntax              | Meaning                                 |
@@ -234,6 +250,7 @@ test/tooling only (`encapsulate_css`).
 | ------------------ | ------------------------------------------------ |
 | `get(path)`        | Read a binding value (`label`, `paletteOpen`, …) |
 | `set(path, value)` | Two-way / input side effects when needed         |
+| Validation helpers | `required` / `required_value` (Host-side checks) |
 | `call(name, args)` | Invoke controller handlers                       |
 | Event bridge       | Map `(click)` etc. to host callables             |
 
@@ -314,7 +331,7 @@ both success and expected unsupported cases.
 5. **Gate:** `rangular-parser` integration test `required_fixtures_exist` fails
    if a planned construct path is missing; SPEC must name the fixture paths for
    `EventPayload`, `ng-content`, `layout-shell`, `io-child`, `pipes`, `two-way`,
-   `named-slots`, and `template-outlet`.
+   `named-slots`, `template-outlet`, and `field-required`.
 
 ## SemVer summary
 
