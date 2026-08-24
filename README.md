@@ -21,17 +21,54 @@ shares the same AST for parity tests and tooling.
 
 ## What you get today
 
-| Area                 | Today                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------- |
-| Language             | v0.1 contract in [`docs/SPEC.md`](docs/SPEC.md)                                       |
-| Parser / expr / host | Core subset                                                                           |
-| AOT                  | `rangular-aot` + `rangular-macros`                                                    |
-| Runtime              | `rangular-runtime` (parity / tooling)                                                 |
-| SCSS                 | `rangular-css` (flat `compile_scss`, or encapsulate; Bootstrap utilities stay global) |
-| Registry             | Panel tags + typed `provide` / `inject`                                               |
-| Growth               | Fixture corpus in [`tests/fixtures/`](tests/fixtures/)                                |
+Author panels as Angular-shaped files; rangular turns them into Leptos views
+for the browser. Production prefers **AOT**; the **runtime** keeps the same AST
+for tests and tooling.
+
+```mermaid
+flowchart LR
+  subgraph author [You write]
+    html["panel.html"]
+    scss["panel.scss"]
+    rust["Rust host / state"]
+  end
+
+  subgraph rangular [rangular]
+    parse[parser + expr]
+    css[css compile]
+    aot[AOT to Leptos]
+    runtime[runtime interpreter]
+  end
+
+  subgraph out [Browser]
+    leptos[Leptos CSR / wasm]
+    dom[DOM]
+  end
+
+  html --> parse
+  scss --> css
+  rust --> aot
+  parse --> aot
+  css --> leptos
+  aot --> leptos
+  parse --> runtime
+  runtime -.->|parity / tooling| leptos
+  leptos --> dom
+```
+
+| Piece | Role today |
+| ----- | ---------- |
+| Language | v0.1 contract in [`docs/SPEC.md`](docs/SPEC.md) |
+| Parser / expr / host | Core subset |
+| AOT | `rangular-aot` + `rangular-macros` |
+| Runtime | `rangular-runtime` (parity / tooling) |
+| SCSS | `rangular-css` (`compile_scss` or encapsulate; Bootstrap utilities stay global) |
+| Registry | Panel tags + typed `provide` / `inject` |
+| Growth | Fixture corpus in [`tests/fixtures/`](tests/fixtures/) |
 
 Honest subset, not full Angular. New syntax lands through fixtures and semver.
+Unsupported input yields `RANG*` diagnostics; templates must never panic the process.
+
 
 ## Goals
 
@@ -61,14 +98,13 @@ is still a web app. A Leptos + Trunk build that uses rangular panels can run
 inside that webview the same way it runs in Chrome. That is an **indirect**
 desktop path: rangular still speaks DOM / wasm, not egui / iced / GTK.
 
-```text
-┌─────────────────────────────┐
-│  Desktop shell (e.g. Tauri) │
-│  ┌───────────────────────┐  │
-│  │  Webview              │  │
-│  │  Leptos CSR + rangular│  │
-│  └───────────────────────┘  │
-└─────────────────────────────┘
+```mermaid
+flowchart TB
+  subgraph shell ["Desktop shell e.g. Tauri"]
+    subgraph webview [Webview]
+      ui["Leptos CSR + rangular"]
+    end
+  end
 ```
 
 No Tauri-specific crate in this repo today. If your frontend already works under
