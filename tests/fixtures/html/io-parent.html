@@ -1,22 +1,8 @@
 <section class="io-parent" aria-label="Parent child IO sample">
   <h2>{{ heading }}</h2>
-  <!-- Target shape for registry tags (not lowered as custom elements yet):
-       <app-io-child [label]="childLabel" [muted]="muted" (muteToggle)="onMute($event)"></app-io-child>
-  -->
-  <div
-    class="io-child"
-    role="group"
-    [attr.aria-label]="childLabel"
-  >
-    <span class="io-child__label">{{ childLabel }}</span>
-    <button
-      type="button"
-      class="io-child__mute"
-      [class.io-child__mute--on]="muted"
-      [attr.aria-pressed]="muted"
-      (click)="onMute($event)"
-    >
-      {{ muted ? 'Unmute' : 'Mute' }}
-    </button>
-  </div>
+  <app-io-child
+    [label]="childLabel"
+    [muted]="muted"
+    (muteToggle)="onMute($event)"
+  ></app-io-child>
 </section>

@@ -86,8 +86,11 @@ Teaching fixtures:
 - [`tests/fixtures/components/io-child/`](../tests/fixtures/components/io-child/)
 - [`tests/fixtures/html/io-parent.html`](../tests/fixtures/html/io-parent.html)
 
-Registry-backed custom tags are the next wiring step; fixtures already show the
-DOM-shaped host pattern.
+`Registry` stores input / output names per tag (`app-io-child`, `app-chrome-header`).
+[`classify_bindings`](../crates/rangular-parser/src/component_io.rs) rewrites matching
+`[prop]` / `(event)` into `Input` / `Output` attrs. AOT emits hyphenated tags as
+`div[data-rangular-component=…]` host shells; runtime snapshots use `input:` /
+`output:` labels. Full view-fn composition remains a follow-up.
 
 ### Control flow
 

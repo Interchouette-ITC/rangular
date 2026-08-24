@@ -148,13 +148,28 @@ fn lower_element(
     issues: &mut Vec<AotIssue>,
     scope: &Scope<'_>,
 ) -> Option<TokenStream> {
-    let tag = format_ident!("{}", sanitize_tag(&el.tag));
     let attrs = lower_attrs(&el.attrs, scope);
     let children = lower_children(&el.children, el.self_closing, issues, scope)?;
-    if el.self_closing {
-        Some(quote! { <#tag #attrs /> })
+    if el.tag.contains('-') {
+        let tag_lit = el.tag.as_str();
+        // Hyphenated component tags are not valid Rust idents; emit a host div
+        // that preserves the tag name for runtime/CSS hooks.
+        if el.self_closing {
+            Some(quote! {
+                <div data-rangular-component=#tag_lit #attrs />
+            })
+        } else {
+            Some(quote! {
+                <div data-rangular-component=#tag_lit #attrs>#children</div>
+            })
+        }
     } else {
-        Some(quote! { <#tag #attrs>#children</#tag> })
+        let tag = format_ident!("{}", sanitize_tag(&el.tag));
+        if el.self_closing {
+            Some(quote! { <#tag #attrs /> })
+        } else {
+            Some(quote! { <#tag #attrs>#children</#tag> })
+        }
     }
 }
 
@@ -174,93 +189,104 @@ fn lower_attrs(attrs: &[Attr], scope: &Scope<'_>) -> TokenStream {
     let mut tokens = Vec::new();
     let st = scope.scope_tokens();
     for attr in attrs {
-        match attr {
-            Attr::Static {
-                name,
-                value: Some(value),
-                ..
-            } => {
-                tokens.push(static_attr(name, value));
-            }
-            Attr::Static {
-                name, value: None, ..
-            } => {
-                tokens.push(html_name(name));
-            }
-            Attr::Property { name, expr, .. } if name == "disabled" => {
-                let ex = expr_tokens(expr);
-                tokens.push(prop_attr(
-                    name,
-                    &quote! {{
-                        let host = host.clone();
-                        move || host.eval_bool_scoped(&#ex, #st)
-                    }},
-                ));
-            }
-            Attr::Property { name, expr, .. } => {
-                let ex = expr_tokens(expr);
-                tokens.push(prop_attr(
-                    name,
-                    &quote! {{
-                        let host = host.clone();
-                        move || host.prop_str_scoped(&#ex, #st)
-                    }},
-                ));
-            }
-            Attr::Attribute { name, expr, .. } => {
-                let ex = expr_tokens(expr);
-                tokens.push(attr_binding(
-                    name,
-                    &quote! {{
-                        let host = host.clone();
-                        move || host.prop_str_scoped(&#ex, #st)
-                    }},
-                ));
-            }
-            Attr::Class { name, expr, .. } => {
-                let ex = expr_tokens(expr);
-                tokens.push(class_attr(
-                    name,
-                    &quote! {{
-                        let host = host.clone();
-                        move || host.eval_truthy_scoped(&#ex, #st)
-                    }},
-                ));
-            }
-            Attr::Event { name, expr, .. } => {
-                let handler = rangular_parser::event_handler_name(expr);
-                let ex = expr_tokens(expr);
-                let event_name = name.as_str();
-                tokens.push(event_attr(
-                    name,
-                    &quote! {{
-                        let host = host.clone();
-                        move |ev| {
-                            let event_value = {
-                                use wasm_bindgen::JsCast;
-                                ev.target()
-                                    .and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok())
-                                    .map(|el| el.value())
-                                    .unwrap_or_default()
-                            };
-                            host.emit_dom_event_call_scoped(
-                                #handler,
-                                &#ex,
-                                #event_name,
-                                event_value,
-                                #st,
-                            );
-                        }
-                    }},
-                ));
-            }
-        }
+        tokens.push(lower_one_attr(attr, &st));
     }
     if tokens.is_empty() {
         quote! {}
     } else {
         quote! { #(#tokens)* }
     }
+}
+
+fn lower_one_attr(attr: &Attr, st: &TokenStream) -> TokenStream {
+    match attr {
+        Attr::Static {
+            name,
+            value: Some(value),
+            ..
+        } => static_attr(name, value),
+        Attr::Static {
+            name, value: None, ..
+        } => html_name(name),
+        Attr::Property { name, expr, .. } if name == "disabled" => {
+            let ex = expr_tokens(expr);
+            prop_attr(
+                name,
+                &quote! {{
+                    let host = host.clone();
+                    move || host.eval_bool_scoped(&#ex, #st)
+                }},
+            )
+        }
+        Attr::Property { name, expr, .. } => {
+            let ex = expr_tokens(expr);
+            prop_attr(
+                name,
+                &quote! {{
+                    let host = host.clone();
+                    move || host.prop_str_scoped(&#ex, #st)
+                }},
+            )
+        }
+        Attr::Attribute { name, expr, .. } | Attr::Input { name, expr, .. } => {
+            let attr_name = match attr {
+                Attr::Input { name, .. } => format!("data-input-{name}"),
+                _ => name.clone(),
+            };
+            let ex = expr_tokens(expr);
+            attr_binding(
+                &attr_name,
+                &quote! {{
+                    let host = host.clone();
+                    move || host.prop_str_scoped(&#ex, #st)
+                }},
+            )
+        }
+        Attr::Class { name, expr, .. } => {
+            let ex = expr_tokens(expr);
+            class_attr(
+                name,
+                &quote! {{
+                    let host = host.clone();
+                    move || host.eval_truthy_scoped(&#ex, #st)
+                }},
+            )
+        }
+        Attr::Event { name, expr, .. } | Attr::Output { name, expr, .. } => {
+            lower_dom_or_output_event(name, expr, st)
+        }
+    }
+}
+
+fn lower_dom_or_output_event(
+    name: &str,
+    expr: &rangular_expr::Expr,
+    st: &TokenStream,
+) -> TokenStream {
+    let handler = rangular_parser::event_handler_name(expr);
+    let ex = expr_tokens(expr);
+    event_attr(
+        name,
+        &quote! {{
+            let host = host.clone();
+            move |ev| {
+                let event_value = {
+                    use wasm_bindgen::JsCast;
+                    ev.target()
+                        .and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok())
+                        .map(|el| el.value())
+                        .unwrap_or_default()
+                };
+                host.emit_dom_event_call_scoped(
+                    #handler,
+                    &#ex,
+                    #name,
+                    event_value,
+                    #st,
+                );
+            }
+        }},
+    )
 }
 
 fn lower_if(block: &IfBlock, issues: &mut Vec<AotIssue>, scope: &Scope<'_>) -> Option<TokenStream> {

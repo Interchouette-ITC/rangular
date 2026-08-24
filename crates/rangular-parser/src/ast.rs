@@ -61,6 +61,18 @@ pub enum Attr {
         expr: Expr,
         span: Span,
     },
+    /// Component `@Input` binding on a registered tag (`[label]="…"`).
+    Input {
+        name: String,
+        expr: Expr,
+        span: Span,
+    },
+    /// Component `@Output` binding on a registered tag (`(muteToggle)="…"`).
+    Output {
+        name: String,
+        expr: Expr,
+        span: Span,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]

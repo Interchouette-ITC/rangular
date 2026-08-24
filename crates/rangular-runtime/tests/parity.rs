@@ -107,6 +107,27 @@ impl Host for AssetIconHost {
     }
 }
 
+struct ParentHost {
+    heading: String,
+    child_label: String,
+    muted: bool,
+}
+
+impl Host for ParentHost {
+    fn get(&self, name: &str) -> Option<Value> {
+        match name {
+            "heading" => Some(Value::Str(self.heading.clone())),
+            "childLabel" => Some(Value::Str(self.child_label.clone())),
+            "muted" => Some(Value::Bool(self.muted)),
+            _ => None,
+        }
+    }
+
+    fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+        Ok(Value::Unit)
+    }
+}
+
 struct ColorFieldHost {
     label: String,
     value: String,
@@ -446,6 +467,31 @@ fn layout_shell_projects_runtime_slot() {
             || snap.contains("stage"),
         "{snap}"
     );
+}
+
+#[test]
+fn io_parent_classifies_inputs_and_outputs() {
+    let src = std::fs::read_to_string(fixture_root().join("html/io-parent.html")).unwrap();
+    let mut host = ParentHost {
+        heading: "Alerts".into(),
+        child_label: "Sounds".into(),
+        muted: true,
+    };
+    let out = interpret(&src, "io-parent.html", &mut host);
+    assert!(out.ok(), "{:?}", out.issues);
+    let snap = out.snapshot();
+    assert!(snap.contains("Alerts"), "{snap}");
+    assert!(snap.contains(r#"input:label="Sounds""#), "{snap}");
+    assert!(snap.contains(r#"input:muted="true""#), "{snap}");
+    assert!(snap.contains(r#"output:muteToggle="onMute""#), "{snap}");
+    assert!(snap.contains("app-io-child"), "{snap}");
+
+    let ir = rangular_aot::structural_ir(&src, "io-parent.html")
+        .unwrap()
+        .1;
+    assert!(ir.contains("input:label"), "{ir}");
+    assert!(ir.contains(r#"output:muteToggle="onMute""#), "{ir}");
+    assert!(compile(&src, "io_parent_view").ok());
 }
 
 #[test]
