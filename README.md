@@ -21,16 +21,16 @@ shares the same AST for parity tests and tooling.
 
 ## What you get today
 
-Author panels as Angular-shaped files; **[rangular](https://github.com/Interchouette-ITC/rangular)**
+Author **components** as Angular-shaped files; **[rangular](https://github.com/Interchouette-ITC/rangular)**
 turns them into Leptos views for the browser. Production prefers **AOT**; the
 **runtime** keeps the same AST for tests and tooling.
 
 ```mermaid
 flowchart LR
-  subgraph author [You write]
-    html["panel.html"]
-    scss["panel.scss"]
-    rust["Rust host / state"]
+  subgraph author [You write one component]
+    html["item_list.html"]
+    scss["item_list.scss"]
+    rust["item_list.rs Host"]
   end
 
   subgraph rangular [rangular]
@@ -63,7 +63,7 @@ flowchart LR
 | AOT                  | `rangular-aot` + `rangular-macros`                                              |
 | Runtime              | `rangular-runtime` (parity / tooling)                                           |
 | SCSS                 | `rangular-css` (`compile_scss` or encapsulate; Bootstrap utilities stay global) |
-| Registry             | Panel tags + typed `provide` / `inject`                                         |
+| Registry             | Component tags + typed `provide` / `inject`                                 |
 | Growth               | Fixture corpus in [`tests/fixtures/`](tests/fixtures/)                          |
 
 Honest subset, not full Angular. New syntax lands through fixtures and semver.
@@ -73,7 +73,7 @@ Unsupported input yields `RANG*` diagnostics; templates must never panic the pro
 
 Not on [crates.io](https://crates.io/) yet. Until then, depend on git `dev`
 (or a sibling path checkout). You need a [Leptos](https://leptos.dev/) CSR app
-(Trunk / wasm) and a `build.rs` that compiles each panel.
+(Trunk / wasm) and a `build.rs` that compiles each component.
 
 ### Cargo (git)
 
@@ -97,43 +97,136 @@ rangular-css = { path = "../rangular/crates/rangular-css" }
 rangular-host = { path = "../rangular/crates/rangular-host" }
 ```
 
-### Panels
+### One component = three files (MVC)
 
-Keep one folder per panel (see
-[`tests/fixtures/components/`](tests/fixtures/components/) for real examples:
-`color-field`, `chrome-header`, `asset-icon`). Each panel is `.html` + `.scss`
-plus a Rust host. In `build.rs`, compile HTML with `rangular_aot::compile_named`
-and SCSS with `rangular_css::compile_scss` (flat CSS for Leptos CSR). Write the
-AOT Rust to `OUT_DIR/rangular/{fn_name}.rs`.
+A **component** is one UI piece in its own folder. Think Angular: markup and
+styles stay out of Rust; Rust owns state and handlers.
+
+| File | Role | MVC |
+| ---- | ---- | --- |
+| `item_list.html` | Template (`{{ }}`, `@for`, bindings) | **View** |
+| `item_list.scss` | Component styles (`:host`, nesting) | **View styles** |
+| `item_list.rs` | `Host` + Leptos `#[component]` wrapper | **Controller** |
+
+```text
+src/components/item_list/
+  item_list.html    # View
+  item_list.scss    # Styles
+  item_list.rs      # Controller (Host)
+```
+
+Full fixture (HTML + SCSS):
+[`tests/fixtures/components/item-list/`](tests/fixtures/components/item-list/).
+Also see `color-field`, `chrome-header`, `asset-icon` in the same tree.
+
+**View** (`item_list.html`):
+
+```html
+<section class="item-list" aria-label="Items">
+  <h2>{{ title }}</h2>
+  <ul>
+    @for (item of items; track item) {
+    <li>{{ item }}</li>
+    }
+  </ul>
+</section>
+```
+
+**Styles** (`item_list.scss`):
+
+```scss
+:host {
+  display: block;
+}
+
+.item-list {
+  h2 {
+    margin: 0 0 0.55rem;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+}
+```
+
+**Controller** (`item_list.rs`) - implement `Host`, wrap signals, call the
+generated view from Leptos:
 
 ```rust
+use leptos::prelude::*;
+use rangular_aot::HostCell;
+use rangular_host::{Host, HostError, Value};
+
+include!(concat!(env!("OUT_DIR"), "/rangular/item_list_view.rs"));
+
+#[component]
+pub fn ItemList(
+    title: RwSignal<String>,
+    items: RwSignal<Vec<String>>,
+) -> impl IntoView {
+    item_list_view(HostCell::new(ItemListHost { title, items }))
+}
+
+struct ItemListHost {
+    title: RwSignal<String>,
+    items: RwSignal<Vec<String>>,
+}
+
+impl Host for ItemListHost {
+    fn get(&self, name: &str) -> Option<Value> {
+        match name {
+            "title" => Some(Value::Str(self.title.get())),
+            "items" => Some(Value::List(
+                self.items
+                    .get()
+                    .into_iter()
+                    .map(Value::Str)
+                    .collect(),
+            )),
+            _ => None,
+        }
+    }
+
+    fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+        Ok(Value::Unit)
+    }
+}
+```
+
+That is the whole idea: **HTML + SCSS + Rust host**. Leptos only mounts the
+component; it does not embed the markup.
+
+### Wire AOT in `build.rs`
+
+Once per component, compile the template (and SCSS) at build time. Generated
+Rust lands under `OUT_DIR/rangular/` for the `include!` above.
+
+```rust
+let html = std::fs::read_to_string("src/components/item_list/item_list.html")?;
 let aot = rangular_aot::compile_named(
     &html,
-    "src/components/color_field/color_field.html",
-    "color_field_view",
+    "src/components/item_list/item_list.html",
+    "item_list_view",
 );
-std::fs::write(out_dir.join("color_field_view.rs"), &aot.code)?;
+std::fs::write(out_dir.join("item_list_view.rs"), &aot.code)?;
+
+let scss = std::fs::read_to_string("src/components/item_list/item_list.scss")?;
+let css = rangular_css::compile_scss(&scss); // flat CSS for Leptos CSR
+// append css.css into your app stylesheet
 ```
 
-In the panel module, `include!` that file, implement `rangular_host::Host`, wrap
-state in `HostCell`, and call the generated view:
-
-```rust
-include!(concat!(env!("OUT_DIR"), "/rangular/color_field_view.rs"));
-
-let host = HostCell::new(ColorFieldHost { /* signals */ });
-color_field_view(host)
-```
-
-Language details: [`docs/SPEC.md`](docs/SPEC.md). Layout of fixtures:
+Language details: [`docs/SPEC.md`](docs/SPEC.md). Fixture layout:
 [`tests/fixtures/README.md`](tests/fixtures/README.md).
 
 ## Goals
 
 | Goal               | Approach                                               |
 | ------------------ | ------------------------------------------------------ |
-| Markup out of Rust | External templates; no panel `view!` in controllers    |
-| Familiar authoring | Angular-shaped bindings, `@if` / `@for`, component CSS |
+| Markup out of Rust | External templates; no component `view!` in controllers |
+| Familiar authoring | Angular-shaped bindings, `@if` / `@for`, component CSS  |
 | Web-native         | [Leptos](https://leptos.dev/) CSR on wasm              |
 | Safe parsing       | Diagnostics on bad input; no panic on template text    |
 
@@ -154,7 +247,7 @@ outside a webview.
 
 [Tauri](https://v2.tauri.app/) (and similar shells) host a **webview**. Your UI
 is still a web app: a Leptos + Trunk build that uses
-**[rangular](https://github.com/Interchouette-ITC/rangular)** panels can run
+**[rangular](https://github.com/Interchouette-ITC/rangular)** components can run
 inside that webview the same way it runs in Chrome.
 
 **[rangular](https://github.com/Interchouette-ITC/rangular)** still speaks DOM /
@@ -169,7 +262,7 @@ flowchart TB
   end
 ```
 
-A Tauri demo that reuses the fixture panels is planned for this repository.
+A Tauri demo that reuses the fixture components is planned for this repository.
 
 ## Working on this repo
 
@@ -194,7 +287,7 @@ How to add fixtures: [`tests/fixtures/README.md`](tests/fixtures/README.md) and
 | `rangular-aot`     | Compile-time lowering to Leptos              |
 | `rangular-macros`  | `rangular_template!` (includes build output) |
 | `rangular-runtime` | Interpret AST at runtime                     |
-| `rangular`         | Facade + panel registry                      |
+| `rangular`         | Facade + component registry                  |
 
 ## Roadmap
 

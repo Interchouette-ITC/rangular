@@ -39,6 +39,7 @@ tests/fixtures/
   html/              # minimal single-file HTML reproducers
   scss/              # minimal SCSS / :host / Bootstrap coexist reproducers
   components/
+    item-list/       # simple @for list (MVC teaching example)
     chrome-header/   # [attr], [class], (click), {{ }}
     color-field/     # @for, [disabled], (click), :host
     asset-icon/      # @if / @else, [src], :host

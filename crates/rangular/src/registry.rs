@@ -2,10 +2,11 @@ use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-/// Example panel tags aligned with `tests/fixtures/components/`.
+/// Example component tags aligned with `tests/fixtures/components/`.
 pub const APP_COLOR_FIELD: &str = "app-color-field";
 pub const APP_CHROME_HEADER: &str = "app-chrome-header";
 pub const APP_ASSET_ICON: &str = "app-asset-icon";
+pub const APP_ITEM_LIST: &str = "app-item-list";
 
 /// Metadata for a registered component tag.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -27,7 +28,7 @@ impl Registry {
         Self::default()
     }
 
-    /// Register example panel tags that match the fixture corpus.
+    /// Register example component tags that match the fixture corpus.
     #[must_use]
     pub fn with_example_panels() -> Self {
         let mut reg = Self::new();
@@ -35,6 +36,7 @@ impl Registry {
             (APP_COLOR_FIELD, "ColorField"),
             (APP_CHROME_HEADER, "ChromeHeader"),
             (APP_ASSET_ICON, "AssetIcon"),
+            (APP_ITEM_LIST, "ItemList"),
         ] {
             reg.register_tag(tag, name);
         }
