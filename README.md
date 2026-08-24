@@ -31,8 +31,15 @@ Unsupported input yields `RANG*` diagnostics; templates must never panic the pro
 | Web-native         | [Leptos](https://leptos.dev/) CSR on wasm              |
 | Safe parsing       | Diagnostics on bad input; no panic on template text    |
 
-Other Rust + Angular-template projects often target native or hybrid desktop
-GUIs. rangular targets the **browser DOM**, with a versioned subset and tests.
+Related work (different targets; useful reading):
+
+- [Angust](https://github.com/TudorOrban/Angust) - Angular-style components and
+  HTML templates for Rust GUIs (native / desktop-oriented)
+- [Angular Rust](https://github.com/angular-rust) - Angular-inspired UX crates
+  for Rust
+
+rangular targets the **browser DOM** (Leptos CSR / wasm), with a versioned
+subset and tests.
 
 ## Roadmap
 
