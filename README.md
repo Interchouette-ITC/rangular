@@ -69,35 +69,7 @@ flowchart LR
 Honest subset, not full Angular. New syntax lands through fixtures and semver.
 Unsupported input yields `RANG*` diagnostics; templates must never panic the process.
 
-## Use it in your project
-
-Not on [crates.io](https://crates.io/) yet. Until then, depend on git `dev`
-(or a sibling path checkout). You need a [Leptos](https://leptos.dev/) CSR app
-(Trunk / wasm) and a `build.rs` that compiles each component.
-
-### Cargo (git)
-
-```toml
-[dependencies]
-leptos = { version = "0.8", features = ["csr"] }
-rangular-aot = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
-rangular-host = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
-
-[build-dependencies]
-rangular-aot = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
-rangular-css = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
-```
-
-Pin a commit with `rev = "…"` when you want a frozen tree. A local clone works
-the same way:
-
-```toml
-rangular-aot = { path = "../rangular/crates/rangular-aot" }
-rangular-css = { path = "../rangular/crates/rangular-css" }
-rangular-host = { path = "../rangular/crates/rangular-host" }
-```
-
-### One component = three files
+## One component = three files
 
 Same habit as Angular, with **`.rs` instead of `.ts`**:
 
@@ -225,6 +197,28 @@ let css = rangular_css::compile_scss(&scss); // flat CSS for Leptos CSR
 
 Language details: [`docs/SPEC.md`](docs/SPEC.md). Fixture layout:
 [`tests/fixtures/README.md`](tests/fixtures/README.md).
+
+## Use it in your project
+
+Not on [crates.io](https://crates.io/) yet. Until then, depend on git `dev`.
+You need a [Leptos](https://leptos.dev/) CSR app (Trunk / wasm) and a `build.rs`
+that compiles each component (see above).
+
+### Cargo (git)
+
+```toml
+[dependencies]
+leptos = { version = "0.8", features = ["csr"] }
+rangular-aot = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
+rangular-host = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
+
+[build-dependencies]
+rangular-aot = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
+rangular-css = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
+```
+
+Pin a commit (`rev`) or use a local path checkout: see
+[`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md#depend-from-a-local-clone-or-pin-a-commit).
 
 ## Goals
 

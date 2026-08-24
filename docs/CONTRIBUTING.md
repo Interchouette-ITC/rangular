@@ -41,6 +41,27 @@ Product UI templates belong in the consuming application repository. The
 **[rangular](https://github.com/Interchouette-ITC/rangular)** corpus holds engine
 examples only.
 
+## Depend from a local clone or pin a commit
+
+Until crates.io, the README shows a `git` + `branch = "dev"` dependency. To
+freeze a tree, pin a commit:
+
+```toml
+rangular-aot = { git = "https://github.com/Interchouette-ITC/rangular.git", rev = "…" }
+rangular-css = { git = "https://github.com/Interchouette-ITC/rangular.git", rev = "…" }
+rangular-host = { git = "https://github.com/Interchouette-ITC/rangular.git", rev = "…" }
+```
+
+For day-to-day hacking against a sibling checkout:
+
+```toml
+rangular-aot = { path = "../rangular/crates/rangular-aot" }
+rangular-css = { path = "../rangular/crates/rangular-css" }
+rangular-host = { path = "../rangular/crates/rangular-host" }
+```
+
+Adjust the relative path to match your layout.
+
 ## Code changes
 
 - Prefer one concern per PR.
