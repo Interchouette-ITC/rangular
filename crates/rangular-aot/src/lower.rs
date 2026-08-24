@@ -1,6 +1,5 @@
 use proc_macro2::{Literal, Punct, Spacing, TokenStream, TokenTree};
 use quote::{format_ident, quote};
-use rangular_expr::Expr;
 use rangular_parser::{Attr, Element, ForBlock, IfBlock, Node, Template};
 
 use crate::error::{AotIssue, EmitResult, EmitTokens};
@@ -193,7 +192,7 @@ fn lower_attrs(attrs: &[Attr], scope: &Scope<'_>) -> TokenStream {
                 ));
             }
             Attr::Event { name, expr, .. } => {
-                let handler = event_handler_name(expr);
+                let handler = rangular_parser::event_handler_name(expr);
                 let ex = expr_tokens(expr);
                 tokens.push(event_attr(
                     name,
@@ -343,17 +342,6 @@ fn class_attr(name: &str, value: &TokenStream) -> TokenStream {
 
 fn event_attr(name: &str, value: &TokenStream) -> TokenStream {
     prefix_attr("on", name, value)
-}
-
-fn event_handler_name(expr: &Expr) -> &str {
-    match expr {
-        Expr::Call { callee, .. } => match callee.as_ref() {
-            Expr::Ident(name) => name,
-            _ => "",
-        },
-        Expr::Ident(name) => name,
-        _ => "",
-    }
 }
 
 const fn sanitize_tag(tag: &str) -> &str {

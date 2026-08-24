@@ -60,8 +60,9 @@ pub fn render(template: &Template, host: &mut impl Host) -> RenderResult {
         issues: Vec::new(),
     };
     if template.nodes.is_empty() {
+        // Same code as AOT empty-template (`RANG401`) so parity compares agree.
         ctx.issues
-            .push(RuntimeIssue::error("RANG501", "empty template"));
+            .push(RuntimeIssue::error("RANG401", "empty template"));
         return RenderResult {
             nodes: Vec::new(),
             issues: ctx.issues,
@@ -143,7 +144,10 @@ fn render_attrs<H: Host>(attrs: &[Attr], ctx: &mut Ctx<'_, H>) -> Vec<(String, S
                 }
             }
             Attr::Event { name, expr, .. } => {
-                out.push((format!("on:{name}"), event_label(expr)));
+                out.push((
+                    format!("on:{name}"),
+                    rangular_parser::event_handler_name(expr).to_owned(),
+                ));
             }
         }
     }
@@ -200,17 +204,6 @@ fn resolve_frame<H: Host>(expr: &Expr, ctx: &mut Ctx<'_, H>) -> Option<Value> {
             ctx.host.call(callee_name, &values).ok()
         }
         _ => None,
-    }
-}
-
-fn event_label(expr: &Expr) -> String {
-    match expr {
-        Expr::Call { callee, .. } => match callee.as_ref() {
-            Expr::Ident(name) => name.clone(),
-            _ => "handler".into(),
-        },
-        Expr::Ident(name) => name.clone(),
-        _ => "handler".into(),
     }
 }
 

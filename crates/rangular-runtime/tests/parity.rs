@@ -1,5 +1,6 @@
 use rangular_aot::compile;
 use rangular_host::{Host, HostError, Value};
+use rangular_parser::{binding_ir, binding_ir_snapshot, parse};
 use rangular_runtime::interpret;
 use std::path::{Path, PathBuf};
 
@@ -32,6 +33,7 @@ fn html_fixtures() -> Vec<PathBuf> {
             }
         }
     }
+    out.sort();
     out
 }
 
@@ -141,14 +143,61 @@ impl Host for ColorFieldHost {
     }
 }
 
+struct ChromeHeaderHost {
+    muted: bool,
+    count_label: String,
+    enabled_count: f64,
+    total_count: f64,
+    paused_count: f64,
+}
+
+impl Host for ChromeHeaderHost {
+    fn get(&self, name: &str) -> Option<Value> {
+        match name {
+            "muted" => Some(Value::Bool(self.muted)),
+            "countLabel" => Some(Value::Str(self.count_label.clone())),
+            "enabledCount" => Some(Value::Num(self.enabled_count)),
+            "totalCount" => Some(Value::Num(self.total_count)),
+            "pausedCount" => Some(Value::Num(self.paused_count)),
+            _ => None,
+        }
+    }
+
+    fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+        Ok(Value::Unit)
+    }
+}
+
+struct ItemListHost {
+    title: String,
+    items: Vec<String>,
+}
+
+impl Host for ItemListHost {
+    fn get(&self, name: &str) -> Option<Value> {
+        match name {
+            "title" => Some(Value::Str(self.title.clone())),
+            "items" => Some(Value::List(
+                self.items.iter().cloned().map(Value::Str).collect(),
+            )),
+            _ => None,
+        }
+    }
+
+    fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+        Ok(Value::Unit)
+    }
+}
+
 #[test]
-fn corpus_aot_and_runtime_both_ok() {
+fn corpus_aot_runtime_ok_and_shared_ir() {
     for path in html_fixtures() {
         let src = std::fs::read_to_string(&path).unwrap();
         let file = path.to_string_lossy();
         let aot = compile(&src, "parity_view");
         let mut host = EmptyHost;
         let rt = interpret(&src, &file, &mut host);
+
         assert!(
             aot.ok() == rt.ok(),
             "{file}: aot.ok={} rt.ok={} aot={:?} rt={:?}",
@@ -159,7 +208,37 @@ fn corpus_aot_and_runtime_both_ok() {
         );
         assert!(aot.ok(), "{file}: AOT {:?}", aot.issues);
         assert!(rt.ok(), "{file}: runtime {:?}", rt.issues);
+
+        let aot_ir = rangular_aot::structural_ir(&src, &file).expect("aot ir");
+        let rt_ir = rangular_runtime::structural_ir(&src, &file).expect("runtime ir");
+        assert_eq!(
+            aot_ir.1, rt_ir.1,
+            "{file}: structural IR must match between AOT and runtime wrappers"
+        );
+        assert!(
+            !aot_ir.0.is_empty(),
+            "{file}: expected non-empty structural IR"
+        );
     }
+}
+
+#[test]
+fn empty_template_same_rang401() {
+    let aot = compile("", "empty_view");
+    let mut host = EmptyHost;
+    let rt = interpret("", "empty.html", &mut host);
+    assert!(!aot.ok());
+    assert!(!rt.ok());
+    assert!(
+        aot.issues.iter().any(|i| i.code == "RANG401"),
+        "{:?}",
+        aot.issues
+    );
+    assert!(
+        rt.issues.iter().any(|i| i.code == "RANG401"),
+        "{:?}",
+        rt.issues
+    );
 }
 
 #[test]
@@ -178,6 +257,10 @@ fn seed_bar_runtime_snapshot() {
     assert!(snap.contains(r#"prop:disabled="false""#));
     assert!(snap.contains(r#"on:click="onGenerate""#));
     assert!(compile(&src, "seed_bar_view").ok());
+
+    let parsed = parse(&src, "seed-bar.html");
+    let ir = binding_ir_snapshot(&binding_ir(&parsed.template));
+    assert!(ir.contains(r#"on:click="onGenerate""#), "{ir}");
 }
 
 #[test]
@@ -251,6 +334,54 @@ fn color_field_for_expands_swatches() {
     assert!(snap.contains("attr:data-swatch=\"#00f\""));
     assert!(snap.contains("class:color-field__swatch--selected=\"true\""));
     assert!(compile(&src, "color_field_view").ok());
+}
+
+#[test]
+fn chrome_header_runtime_snapshot() {
+    let src =
+        std::fs::read_to_string(fixture_root().join("components/chrome-header/chrome-header.html"))
+            .unwrap();
+    let mut host = ChromeHeaderHost {
+        muted: true,
+        count_label: "2/5".into(),
+        enabled_count: 2.0,
+        total_count: 5.0,
+        paused_count: 3.0,
+    };
+    let out = interpret(&src, "chrome-header.html", &mut host);
+    assert!(out.ok(), "{:?}", out.issues);
+    let snap = out.snapshot();
+    assert!(snap.contains("2/5"), "{snap}");
+    assert!(
+        snap.contains(r#"class:chrome-header__mute-btn--active="true""#),
+        "{snap}"
+    );
+    assert!(snap.contains(r#"attr:aria-pressed="true""#), "{snap}");
+    assert!(snap.contains(r#"on:click="toggleMute""#), "{snap}");
+    assert!(snap.contains("Unmute"), "{snap}");
+    assert!(compile(&src, "chrome_header_view").ok());
+}
+
+#[test]
+fn item_list_runtime_snapshot() {
+    let src = std::fs::read_to_string(fixture_root().join("components/item-list/item-list.html"))
+        .unwrap();
+    let mut host = ItemListHost {
+        title: "Picks".into(),
+        items: vec!["hat".into(), "tie".into()],
+    };
+    let out = interpret(&src, "item-list.html", &mut host);
+    assert!(out.ok(), "{:?}", out.issues);
+    let snap = out.snapshot();
+    assert!(snap.contains("Picks"), "{snap}");
+    assert!(snap.contains("hat"), "{snap}");
+    assert!(snap.contains("tie"), "{snap}");
+    assert!(compile(&src, "item_list_view").ok());
+
+    let ir = rangular_aot::structural_ir(&src, "item-list.html")
+        .unwrap()
+        .1;
+    assert!(ir.contains("@for item track"), "{ir}");
 }
 
 #[test]

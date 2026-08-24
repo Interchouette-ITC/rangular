@@ -200,13 +200,17 @@ Examples:
 - `RANG101` unknown directive (skipped when safe)
 - `RANG201` unknown identifier in expression
 - `RANG301` malformed `:host` selector
-- `RANG501` empty template at runtime
+- `RANG401` empty template (AOT and runtime)
+- `RANG501`–`RANG599` other runtime interpret errors
 
 AOT may promote selected warnings to compile errors when configured; default
 builds fail on `RANG001` and `RANG201` for in-scope fixtures.
 
-Production builds use **AOT**. The **runtime** interpreter shares the same AST
-and Host API for parity tests and tooling; it is not the production path.
+Production builds use **AOT**. The **runtime** interpreter shares the same AST,
+Host API, and structural binding IR for parity tests and tooling; it is not the
+production path. Parity requires AOT and runtime to agree on in-subset fixtures
+(`ok` outcome, shared IR snapshot, and host-evaluated runtime goldens where a
+fixture host exists).
 
 ## Best-effort / no-panic policy
 
