@@ -2,11 +2,11 @@ use leptos::prelude::*;
 
 use crate::components::{
     AssetIconPanel, ChromeHeaderPanel, ColorFieldPanel, EventPayloadPanel, FieldRequiredPanel,
-    IoChildDemoPanel, ItemListPanel, LayoutShellPanel, NamedSlotsPanel, PipesPanel,
+    IoChildDemoPanel, ItemListPanel, LayoutShellPanel, NamedSlotsPanel, PipesPanel, SeedBarPanel,
     TemplateOutletPanel, TwoWayPanel,
 };
 
-const FIXTURE_NAV: [(&str, &str); 12] = [
+const FIXTURE_NAV: [(&str, &str); 13] = [
     ("chrome-header", "chrome-header"),
     ("color-field", "color-field"),
     ("asset-icon", "asset-icon"),
@@ -18,6 +18,7 @@ const FIXTURE_NAV: [(&str, &str); 12] = [
     ("field-required", "field-required"),
     ("event-payload", "event-payload"),
     ("template-outlet", "template-outlet"),
+    ("seed-bar", "seed-bar"),
     ("item-list", "item-list"),
 ];
 
@@ -37,6 +38,7 @@ pub fn App() -> impl IntoView {
                     <p class="demo__subtitle">
                         "Full fixture corpus from tests/fixtures/, compiled AOT to Leptos CSR / wasm."
                     </p>
+                    <SeedBarPanel applied_seed=applied_seed />
                     <nav class="demo__nav" aria-label="Fixture panels">
                         {FIXTURE_NAV
                             .iter()

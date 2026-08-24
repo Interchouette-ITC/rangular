@@ -9,6 +9,7 @@ mod item_list;
 mod layout_shell;
 mod named_slots;
 mod pipes;
+mod seed_bar;
 mod template_outlet;
 mod two_way;
 
@@ -23,5 +24,6 @@ pub use item_list::ItemListPanel;
 pub use layout_shell::LayoutShellPanel;
 pub use named_slots::NamedSlotsPanel;
 pub use pipes::PipesPanel;
+pub use seed_bar::SeedBarPanel;
 pub use template_outlet::TemplateOutletPanel;
 pub use two_way::TwoWayPanel;
