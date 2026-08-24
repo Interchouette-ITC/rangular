@@ -1,26 +1,74 @@
 # rangular
 
-Write Angular-shaped templates as external `.html` and `.scss`, keep state and
-handlers in Rust, and render with [Leptos](https://leptos.dev/) in the browser
-(CSR / Trunk / wasm).
+<p align="center">
+  <img src="docs/assets/logo-256.png" alt="rangular logo: Angular-shaped shield with Ferris the crab" width="160" height="160" />
+</p>
+
+<p align="center">
+  <strong>Angular-shaped templates. Rust controllers. Browser DOM.</strong>
+</p>
+
+Write markup in familiar `.html` / `.scss`, keep state and handlers in Rust, and
+render with [Leptos](https://leptos.dev/) in the browser (CSR / Trunk / wasm).
+
+If you know Angular component files, you will feel at home. If you know Rust,
+you keep ownership of the real logic. rangular sits between the two: a **versioned
+subset**, not a full Angular port, with diagnostics (`RANG*`) instead of panics
+on bad template text.
 
 Production builds use **AOT** lowering to Leptos. A **runtime** interpreter
 shares the same AST for parity tests and tooling.
 
-## Status
+## What you get today
 
-| Area                 | Today                                                                    |
-| -------------------- | ------------------------------------------------------------------------ |
-| Language             | v0.1 contract in [`docs/SPEC.md`](docs/SPEC.md)                          |
-| Parser / expr / host | Core subset                                                              |
-| AOT                  | `rangular-aot` + `rangular-macros`                                       |
-| Runtime              | `rangular-runtime` (parity / tooling)                                    |
-| SCSS                 | `rangular-css` (flat `compile_scss`, or encapsulate; Bootstrap utilities stay global) |
-| Registry             | Panel tags + typed `provide` / `inject`                                  |
-| Growth               | Fixture corpus in [`tests/fixtures/`](tests/fixtures/)                   |
+Author panels as Angular-shaped files; rangular turns them into Leptos views
+for the browser. Production prefers **AOT**; the **runtime** keeps the same AST
+for tests and tooling.
+
+```mermaid
+flowchart LR
+  subgraph author [You write]
+    html["panel.html"]
+    scss["panel.scss"]
+    rust["Rust host / state"]
+  end
+
+  subgraph rangular [rangular]
+    parse[parser + expr]
+    css[css compile]
+    aot[AOT to Leptos]
+    runtime[runtime interpreter]
+  end
+
+  subgraph out [Browser]
+    leptos[Leptos CSR / wasm]
+    dom[DOM]
+  end
+
+  html --> parse
+  scss --> css
+  rust --> aot
+  parse --> aot
+  css --> leptos
+  aot --> leptos
+  parse --> runtime
+  runtime -.->|parity / tooling| leptos
+  leptos --> dom
+```
+
+| Piece | Role today |
+| ----- | ---------- |
+| Language | v0.1 contract in [`docs/SPEC.md`](docs/SPEC.md) |
+| Parser / expr / host | Core subset |
+| AOT | `rangular-aot` + `rangular-macros` |
+| Runtime | `rangular-runtime` (parity / tooling) |
+| SCSS | `rangular-css` (`compile_scss` or encapsulate; Bootstrap utilities stay global) |
+| Registry | Panel tags + typed `provide` / `inject` |
+| Growth | Fixture corpus in [`tests/fixtures/`](tests/fixtures/) |
 
 Honest subset, not full Angular. New syntax lands through fixtures and semver.
 Unsupported input yields `RANG*` diagnostics; templates must never panic the process.
+
 
 ## Goals
 
@@ -31,23 +79,36 @@ Unsupported input yields `RANG*` diagnostics; templates must never panic the pro
 | Web-native         | [Leptos](https://leptos.dev/) CSR on wasm              |
 | Safe parsing       | Diagnostics on bad input; no panic on template text    |
 
-Related work (different targets; useful reading):
+## Browser first (and what that means)
 
-- [Angust](https://github.com/TudorOrban/Angust) - Angular-style components and
-  HTML templates for Rust GUIs (native / desktop-oriented)
-- [Angular Rust](https://github.com/angular-rust) - Angular-inspired UX crates
-  for Rust
+**v0.1 targets the browser DOM.** That is the contract in
+[`docs/SPEC.md`](docs/SPEC.md): Leptos CSR / wasm. Native desktop widget toolkits
+are **out of scope**.
 
-rangular targets the **browser DOM** (Leptos CSR / wasm), with a versioned
-subset and tests.
+### Want Angular-like on the desktop?
 
-## Roadmap
+Look at [Angust](https://github.com/TudorOrban/Angust) (native / desktop-oriented
+components and HTML templates) and the [Angular Rust](https://github.com/angular-rust)
+ecosystem. Different stack, useful reading; not what rangular implements.
 
-- Keep AOT and runtime aligned on the fixture corpus
-- Grow the subset only when fixtures land
-- Content projection / slots for layout shells
-- Stronger host typing and event payloads
-- crates.io when the v0.1 surface is stable
+### Shipping a desktop app anyway?
+
+[Tauri](https://v2.tauri.app/) (and similar shells) host a **webview**. Your UI
+is still a web app. A Leptos + Trunk build that uses rangular panels can run
+inside that webview the same way it runs in Chrome. That is an **indirect**
+desktop path: rangular still speaks DOM / wasm, not egui / iced / GTK.
+
+```mermaid
+flowchart TB
+  subgraph shell ["Desktop shell e.g. Tauri"]
+    subgraph webview [Webview]
+      ui["Leptos CSR + rangular"]
+    end
+  end
+```
+
+No Tauri-specific crate in this repo today. If your frontend already works under
+Trunk, you are most of the way there.
 
 ## Quick start
 
@@ -74,10 +135,28 @@ How to add fixtures: [`tests/fixtures/README.md`](tests/fixtures/README.md) and
 | `rangular-runtime` | Interpret AST at runtime                     |
 | `rangular`         | Facade + panel registry                      |
 
+## Roadmap
+
+- Keep AOT and runtime aligned on the fixture corpus
+- Grow the subset only when fixtures land
+- Content projection / slots for layout shells
+- Stronger host typing and event payloads
+- crates.io when the v0.1 surface is stable
+
 ## Docs
 
-- [`docs/SPEC.md`](docs/SPEC.md) - language contract
+<p align="center">
+  <img src="docs/assets/logo-128.png" alt="rangular mark" width="72" height="72" />
+</p>
+
+- [`docs/SPEC.md`](docs/SPEC.md) - language contract (in / out of scope)
 - [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) - fixtures and PR habits
+- [`docs/README.md`](docs/README.md) - docs index and related projects
+- Logo files: [`docs/assets/`](docs/assets/) (`logo.png`, `logo-256.png`, `logo-128.png`)
+
+The shield + [Ferris](https://rustacean.net/) mark is just a friendly project
+logo, not a product brand system. Use the sized PNGs in docs; keep `logo.png`
+when you need a larger version.
 
 ## License
 
