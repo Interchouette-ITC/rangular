@@ -312,20 +312,20 @@ How to add fixtures: [`tests/fixtures/README.md`](tests/fixtures/README.md) and
 - [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) - fixtures and PR habits
 - [`docs/README.md`](docs/README.md) - docs index and related projects
 
-The mark keeps the familiar **Angular-shaped shield** and sits
-[Ferris](https://rustacean.net/) at the base: templates you already know how to
-read, with Rust holding the state and handlers.
+This repo’s logo combines the **Angular** shield with **[Ferris](https://rustacean.net/)**
+(the Rust mascot). It is only a friendly project logo, not a brand: we reuse
+those familiar marks to signal Angular-shaped templates on Rust.
 
 ## Thanks
 
 **[rangular](https://github.com/Interchouette-ITC/rangular)** stands on a few
 excellent crates:
 
-| Crate | Role here |
-| ----- | --------- |
-| [Leptos](https://leptos.dev/) | Browser CSR / wasm render target for AOT output |
-| [grass](https://crates.io/crates/grass) | In-process Sass / SCSS compile (no Node) |
-| [syn](https://crates.io/crates/syn) / [quote](https://crates.io/crates/quote) / [proc-macro2](https://crates.io/crates/proc-macro2) | Proc-macro and AOT code generation |
+| Crate                                                                                                                               | Role here                                       |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| [Leptos](https://leptos.dev/)                                                                                                       | Browser CSR / wasm render target for AOT output |
+| [grass](https://crates.io/crates/grass)                                                                                             | In-process Sass / SCSS compile (no Node)        |
+| [syn](https://crates.io/crates/syn) / [quote](https://crates.io/crates/quote) / [proc-macro2](https://crates.io/crates/proc-macro2) | Proc-macro and AOT code generation              |
 
 Thank you to their maintainers and communities.
 
