@@ -7,7 +7,7 @@ use crate::components::{
 };
 use crate::decor::DemoDecor;
 
-const FIXTURE_NAV: [(&str, &str); 13] = [
+const FIXTURE_NAV: [(&str, &str); 12] = [
     ("chrome-header", "chrome-header"),
     ("color-field", "color-field"),
     ("asset-icon", "asset-icon"),
@@ -19,7 +19,6 @@ const FIXTURE_NAV: [(&str, &str); 13] = [
     ("field-required", "field-required"),
     ("event-payload", "event-payload"),
     ("template-outlet", "template-outlet"),
-    ("seed-bar", "seed-bar"),
     ("item-list", "item-list"),
 ];
 
