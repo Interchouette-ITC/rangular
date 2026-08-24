@@ -83,7 +83,7 @@ Same habit as Angular, with **`.rs` instead of `.ts`**:
 src/components/item_list/
   item_list.html    # familiar Angular-shaped template
   item_list.scss    # familiar component SCSS
-  item_list.rs      # state + handlers (was .ts)
+  item_list.rs      # state + handlers
 ```
 
 Full fixture (HTML + SCSS):
@@ -295,6 +295,11 @@ How to add fixtures: [`tests/fixtures/README.md`](tests/fixtures/README.md) and
 - Content projection / slots for layout shells
 - Stronger host typing and event payloads
 - crates.io when the v0.1 surface is stable
+- **Other Rust UI targets?** Today AOT lowers only to Leptos. Separate
+  backends for [Dioxus](https://dioxuslabs.com/), [egui](https://www.egui.rs/),
+  and [iced](https://iced.rs/) are an open question: worth the maintenance cost
+  for a shared parser / host, or stay web-DOM / Leptos only? Not committed; v0.1
+  stays Leptos CSR.
 
 ## Docs
 
