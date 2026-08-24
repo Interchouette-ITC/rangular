@@ -110,6 +110,7 @@ fn values_equal(left: &Value, right: &Value) -> bool {
         (Value::Num(a), Value::Num(b)) => (a - b).abs() < f64::EPSILON,
         (Value::Bool(a), Value::Bool(b)) => a == b,
         (Value::List(a), Value::List(b)) => a == b,
+        (Value::Event(a), Value::Event(b)) => a == b,
         (Value::Unit, Value::Unit) => true,
         _ => false,
     }

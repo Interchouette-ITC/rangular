@@ -14,6 +14,9 @@ document as unsupported.
 3. Use syntax you want in the contract: `{{ }}`, `[prop]`, `(event)`, `@if`, `@for`,
    `:host`, `[class.foo]`, `[attr.aria-*]`, SCSS nesting, and so on.
 4. Run `make test` (and `make no-panic` after parser changes).
+5. Document the path in `docs/SPEC.md` and add it to
+   `REQUIRED_FIXTURES` in `crates/rangular-parser/tests/fixtures_gate.rs` so CI
+   fails if the fixture disappears.
 
 ### Add flat html/scss samples
 

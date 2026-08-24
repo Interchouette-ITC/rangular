@@ -385,6 +385,46 @@ fn item_list_runtime_snapshot() {
 }
 
 #[test]
+fn event_payload_fixture_ir_and_aot() {
+    let src = std::fs::read_to_string(fixture_root().join("html/event-payload.html")).unwrap();
+    let ir = rangular_aot::structural_ir(&src, "event-payload.html")
+        .unwrap()
+        .1;
+    assert!(ir.contains(r#"on:input="onInput""#), "{ir}");
+    assert!(ir.contains(r#"on:click="onClick""#), "{ir}");
+    assert!(ir.contains(r#"on:error="onError""#), "{ir}");
+    assert!(compile(&src, "event_payload_view").ok());
+    let mut host = EmptyHost;
+    assert!(interpret(&src, "event-payload.html", &mut host).ok());
+}
+
+#[test]
+fn layout_shell_has_ng_content_ir() {
+    let src =
+        std::fs::read_to_string(fixture_root().join("components/layout-shell/layout-shell.html"))
+            .unwrap();
+    let ir = rangular_aot::structural_ir(&src, "layout-shell.html")
+        .unwrap()
+        .1;
+    assert!(ir.contains("ng-content"), "{ir}");
+    assert!(compile(&src, "layout_shell_view").ok(), "AOT issues");
+    let mut host = EmptyHost;
+    assert!(interpret(&src, "layout-shell.html", &mut host).ok());
+}
+
+#[test]
+fn io_parent_and_child_compile() {
+    for rel in ["html/io-parent.html", "components/io-child/io-child.html"] {
+        let src = std::fs::read_to_string(fixture_root().join(rel)).unwrap();
+        assert!(
+            compile(&src, "io_view").ok(),
+            "{rel}: {:?}",
+            compile(&src, "io_view").issues
+        );
+    }
+}
+
+#[test]
 fn garbage_never_panics() {
     for sample in ["<<<>", "{{", "@if (", "<div *unknown=\"x\">"] {
         let aot = compile(sample, "broken");

@@ -14,6 +14,15 @@ pub enum Node {
     Comment(String, Span),
     If(IfBlock),
     For(ForBlock),
+    /// Angular-shaped content projection (`<ng-content>`).
+    Projection(Projection),
+}
+
+/// Default content projection slot (`<ng-content>` / optional `select`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Projection {
+    pub select: Option<String>,
+    pub span: Span,
 }
 
 #[derive(Clone, Debug, PartialEq)]

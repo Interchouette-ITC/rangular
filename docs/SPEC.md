@@ -62,7 +62,31 @@ Static attributes without brackets pass through unchanged.
 | `(click)="handler($event)"` | DOM event; `$event` is the event object |
 | `(input)="onInput($event)"` | Common form events                      |
 
-Handler names resolve through the host `call` API.
+Handler names resolve through the host `call` API. `$event` is a typed
+[`EventPayload`](../crates/rangular-host/src/event.rs) (`Click`, `Input { value }`,
+`Error`, or `Custom`) exposed as `Value::Event` (see fixture
+[`tests/fixtures/html/event-payload.html`](../tests/fixtures/html/event-payload.html)).
+
+### Content projection
+
+| Surface syntax        | Meaning                                      |
+| --------------------- | -------------------------------------------- |
+| `<ng-content></ng-content>` | Default projection slot (layout shells) |
+
+Fixture: [`tests/fixtures/components/layout-shell/`](../tests/fixtures/components/layout-shell/).
+Slot body wiring from the parent view is completed in a follow-up; parse / IR /
+AOT / runtime already accept the tag.
+
+### Component Input / Output (growth)
+
+Parent ↔ child communication uses `[input]` and `(output)` on registered tags.
+Teaching fixtures:
+
+- [`tests/fixtures/components/io-child/`](../tests/fixtures/components/io-child/)
+- [`tests/fixtures/html/io-parent.html`](../tests/fixtures/html/io-parent.html)
+
+Registry-backed custom tags are the next wiring step; fixtures already show the
+DOM-shaped host pattern.
 
 ### Control flow
 
@@ -233,6 +257,9 @@ both success and expected unsupported cases.
 2. If syntax is new, bump the **minor** spec version and document it here.
 3. Implement parser/CSS/expr/backends **or** check in expected diagnostics.
 4. Parity tests require AOT and runtime to agree on in-subset fixtures.
+5. **Gate:** `rangular-parser` integration test `required_fixtures_exist` fails
+   if a planned construct path is missing; SPEC must name the fixture paths for
+   `EventPayload`, `ng-content`, `layout-shell`, and `io-child`.
 
 ## SemVer summary
 

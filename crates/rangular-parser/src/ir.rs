@@ -26,6 +26,9 @@ pub enum IrNode {
         has_track: bool,
         body: Vec<Self>,
     },
+    Projection {
+        has_select: bool,
+    },
 }
 
 /// Attribute / event binding kind on an element (no evaluated values).
@@ -56,6 +59,9 @@ fn from_node(node: &Node) -> Option<IrNode> {
         Node::Comment(_, _) => None,
         Node::If(block) => Some(from_if(block)),
         Node::For(block) => Some(from_for(block)),
+        Node::Projection(proj) => Some(IrNode::Projection {
+            has_select: proj.select.is_some(),
+        }),
     }
 }
 
@@ -203,6 +209,14 @@ fn write_node(node: &IrNode, depth: usize, out: &mut String) {
             for child in body {
                 write_node(child, depth + 1, out);
             }
+        }
+        IrNode::Projection { has_select } => {
+            out.push_str(&pad);
+            out.push_str("ng-content");
+            if *has_select {
+                out.push_str(" select");
+            }
+            out.push('\n');
         }
     }
 }
