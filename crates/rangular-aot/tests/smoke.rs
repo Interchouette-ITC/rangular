@@ -36,6 +36,24 @@ fn color_field_emits_leptos_view() {
 }
 
 #[test]
+fn layout_shell_emits_children_slot() {
+    let html = include_str!("../../../tests/fixtures/components/layout-shell/layout-shell.html");
+    let out = compile(html, "layout_shell_view");
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(
+        out.code.contains("children:Children") || out.code.contains("children: Children"),
+        "expected Children param:\n{}",
+        out.code
+    );
+    assert!(
+        out.code.contains("children()") || out.code.contains("children ()"),
+        "expected children() projection:\n{}",
+        out.code
+    );
+    parse_file(&out.code).unwrap_or_else(|err| panic!("invalid Rust: {err}"));
+}
+
+#[test]
 fn garbage_input_returns_issues_not_empty_code() {
     let out = compile("<@broken", "broken_view");
     assert!(!out.ok());

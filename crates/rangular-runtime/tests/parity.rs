@@ -425,6 +425,30 @@ fn io_parent_and_child_compile() {
 }
 
 #[test]
+fn layout_shell_projects_runtime_slot() {
+    let src =
+        std::fs::read_to_string(fixture_root().join("components/layout-shell/layout-shell.html"))
+            .unwrap();
+    let mut host = EmptyHost;
+    let slot = vec![rangular_runtime::VNode::Element {
+        tag: "p".into(),
+        attrs: vec![],
+        children: vec![rangular_runtime::VNode::Text("panel".into())],
+    }];
+    let out = rangular_runtime::interpret_with_slot(&src, "layout-shell.html", &mut host, &slot);
+    assert!(out.ok(), "{:?}", out.issues);
+    let snap = out.snapshot();
+    assert!(snap.contains("<p>"), "{snap}");
+    assert!(snap.contains("panel"), "{snap}");
+    assert!(
+        snap.contains("layout-shell__stage")
+            || snap.contains("class=\"layout-shell__stage\"")
+            || snap.contains("stage"),
+        "{snap}"
+    );
+}
+
+#[test]
 fn garbage_never_panics() {
     for sample in ["<<<>", "{{", "@if (", "<div *unknown=\"x\">"] {
         let aot = compile(sample, "broken");
