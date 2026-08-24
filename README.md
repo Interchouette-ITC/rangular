@@ -101,11 +101,11 @@ rangular-host = { path = "../rangular/crates/rangular-host" }
 
 Same habit as Angular, with **`.rs` instead of `.ts`**:
 
-| File | Angular habit | Here |
-| ---- | ------------- | ---- |
-| `item_list.html` | template | Angular-shaped markup (`{{ }}`, `@for`, bindings) |
-| `item_list.scss` | component styles | `:host`, nesting, `&` |
-| `item_list.rs` | class / component.ts | Rust `Host` + Leptos `#[component]` |
+| File             | Angular habit        | Here                                              |
+| ---------------- | -------------------- | ------------------------------------------------- |
+| `item_list.html` | template             | Angular-shaped markup (`{{ }}`, `@for`, bindings) |
+| `item_list.scss` | component styles     | `:host`, nesting, `&`                             |
+| `item_list.rs`   | class / component.ts | Rust `Host` + Leptos `#[component]`               |
 
 ```text
 src/components/item_list/
@@ -312,7 +312,22 @@ How to add fixtures: [`tests/fixtures/README.md`](tests/fixtures/README.md) and
 - [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) - fixtures and PR habits
 - [`docs/README.md`](docs/README.md) - docs index and related projects
 
-The shield + [Ferris](https://rustacean.net/) mark is a friendly project logo.
+The mark keeps the familiar **Angular-shaped shield** and sits
+[Ferris](https://rustacean.net/) at the base: templates you already know how to
+read, with Rust holding the state and handlers.
+
+## Thanks
+
+**[rangular](https://github.com/Interchouette-ITC/rangular)** stands on a few
+excellent crates:
+
+| Crate | Role here |
+| ----- | --------- |
+| [Leptos](https://leptos.dev/) | Browser CSR / wasm render target for AOT output |
+| [grass](https://crates.io/crates/grass) | In-process Sass / SCSS compile (no Node) |
+| [syn](https://crates.io/crates/syn) / [quote](https://crates.io/crates/quote) / [proc-macro2](https://crates.io/crates/proc-macro2) | Proc-macro and AOT code generation |
+
+Thank you to their maintainers and communities.
 
 ## License
 
