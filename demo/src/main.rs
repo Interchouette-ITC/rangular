@@ -2,7 +2,6 @@ use leptos::mount::mount_to_body;
 
 mod app;
 mod components;
-mod decor;
 mod demo_pipes;
 mod demo_seed;
 

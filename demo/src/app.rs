@@ -5,7 +5,6 @@ use crate::components::{
     IoChildDemoPanel, ItemListPanel, LayoutShellPanel, NamedSlotsPanel, PipesPanel, SeedBarPanel,
     TemplateOutletPanel, TwoWayPanel,
 };
-use crate::decor::DemoDecor;
 
 const FIXTURE_NAV: [(&str, &str); 13] = [
     ("chrome-header", "chrome-header"),
@@ -29,7 +28,6 @@ pub fn App() -> impl IntoView {
     let accent = RwSignal::new(String::from("#ce422b"));
 
     view! {
-        <DemoDecor applied_seed=applied_seed />
         <main class="demo">
             <header class="demo__hero">
                 <div class="demo__hero-copy">
