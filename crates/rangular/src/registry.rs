@@ -2,6 +2,7 @@ use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use rangular_expr::{PipeFn, PipeRegistry};
 use rangular_parser::{builtin_tag_io, TagIo};
 
 /// Example component tags aligned with `tests/fixtures/components/`.
@@ -21,10 +22,21 @@ pub struct ComponentEntry {
 }
 
 /// Tag + typed service registry (maps to Leptos provide/inject at the app edge).
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct Registry {
     tags: HashMap<String, ComponentEntry>,
     services: HashMap<TypeId, Arc<dyn Any + Send + Sync>>,
+    pipes: PipeRegistry,
+}
+
+impl Default for Registry {
+    fn default() -> Self {
+        Self {
+            tags: HashMap::new(),
+            services: HashMap::new(),
+            pipes: PipeRegistry::with_builtins(),
+        }
+    }
 }
 
 impl Registry {
@@ -85,6 +97,23 @@ impl Registry {
         );
     }
 
+    /// Register or replace a custom pipe (same map used by AOT / runtime eval).
+    pub fn register_pipe(&mut self, name: impl Into<String>, pipe: PipeFn) {
+        self.pipes.register(name, pipe);
+    }
+
+    /// Pipe map for [`rangular_expr::eval_with_pipes`] / `HostCell`.
+    #[must_use]
+    pub const fn pipes(&self) -> &PipeRegistry {
+        &self.pipes
+    }
+
+    /// Shared pipe registry handle.
+    #[must_use]
+    pub fn pipes_arc(&self) -> Arc<PipeRegistry> {
+        Arc::new(self.pipes.clone())
+    }
+
     #[must_use]
     pub fn resolve(&self, tag: &str) -> Option<&ComponentEntry> {
         self.tags.get(tag)
@@ -128,6 +157,20 @@ impl Registry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rangular_expr::{eval_with_pipes, parse, Host, Value};
+    use rangular_host::HostError;
+
+    struct LabelHost;
+
+    impl Host for LabelHost {
+        fn get(&self, name: &str) -> Option<Value> {
+            (name == "label").then(|| Value::Str("Hi".into()))
+        }
+
+        fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+            Ok(Value::Unit)
+        }
+    }
 
     #[test]
     fn example_panels_resolve() {
@@ -153,5 +196,22 @@ mod tests {
         reg.provide(42_u32);
         assert_eq!(reg.inject::<u32>(), Some(&42));
         assert!(reg.inject::<i32>().is_none());
+    }
+
+    #[test]
+    fn custom_pipe_via_registry() {
+        let mut reg = Registry::new();
+        reg.register_pipe("shout", |v, _| {
+            Ok(Value::Str(format!(
+                "{}!",
+                v.as_str().unwrap_or_default().to_uppercase()
+            )))
+        });
+        let expr = parse("label | shout").expr.expect("pipe expr");
+        let mut host = LabelHost;
+        assert_eq!(
+            eval_with_pipes(&expr, &mut host, reg.pipes()).unwrap(),
+            Value::Str("HI!".into())
+        );
     }
 }

@@ -11,6 +11,7 @@ const REQUIRED_FIXTURES: &[&str] = &[
     "html/seed-bar.html",
     "html/event-payload.html",
     "html/io-parent.html",
+    "html/pipes.html",
     "components/item-list/item-list.html",
     "components/chrome-header/chrome-header.html",
     "components/color-field/color-field.html",
@@ -45,6 +46,7 @@ fn spec_mentions_fixture_gate_paths() {
         "io-child",
         "ng-content",
         "EventPayload",
+        "pipes",
     ] {
         assert!(
             spec.contains(needle),

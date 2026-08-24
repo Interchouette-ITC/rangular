@@ -12,11 +12,11 @@ releases may remove or rename supported constructs only with a migration note.
 | ---------------------------------------------- | -------------------------------------------------------- |
 | Web DOM via Leptos CSR                         | Full Angular framework                                   |
 | External `.html` templates                     | Markup inside Rust controllers                           |
-| Component `.scss` (compiled then encapsulated) | Pipes, two-way banana `[(…)]`, named slots / `ng-template` |
+| Component `.scss` (compiled then encapsulated) | Two-way banana `[(…)]`, named slots / `ng-template`      |
 | AOT (production default)                       | i18n, NgModule, Angular DI                               |
 | Runtime interpreter (tests/tooling)            | Claiming runtime as the production path                  |
 | Fixture-driven growth                          | Native desktop GUI toolkits                              |
-| Default `<ng-content>`, `EventPayload`, Input/Output | Silent ignore of unknown syntax                    |
+| Default `<ng-content>`, `EventPayload`, Input/Output, pipes | Silent ignore of unknown syntax                 |
 
 **Desktop shells with a webview** (for example Tauri) are still the web path:
 the UI is Leptos CSR / wasm inside the webview. They are **not** a separate
@@ -110,11 +110,26 @@ Full view-fn composition remains a follow-up.
 ### Expressions (v0.1)
 
 Literals (string, number, bool), identifiers and dotted paths, unary `!`,
-binary `&&`, `||`, `==`, `!=`, parenthesis, and handler calls such as
-`togglePalette()` or `onColorInput($event)`.
+binary `&&`, `||`, `==`, `!=`, parenthesis, handler calls such as
+`togglePalette()` or `onColorInput($event)`, and **pipes** in interpolations
+and property / attribute bindings.
 
-**Not in v0.1:** pipes (`{{ x | number }}`), ternary, nullish coalescing,
-assignment, two-way banana `[(…)]`, arbitrary method chains beyond what the
+### Pipes
+
+| Surface syntax              | Meaning                                      |
+| --------------------------- | -------------------------------------------- |
+| `{{ value \| pipe }}`       | Apply named pipe to `value`                  |
+| `{{ value \| pipe:arg }}`   | Pipe with colon args                         |
+| `{{ a \| b \| c }}`         | Left-associative chain                       |
+
+Builtins (pure transforms on eval): `uppercase`, `lowercase`, `number`, `json`.
+Apps register custom pipes on [`Registry::register_pipe`](../crates/rangular/src/registry.rs)
+(same map for AOT `HostCell::with_pipes` and runtime `interpret_with_pipes`).
+
+Fixture: [`tests/fixtures/html/pipes.html`](../tests/fixtures/html/pipes.html).
+
+**Not in v0.1:** ternary, nullish coalescing, assignment, two-way banana
+`[(…)]`, impure pipe change-detection, arbitrary method chains beyond what the
 host exposes.
 
 ## Reference template: color-field
@@ -269,7 +284,7 @@ both success and expected unsupported cases.
 4. Parity tests require AOT and runtime to agree on in-subset fixtures.
 5. **Gate:** `rangular-parser` integration test `required_fixtures_exist` fails
    if a planned construct path is missing; SPEC must name the fixture paths for
-   `EventPayload`, `ng-content`, `layout-shell`, and `io-child`.
+   `EventPayload`, `ng-content`, `layout-shell`, `io-child`, and `pipes`.
 
 ## SemVer summary
 

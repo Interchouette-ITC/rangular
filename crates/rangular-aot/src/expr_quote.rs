@@ -33,6 +33,17 @@ pub fn expr_tokens(expr: &Expr) -> TokenStream {
                 }
             }
         }
+        Expr::Pipe { expr, name, args } => {
+            let inner = expr_tokens(expr);
+            let a = args.iter().map(expr_tokens);
+            quote! {
+                rangular_expr::Expr::Pipe {
+                    expr: Box::new(#inner),
+                    name: #name.to_string(),
+                    args: vec![#(#a),*],
+                }
+            }
+        }
         Expr::Ternary {
             cond,
             then_branch,

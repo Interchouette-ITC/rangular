@@ -495,6 +495,41 @@ fn io_parent_classifies_inputs_and_outputs() {
 }
 
 #[test]
+fn pipes_runtime_snapshot() {
+    struct PipesHost;
+
+    impl Host for PipesHost {
+        fn get(&self, name: &str) -> Option<Value> {
+            match name {
+                "label" => Some(Value::Str("Hello".into())),
+                "amount" => Some(Value::Num(42.5)),
+                _ => None,
+            }
+        }
+
+        fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+            Ok(Value::Unit)
+        }
+    }
+
+    let src = std::fs::read_to_string(fixture_root().join("html/pipes.html")).unwrap();
+    let mut host = PipesHost;
+    let out = interpret(&src, "pipes.html", &mut host);
+    assert!(out.ok(), "{:?}", out.issues);
+    let snap = out.snapshot();
+    assert!(snap.contains("HELLO"), "{snap}");
+    assert!(snap.contains("hello"), "{snap}");
+    assert!(snap.contains("42.5"), "{snap}");
+    assert!(snap.contains(r#""Hello""#), "{snap}");
+    assert!(snap.contains(r#"attr:title="HELLO""#), "{snap}");
+    assert!(compile(&src, "pipes_view").ok());
+
+    let aot_ir = rangular_aot::structural_ir(&src, "pipes.html").expect("aot ir");
+    let rt_ir = rangular_runtime::structural_ir(&src, "pipes.html").expect("rt ir");
+    assert_eq!(aot_ir.1, rt_ir.1);
+}
+
+#[test]
 fn garbage_never_panics() {
     for sample in ["<<<>", "{{", "@if (", "<div *unknown=\"x\">"] {
         let aot = compile(sample, "broken");

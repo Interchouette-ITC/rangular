@@ -297,11 +297,12 @@ Shipped on `dev` (fixture-backed):
 - [x] Default content projection (`<ng-content>`) for layout shells
 - [x] Typed `$event` / `EventPayload` on the Host
 - [x] Component Input / Output on registered tags
+- [x] Pipes (`uppercase`, `lowercase`, `number`, `json` + custom registry)
 
 Still future:
 
 - crates.io when the v0.1 surface is stable
-- Pipes, two-way banana `[(…)]`, named projection / `ng-template` (not in v0.1 yet)
+- Two-way banana `[(…)]`, named projection / `ng-template` (not in v0.1 yet)
 - Grow the subset only when fixtures land (habit stays)
 - **Other Rust UI targets?** Today AOT lowers only to Leptos. Separate
   backends for [Dioxus](https://dioxuslabs.com/), [egui](https://www.egui.rs/),
