@@ -15,7 +15,8 @@ This directory is the **corpus** that drives
 1. Create a folder under `tests/fixtures/components/<name>/`.
 2. Add `<name>.html` and `<name>.scss`.
 3. Prefer real Angular patterns you want supported: `{{ }}`, `[prop]`, `(event)`,
-   `@if` / `@for`, `:host`, SCSS nesting, `ng-content`, pipes (`|`), etc.
+   `@if` / `@for`, `:host`, SCSS nesting, `ng-content`, pipes (`|`), banana
+   (`[(…)]`), etc.
 4. If the syntax is **not yet in SPEC v0.x**, either:
    - extend the parser/SCSS/backends to support it, **or**
    - add an expected-diagnostics golden that documents "unsupported" (must
@@ -43,6 +44,7 @@ tests/fixtures/
     event-payload.html   # typed $event / EventPayload
     io-parent.html       # parent↔child IO teaching shape
     pipes.html           # {{ value | pipe }} builtins
+    two-way.html         # [(value)] banana Host get/set
   scss/              # minimal SCSS / :host / Bootstrap coexist reproducers
   components/
     item-list/       # simple @for list (teaching example)

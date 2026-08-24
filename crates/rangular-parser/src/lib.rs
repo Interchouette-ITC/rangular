@@ -1,4 +1,5 @@
 mod ast;
+mod banana;
 mod component_io;
 mod diag;
 mod expr;
@@ -7,6 +8,7 @@ mod parser;
 mod span;
 
 pub use ast::{Attr, Element, ForBlock, IfBlock, Node, Projection, Template};
+pub use banana::{banana_event_name, banana_set_target, banana_write_expr, BANANA_SET_CALLEE};
 pub use component_io::{builtin_tag_io, classify_bindings, TagIo};
 pub use diag::{Diagnostic, Severity};
 pub use expr::{BinOp, Expr, Literal, UnOp};

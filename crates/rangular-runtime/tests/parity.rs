@@ -530,6 +530,53 @@ fn pipes_runtime_snapshot() {
 }
 
 #[test]
+fn two_way_runtime_snapshot() {
+    struct TwoWayHost {
+        seed: String,
+    }
+
+    impl Host for TwoWayHost {
+        fn get(&self, name: &str) -> Option<Value> {
+            (name == "seed").then(|| Value::Str(self.seed.clone()))
+        }
+
+        fn set(&mut self, name: &str, value: Value) -> Result<(), HostError> {
+            if name == "seed" {
+                if let Some(s) = value.as_str() {
+                    self.seed = s.to_owned();
+                }
+            }
+            Ok(())
+        }
+
+        fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+            Ok(Value::Unit)
+        }
+    }
+
+    let src = std::fs::read_to_string(fixture_root().join("html/two-way.html")).unwrap();
+    let mut host = TwoWayHost { seed: "abc".into() };
+    let out = interpret(&src, "two-way.html", &mut host);
+    assert!(out.ok(), "{:?}", out.issues);
+    let snap = out.snapshot();
+    assert!(snap.contains(r#"prop:value="abc""#), "{snap}");
+    assert!(snap.contains(r#"on:input="$bananaSet""#), "{snap}");
+    assert!(snap.contains(">abc<") || snap.contains("abc"), "{snap}");
+    assert!(compile(&src, "two_way_view").ok());
+
+    let ir = binding_ir_snapshot(&binding_ir(&parse(&src, "two-way.html").template));
+    assert!(ir.contains("prop:value"), "{ir}");
+    assert!(ir.contains(r#"on:input="$bananaSet""#), "{ir}");
+
+    let aot_ir = rangular_aot::structural_ir(&src, "two-way.html").expect("aot ir");
+    let rt_ir = rangular_runtime::structural_ir(&src, "two-way.html").expect("rt ir");
+    assert_eq!(aot_ir.1, rt_ir.1);
+
+    host.set("seed", Value::Str("xyz".into())).unwrap();
+    assert_eq!(host.seed, "xyz");
+}
+
+#[test]
 fn garbage_never_panics() {
     for sample in ["<<<>", "{{", "@if (", "<div *unknown=\"x\">"] {
         let aot = compile(sample, "broken");

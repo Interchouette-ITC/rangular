@@ -54,6 +54,60 @@ fn layout_shell_emits_children_slot() {
 }
 
 #[test]
+fn two_way_emits_leptos_view() {
+    let html = include_str!("../../../tests/fixtures/html/two-way.html");
+    assert_emits(html, "two_way_view", "two-way");
+    let out = compile(html, "two_way_view");
+    assert!(
+        out.code.contains("input") && out.code.contains("$bananaSet"),
+        "expected banana desugar in emit:\n{}",
+        out.code
+    );
+}
+
+#[test]
+fn banana_hostcell_sets_via_dom_event() {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    use rangular_aot::HostCell;
+    use rangular_expr::{Expr, Host, Value};
+    use rangular_host::HostError;
+    use rangular_parser::banana_write_expr;
+
+    struct SeedHost {
+        seed: Rc<RefCell<String>>,
+    }
+
+    impl Host for SeedHost {
+        fn get(&self, name: &str) -> Option<Value> {
+            (name == "seed").then(|| Value::Str(self.seed.borrow().clone()))
+        }
+
+        fn set(&mut self, name: &str, value: Value) -> Result<(), HostError> {
+            if name == "seed" {
+                if let Some(s) = value.as_str() {
+                    *self.seed.borrow_mut() = s.to_owned();
+                }
+            }
+            Ok(())
+        }
+
+        fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+            Ok(Value::Unit)
+        }
+    }
+
+    let seed = Rc::new(RefCell::new("abc".into()));
+    let cell = HostCell::new(SeedHost {
+        seed: Rc::clone(&seed),
+    });
+    let write = banana_write_expr(&Expr::Ident("seed".into()));
+    cell.emit_dom_event_call("$bananaSet", &write, "input", "xyz".into());
+    assert_eq!(*seed.borrow(), "xyz");
+}
+
+#[test]
 fn garbage_input_returns_issues_not_empty_code() {
     let out = compile("<@broken", "broken_view");
     assert!(!out.ok());
