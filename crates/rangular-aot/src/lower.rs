@@ -58,16 +58,46 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
         };
     };
     let ident = format_ident!("{fn_name}");
-    let tokens = quote! {
-        #[allow(clippy::needless_pass_by_value, clippy::redundant_clone)]
-        pub fn #ident<H: rangular_host::Host + 'static>(
-            host: rangular_aot::HostCell<H>,
-        ) -> impl IntoView {
-            let _ = &host;
-            view! { #body }
+    let with_slot = has_projection(&template.nodes);
+    let tokens = if with_slot {
+        quote! {
+            #[allow(clippy::needless_pass_by_value, clippy::redundant_clone)]
+            pub fn #ident<H: rangular_host::Host + 'static>(
+                host: rangular_aot::HostCell<H>,
+                children: Children,
+            ) -> impl IntoView {
+                let _ = &host;
+                view! { #body }
+            }
+        }
+    } else {
+        quote! {
+            #[allow(clippy::needless_pass_by_value, clippy::redundant_clone)]
+            pub fn #ident<H: rangular_host::Host + 'static>(
+                host: rangular_aot::HostCell<H>,
+            ) -> impl IntoView {
+                let _ = &host;
+                view! { #body }
+            }
         }
     };
     EmitTokens { tokens, issues }
+}
+
+fn has_projection(nodes: &[Node]) -> bool {
+    nodes.iter().any(|node| match node {
+        Node::Projection(_) => true,
+        Node::Element(el) => has_projection(&el.children),
+        Node::If(block) => {
+            has_projection(&block.then_branch)
+                || block
+                    .else_branch
+                    .as_ref()
+                    .is_some_and(|nodes| has_projection(nodes))
+        }
+        Node::For(block) => has_projection(&block.body),
+        Node::Text(_, _) | Node::Interpolation(_, _) | Node::Comment(_, _) => false,
+    })
 }
 
 fn lower_nodes(
@@ -83,11 +113,9 @@ fn lower_nodes(
         .filter_map(|node| lower_node(node, issues, scope))
         .collect();
     if parts.is_empty() {
-        // Only omitted nodes (comments / bare ng-content): still a valid empty fragment.
-        if nodes
-            .iter()
-            .all(|n| matches!(n, Node::Comment(_, _) | Node::Projection(_)))
-        {
+        // Only omitted nodes (comments): still a valid empty fragment.
+        // Bare `<ng-content>` lowers to `{children()}` and is not omitted.
+        if nodes.iter().all(|n| matches!(n, Node::Comment(_, _))) {
             return Some(quote! {});
         }
         issues.push(AotIssue::error("RANG401", "no lowerable template nodes"));
@@ -108,7 +136,8 @@ fn lower_node(node: &Node, issues: &mut Vec<AotIssue>, scope: &Scope<'_>) -> Opt
                 move || host.prop_str_scoped(&#ex, #st)
             }})
         }
-        Node::Comment(_, _) | Node::Projection(_) => None,
+        Node::Comment(_, _) => None,
+        Node::Projection(_) => Some(quote! { {children()} }),
         Node::If(block) => lower_if(block, issues, scope),
         Node::For(block) => lower_for(block, issues),
     }

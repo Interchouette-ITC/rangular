@@ -25,11 +25,23 @@ struct Ctx<'a, H: Host> {
     host: &'a mut H,
     frames: Vec<Frame>,
     issues: Vec<RuntimeIssue>,
+    slot: &'a [VNode],
 }
 
 /// Parse `source` then render. Parse errors become runtime issues; never panics on content.
 #[must_use]
 pub fn interpret(source: &str, file: &str, host: &mut impl Host) -> RenderResult {
+    interpret_with_slot(source, file, host, &[])
+}
+
+/// Like [`interpret`], inserting `slot` nodes at each `<ng-content>` projection.
+#[must_use]
+pub fn interpret_with_slot(
+    source: &str,
+    file: &str,
+    host: &mut impl Host,
+    slot: &[VNode],
+) -> RenderResult {
     let parsed = parse(source, file);
     let mut issues: Vec<RuntimeIssue> = parsed
         .diagnostics
@@ -43,7 +55,7 @@ pub fn interpret(source: &str, file: &str, host: &mut impl Host) -> RenderResult
             issues,
         };
     }
-    let mut out = render(&parsed.template, host);
+    let mut out = render_with_slot(&parsed.template, host, slot);
     issues.append(&mut out.issues);
     RenderResult {
         nodes: out.nodes,
@@ -54,10 +66,17 @@ pub fn interpret(source: &str, file: &str, host: &mut impl Host) -> RenderResult
 /// Interpret a parsed template against `host`.
 #[must_use]
 pub fn render(template: &Template, host: &mut impl Host) -> RenderResult {
+    render_with_slot(template, host, &[])
+}
+
+/// Interpret `template`, projecting `slot` at each `<ng-content>`.
+#[must_use]
+pub fn render_with_slot(template: &Template, host: &mut impl Host, slot: &[VNode]) -> RenderResult {
     let mut ctx = Ctx {
         host,
         frames: Vec::new(),
         issues: Vec::new(),
+        slot,
     };
     if template.nodes.is_empty() {
         // Same code as AOT empty-template (`RANG401`) so parity compares agree.
@@ -93,7 +112,8 @@ fn render_node<H: Host>(node: &Node, ctx: &mut Ctx<'_, H>) -> Vec<VNode> {
         Node::Interpolation(expr, _) => {
             vec![VNode::Text(display_value(&eval_expr(expr, ctx)))]
         }
-        Node::Comment(_, _) | Node::Projection(_) => Vec::new(),
+        Node::Comment(_, _) => Vec::new(),
+        Node::Projection(_) => ctx.slot.to_vec(),
         Node::If(block) => render_if(block, ctx),
         Node::For(block) => render_for(block, ctx),
     }

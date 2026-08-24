@@ -74,8 +74,9 @@ Handler names resolve through the host `call` API. `$event` is a typed
 | `<ng-content></ng-content>` | Default projection slot (layout shells) |
 
 Fixture: [`tests/fixtures/components/layout-shell/`](../tests/fixtures/components/layout-shell/).
-Slot body wiring from the parent view is completed in a follow-up; parse / IR /
-AOT / runtime already accept the tag.
+AOT view factories that contain `<ng-content>` take a Leptos `Children` argument
+and insert `{children()}` at the slot. Runtime uses `interpret_with_slot` /
+`render_with_slot` to inject projected `VNode`s.
 
 ### Component Input / Output (growth)
 

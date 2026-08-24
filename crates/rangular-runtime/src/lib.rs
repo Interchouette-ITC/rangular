@@ -11,7 +11,7 @@ pub use rangular_expr;
 pub use rangular_host;
 pub use rangular_parser;
 pub use rangular_parser::{binding_ir, binding_ir_snapshot, IrBinding, IrNode};
-pub use render::{interpret, render, VNode};
+pub use render::{interpret, interpret_with_slot, render, render_with_slot, VNode};
 pub use snapshot::snapshot;
 
 /// Structural binding IR for `source` (shared with AOT parity).
