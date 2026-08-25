@@ -1,0 +1,22 @@
+[package]
+name = "rangular-demo-desktop"
+description = "Tauri shell for the rangular browser demo (Leptos CSR / wasm)"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+publish = false
+rust-version = "1.88"
+
+[lib]
+name = "rangular_demo_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "rangular-demo-desktop"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }

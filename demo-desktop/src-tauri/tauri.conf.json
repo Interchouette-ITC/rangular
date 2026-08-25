@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "rangular demo",
+  "version": "0.1.0",
+  "identifier": "net.interchouette.rangular-demo",
+  "build": {
+    "beforeDevCommand": {
+      "script": "trunk serve --release --port 4180 --address 127.0.0.1",
+      "cwd": "../../demo"
+    },
+    "devUrl": "http://127.0.0.1:4180",
+    "beforeBuildCommand": {
+      "script": "trunk build --release",
+      "cwd": "../../demo"
+    },
+    "frontendDist": "../../demo/dist"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "rangular demo",
+        "width": 1100,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' ipc: http://ipc.localhost; connect-src 'self' ipc: http://ipc.localhost; font-src 'self' data:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage", "nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

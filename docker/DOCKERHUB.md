@@ -10,7 +10,7 @@ Org GHCR: `ghcr.io/interchouette-itc/rangular-demo`
 
 Runtime: nginx (unprivileged) serving Trunk `dist/`.
 
-Live: https://rangular.interchouette.net/
+Live: [https://rangular.interchouette.net](https://rangular.interchouette.net)
 
 ## Tags
 

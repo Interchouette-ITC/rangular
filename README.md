@@ -11,6 +11,8 @@
 Write markup in familiar `.html` / `.scss`, keep state and handlers in Rust, and
 render with [Leptos](https://leptos.dev/) in the browser (CSR / Trunk / wasm).
 
+**Live:** [https://rangular.interchouette.net](https://rangular.interchouette.net)
+
 If you know Angular component files, you will feel at home. If you know Rust,
 you keep ownership of the real logic. **[rangular](https://github.com/Interchouette-ITC/rangular)**
 sits between the two: a **versioned subset**, not a full Angular port, with
@@ -237,26 +239,25 @@ Pin a commit (`rev`) or use a local path checkout: see
 [`docs/SPEC.md`](docs/SPEC.md): Leptos CSR / wasm. Native desktop widget toolkits
 (egui, iced, GTK, and similar) are **out of scope**.
 
-### Want Angular-like on the desktop?
-
-[Angust](https://github.com/TudorOrban/Angust) was proposing that path: native /
-desktop-oriented components and HTML templates. Look there, and at the
-[Angular Rust](https://github.com/angular-rust) ecosystem, if you want widgets
-outside a webview.
-
 ### Shipping a desktop app with rangular
 
-[Tauri](https://v2.tauri.app/) (and similar shells) host a **webview**. Your UI
-is still a web app: a Leptos + Trunk build that uses
-**[rangular](https://github.com/Interchouette-ITC/rangular)** components can run
-inside that webview the same way it runs in Chrome.
+[Tauri](https://v2.tauri.app/) hosts a **webview**. Your UI is still a web app: a
+Leptos + Trunk build that uses rangular components can run inside that webview
+the same way it runs in Chrome. rangular still speaks DOM / wasm, not egui /
+iced / GTK.
 
-**[rangular](https://github.com/Interchouette-ITC/rangular)** still speaks DOM /
-wasm, not egui / iced / GTK.
+In-repo shell (same SPA as the browser demo):
+
+```bash
+make demo-desktop
+make demo-desktop-build   # Linux deb/AppImage, Windows NSIS
+```
+
+Details: [`demo-desktop/README.md`](demo-desktop/README.md).
 
 ```mermaid
 flowchart TB
-  subgraph shell ["Desktop shell e.g. Tauri"]
+  subgraph shell ["Desktop shell Tauri"]
     subgraph webview [Webview]
       ui["Leptos CSR + rangular"]
     end
@@ -279,7 +280,7 @@ docker pull interchouette/rangular-demo:latest
 docker run --rm -p 8080:8080 interchouette/rangular-demo:latest
 ```
 
-Live: https://rangular.interchouette.net/
+Live: [https://rangular.interchouette.net](https://rangular.interchouette.net)
 
 Details: [`demo/README.md`](demo/README.md).
 

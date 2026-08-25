@@ -9,7 +9,7 @@ members = [
     "crates/rangular-parser",
     "crates/rangular-runtime",
 ]
-exclude = ["demo"]
+exclude = ["demo", "demo-desktop/src-tauri"]
 resolver = "2"
 
 [workspace.package]
