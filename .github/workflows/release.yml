@@ -1,0 +1,179 @@
+name: Release
+
+# On GitHub Release created (tag vX.Y.Z): validate version, push Docker
+# :version + :latest, attach Linux/Windows Tauri demo installers.
+
+on:
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  CARGO_TERM_COLOR: always
+
+jobs:
+  validate:
+    name: Validate Tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Validate release tag matches Cargo.toml
+        id: extract
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag format: $TAG (expected vX.Y.Z)"
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          ROOT_VERSION="$(awk '/^\[workspace.package\]/{p=1;next} p&&/^version = /{gsub(/"/,"",$3); print $3; exit}' Cargo.toml)"
+          DESKTOP_VERSION="$(awk '/^version = /{gsub(/"/,"",$3); print $3; exit}' demo-desktop/src-tauri/Cargo.toml)"
+          TAURI_VERSION="$(python3 -c "import json; print(json.load(open('demo-desktop/src-tauri/tauri.conf.json'))['version'])")"
+          if [ "$VERSION" != "$ROOT_VERSION" ]; then
+            echo "Tag $VERSION != workspace Cargo.toml $ROOT_VERSION"
+            exit 1
+          fi
+          if [ "$VERSION" != "$DESKTOP_VERSION" ]; then
+            echo "Tag $VERSION != demo-desktop Cargo.toml $DESKTOP_VERSION"
+            exit 1
+          fi
+          if [ "$VERSION" != "$TAURI_VERSION" ]; then
+            echo "Tag $VERSION != tauri.conf.json $TAURI_VERSION"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "OK: tag $TAG matches $VERSION"
+
+  docker:
+    name: Docker :version + :latest
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Set up Make
+        run: sudo apt-get install -y make
+
+      - name: Build Docker image
+        run: make docker-build APP_VERSION=${{ needs.validate.outputs.version }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push :version and :latest to Docker Hub
+        run: make docker-push-release-hub APP_VERSION=${{ needs.validate.outputs.version }}
+
+      - name: Log in to GHCR (personal)
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Push to personal GHCR
+        run: make docker-push-release-ghcr-personal APP_VERSION=${{ needs.validate.outputs.version }}
+
+      - name: Log in to GHCR (Interchouette / ITC)
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ secrets.GHCR_USERNAME_ITC }}
+          password: ${{ secrets.GHCR_PAT_ITC }}
+
+      - name: Push to ghcr.io/interchouette and interchouette-itc
+        run: make docker-push-release-ghcr-itc APP_VERSION=${{ needs.validate.outputs.version }}
+
+      - name: Redeploy Render
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "${RENDER_DEPLOY_HOOK_URL}" ]; then
+            echo "RENDER_DEPLOY_HOOK_URL secret not set; skipping Render redeploy"
+            exit 0
+          fi
+          hook="$(printf '%s' "$RENDER_DEPLOY_HOOK_URL" | tr -d '\r\n')"
+          http_code="$(curl -sS -o /tmp/render-hook.json -w '%{http_code}' --get "$hook")"
+          echo "render_hook_http=${http_code}"
+          cat /tmp/render-hook.json
+          echo
+          case "$http_code" in
+            200|202) ;;
+            *) exit 1 ;;
+          esac
+
+  desktop:
+    name: Tauri ${{ matrix.platform }}
+    needs: validate
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+          - platform: windows-latest
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Install Linux WebKit deps
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libfuse2
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            demo-desktop/src-tauri -> target
+            demo -> target
+
+      - name: Install trunk
+        run: cargo install --locked trunk --version 0.21.14
+
+      - name: Install tauri-cli
+        run: cargo install --locked tauri-cli --version '^2'
+
+      - name: Build and upload Tauri bundles
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: demo-desktop/src-tauri
+          tauriScript: cargo tauri
+          releaseId: ${{ github.event.release.id }}
+          uploadUpdaterJson: false

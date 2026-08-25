@@ -25,7 +25,8 @@ TAG ?= dev
 	demo demo-build demo-check \
 	demo-desktop demo-desktop-build \
 	docker-build docker-build-dev docker-run \
-	docker-push-dev-hub docker-push-dev-ghcr-personal docker-push-dev-ghcr-itc
+	docker-push-dev-hub docker-push-dev-ghcr-personal docker-push-dev-ghcr-itc \
+	docker-push-release-hub docker-push-release-ghcr-personal docker-push-release-ghcr-itc
 
 help:
 	@echo "rangular targets"
@@ -46,7 +47,7 @@ help:
 	@echo "  make demo-desktop-build  Tauri release bundles"
 	@echo ""
 	@echo "Docker (browser SPA for Render):"
-	@echo "  make docker-build      Build $(HUB_IMAGE):$(APP_VERSION)"
+	@echo "  make docker-build      Build $(HUB_IMAGE):$(APP_VERSION) + :latest"
 	@echo "  make docker-build-dev  Tag :dev + :latest (Hub + GHCR names)"
 	@echo "  make docker-run        Run image on :$(DOCKER_PORT)"
 	@echo ""
@@ -140,4 +141,24 @@ docker-push-dev-ghcr-itc:
 	docker push $(GHCR_WORKER_IMAGE):dev
 	docker push $(GHCR_WORKER_IMAGE):latest
 	docker push $(GHCR_ORG_IMAGE):dev
+	docker push $(GHCR_ORG_IMAGE):latest
+
+docker-push-release-hub:
+	docker push $(HUB_IMAGE):$(APP_VERSION)
+	docker push $(HUB_IMAGE):latest
+
+docker-push-release-ghcr-personal:
+	docker tag $(HUB_IMAGE):$(APP_VERSION) $(GHCR_PERSONAL_IMAGE):$(APP_VERSION)
+	docker tag $(HUB_IMAGE):latest $(GHCR_PERSONAL_IMAGE):latest
+	docker push $(GHCR_PERSONAL_IMAGE):$(APP_VERSION)
+	docker push $(GHCR_PERSONAL_IMAGE):latest
+
+docker-push-release-ghcr-itc:
+	docker tag $(HUB_IMAGE):$(APP_VERSION) $(GHCR_WORKER_IMAGE):$(APP_VERSION)
+	docker tag $(HUB_IMAGE):latest $(GHCR_WORKER_IMAGE):latest
+	docker tag $(HUB_IMAGE):$(APP_VERSION) $(GHCR_ORG_IMAGE):$(APP_VERSION)
+	docker tag $(HUB_IMAGE):latest $(GHCR_ORG_IMAGE):latest
+	docker push $(GHCR_WORKER_IMAGE):$(APP_VERSION)
+	docker push $(GHCR_WORKER_IMAGE):latest
+	docker push $(GHCR_ORG_IMAGE):$(APP_VERSION)
 	docker push $(GHCR_ORG_IMAGE):latest
