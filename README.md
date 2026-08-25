@@ -275,8 +275,8 @@ make demo
 Docker (same SPA, nginx):
 
 ```bash
-docker pull interchouette/rangular-demo:dev
-docker run --rm -p 8080:8080 interchouette/rangular-demo:dev
+docker pull interchouette/rangular-demo:latest
+docker run --rm -p 8080:8080 interchouette/rangular-demo:latest
 ```
 
 Live: https://rangular.interchouette.net/

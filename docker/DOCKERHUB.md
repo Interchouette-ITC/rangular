@@ -17,15 +17,15 @@ Live: https://rangular.interchouette.net/
 | Tag       | Meaning                                          |
 | --------- | ------------------------------------------------ |
 | `:dev`    | Tip of `dev`                                     |
+| `:latest` | Rolling tip (same digest as `:dev` on tip pushes) |
 | `:X.Y.Z`  | Stable GitHub Release matching workspace version |
-| `:latest` | Same digest as the latest stable semver          |
 
 ```bash
-docker pull interchouette/rangular-demo:dev
-docker run --rm -p 8080:8080 interchouette/rangular-demo:dev
+docker pull interchouette/rangular-demo:latest
+docker run --rm -p 8080:8080 interchouette/rangular-demo:latest
 # → http://127.0.0.1:8080/
 ```
 
 ## Render
 
-Deploy as a **Web Service** (Docker runtime) from this Dockerfile. Set custom domain `rangular.interchouette.net`. Render injects `PORT`; the entrypoint rewrites nginx to match.
+Deploy as a **Web Service** from Hub image `interchouette/rangular-demo:latest` (or build from this Dockerfile). Set custom domain `rangular.interchouette.net`. Render injects `PORT`; the entrypoint rewrites nginx to match.

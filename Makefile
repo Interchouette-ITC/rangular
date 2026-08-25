@@ -43,7 +43,7 @@ help:
 	@echo ""
 	@echo "Docker (browser SPA for Render):"
 	@echo "  make docker-build      Build $(HUB_IMAGE):$(APP_VERSION)"
-	@echo "  make docker-build-dev  Tag :dev (Hub + GHCR names)"
+	@echo "  make docker-build-dev  Tag :dev + :latest (Hub + GHCR names)"
 	@echo "  make docker-run        Run image on :$(DOCKER_PORT)"
 	@echo ""
 	@echo "Overrides: DEMO_PORT=$(DEMO_PORT) DEMO_ADDR=$(DEMO_ADDR) DOCKER_PORT=$(DOCKER_PORT)"
@@ -94,23 +94,31 @@ docker-build:
 docker-build-dev:
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build --pull --network=host \
 		-f $(DOCKERFILE) -t $(HUB_IMAGE):dev $(ROOT)
+	docker tag $(HUB_IMAGE):dev $(HUB_IMAGE):latest
 	docker tag $(HUB_IMAGE):dev $(GHCR_PERSONAL_IMAGE):dev
+	docker tag $(HUB_IMAGE):dev $(GHCR_PERSONAL_IMAGE):latest
 	docker tag $(HUB_IMAGE):dev $(GHCR_WORKER_IMAGE):dev
+	docker tag $(HUB_IMAGE):dev $(GHCR_WORKER_IMAGE):latest
 	docker tag $(HUB_IMAGE):dev $(GHCR_ORG_IMAGE):dev
+	docker tag $(HUB_IMAGE):dev $(GHCR_ORG_IMAGE):latest
 
 docker-run: docker-build-dev
 	@if ss -tlnp 2>/dev/null | grep -q ':$(DOCKER_PORT) '; then \
 		echo "Port $(DOCKER_PORT) already in use"; \
 		exit 1; \
 	fi
-	docker run --rm -p $(DOCKER_PORT):8080 -e PORT=8080 $(HUB_IMAGE):dev
+	docker run --rm -p $(DOCKER_PORT):8080 -e PORT=8080 $(HUB_IMAGE):latest
 
 docker-push-dev-hub:
 	docker push $(HUB_IMAGE):dev
+	docker push $(HUB_IMAGE):latest
 
 docker-push-dev-ghcr-personal:
 	docker push $(GHCR_PERSONAL_IMAGE):dev
+	docker push $(GHCR_PERSONAL_IMAGE):latest
 
 docker-push-dev-ghcr-itc:
 	docker push $(GHCR_WORKER_IMAGE):dev
+	docker push $(GHCR_WORKER_IMAGE):latest
 	docker push $(GHCR_ORG_IMAGE):dev
+	docker push $(GHCR_ORG_IMAGE):latest
