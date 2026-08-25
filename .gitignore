@@ -1,7 +1,7 @@
 /target/
-/demo/dist/
-/demo/target/
-/demo-desktop/src-tauri/target/
+/demo-leptos/dist/
+/demo-leptos/target/
+/demo-tauri/src/target/
 **/*.rs.bk
 *.pdb
 .DS_Store
@@ -9,4 +9,3 @@
 .vscode/
 
 .github_credentials
-

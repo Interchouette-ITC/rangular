@@ -1,8 +1,8 @@
 # Desktop demo (Tauri)
 
 Thin [Tauri](https://v2.tauri.app/) 2 shell around the same Trunk / Leptos CSR SPA
-in [`../demo/`](../demo/). No `invoke` commands: the webview loads the wasm
-demo only.
+in [`../demo-leptos/`](../demo-leptos/). No `invoke` commands: the webview loads
+the wasm demo only.
 
 Stack: **Tauri → Leptos → rangular**.
 
@@ -21,19 +21,19 @@ exe. The browser demo stays at
 ## Run locally
 
 ```bash
-make demo-desktop
+make demo-tauri
 ```
 
 Opens a native window pointed at `http://127.0.0.1:4180/` (Trunk). If that port
-is already serving the browser demo, the shell reuses it.
+is already serving the Leptos demo, the shell reuses it.
 
 Local release build:
 
 ```bash
-make demo-desktop-build
+make demo-tauri-build
 ```
 
-Artifacts under `demo-desktop/src-tauri/target/release/bundle/`.
+Artifacts under `demo-tauri/src/target/release/bundle/`.
 
 ## Linux dependencies
 

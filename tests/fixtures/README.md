@@ -8,17 +8,17 @@ This directory is the **corpus** that drives
 - Small **Angular-shaped** `.html` + component `.scss` files used by parser /
   SCSS / AOT / runtime tests.
 - They are **engine examples**, not the browser demo UI and not product UI.
-  Apps (and `demo/`) keep their own templates in their own trees.
+  Apps (and `demo-leptos/`) keep their own templates in their own trees.
 
 ## Layers
 
 | Layer | Role |
 | ----- | ---- |
 | `tests/fixtures/` | Template / SCSS examples for language growth and crate tests |
-| `demo/` | Browser app that dogfoods rangular (independent panels) |
+| `demo-leptos/` | Browser app that dogfoods rangular (independent panels) |
 | Product apps | Separate consumers; out of this tree |
 
-No symlinks or path coupling between `demo/` and `tests/fixtures/`.
+No symlinks or path coupling between `demo-leptos/` and `tests/fixtures/`.
 
 ## How to add a fixture
 

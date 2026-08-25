@@ -37,14 +37,14 @@ jobs:
           fi
           VERSION="${TAG#v}"
           ROOT_VERSION="$(awk '/^\[workspace.package\]/{p=1;next} p&&/^version = /{gsub(/"/,"",$3); print $3; exit}' Cargo.toml)"
-          DESKTOP_VERSION="$(awk '/^version = /{gsub(/"/,"",$3); print $3; exit}' demo-desktop/src-tauri/Cargo.toml)"
-          TAURI_VERSION="$(python3 -c "import json; print(json.load(open('demo-desktop/src-tauri/tauri.conf.json'))['version'])")"
+          DESKTOP_VERSION="$(awk '/^version = /{gsub(/"/,"",$3); print $3; exit}' demo-tauri/src/Cargo.toml)"
+          TAURI_VERSION="$(python3 -c "import json; print(json.load(open('demo-tauri/src/tauri.conf.json'))['version'])")"
           if [ "$VERSION" != "$ROOT_VERSION" ]; then
             echo "Tag $VERSION != workspace Cargo.toml $ROOT_VERSION"
             exit 1
           fi
           if [ "$VERSION" != "$DESKTOP_VERSION" ]; then
-            echo "Tag $VERSION != demo-desktop Cargo.toml $DESKTOP_VERSION"
+            echo "Tag $VERSION != demo-tauri Cargo.toml $DESKTOP_VERSION"
             exit 1
           fi
           if [ "$VERSION" != "$TAURI_VERSION" ]; then
@@ -159,8 +159,8 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            demo-desktop/src-tauri -> target
-            demo -> target
+            demo-tauri/src -> target
+            demo-leptos -> target
 
       - name: Install trunk
         run: cargo install --locked trunk --version 0.21.14
@@ -173,7 +173,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: demo-desktop/src-tauri
+          projectPath: demo-tauri/src
           tauriScript: cargo tauri
           releaseId: ${{ github.event.release.id }}
           uploadUpdaterJson: false

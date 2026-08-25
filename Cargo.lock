@@ -366,7 +366,7 @@ dependencies = [
 
 [[package]]
 name = "rangular"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "rangular-aot",
  "rangular-css",
@@ -379,7 +379,7 @@ dependencies = [
 
 [[package]]
 name = "rangular-aot"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -392,28 +392,28 @@ dependencies = [
 
 [[package]]
 name = "rangular-css"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "grass",
 ]
 
 [[package]]
 name = "rangular-expr"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "rangular-host",
 ]
 
 [[package]]
 name = "rangular-host"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "rangular-expr",
 ]
 
 [[package]]
 name = "rangular-macros"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -422,14 +422,14 @@ dependencies = [
 
 [[package]]
 name = "rangular-parser"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "rangular-expr",
 ]
 
 [[package]]
 name = "rangular-runtime"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "rangular-aot",
  "rangular-expr",
