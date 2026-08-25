@@ -114,7 +114,12 @@ impl Host for ColorFieldHost {
                 Ok(Value::Unit)
             }
             "onReset" => {
-                apply_color(DEFAULT_COLOR, self.accent, self.hex_draft, self.has_override);
+                apply_color(
+                    DEFAULT_COLOR,
+                    self.accent,
+                    self.hex_draft,
+                    self.has_override,
+                );
                 Ok(Value::Unit)
             }
             "onSwatch" => {

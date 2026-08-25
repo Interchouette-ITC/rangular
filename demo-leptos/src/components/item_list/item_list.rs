@@ -47,11 +47,7 @@ impl Host for ItemListHost {
         match name {
             "title" => Some(Value::Str(self.title.get())),
             "items" => Some(Value::List(
-                self.items
-                    .get()
-                    .into_iter()
-                    .map(Value::Str)
-                    .collect(),
+                self.items.get().into_iter().map(Value::Str).collect(),
             )),
             _ => None,
         }

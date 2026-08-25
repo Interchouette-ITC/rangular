@@ -6,6 +6,7 @@ use crate::components::{
     TemplateOutletPanel, TwoWayPanel,
 };
 use crate::decor::DemoDecor;
+use crate::showcase::{CodeShowcase, ShowcaseBus};
 
 const PANEL_NAV: [(&str, &str); 12] = [
     ("chrome-header", "chrome-header"),
@@ -26,9 +27,12 @@ const PANEL_NAV: [(&str, &str); 12] = [
 pub fn App() -> impl IntoView {
     let applied_seed = RwSignal::new(String::new());
     let accent = RwSignal::new(String::from("#ce422b"));
+    let bus = ShowcaseBus::new();
+    provide_context(bus);
 
     view! {
         <DemoDecor applied_seed=applied_seed />
+        <CodeShowcase />
         <main class="demo">
             <header class="demo__hero">
                 <div class="demo__hero-copy">
@@ -37,7 +41,7 @@ pub fn App() -> impl IntoView {
                         <img class="demo__title-logo" src="/logo-256.png" alt="" width="28" height="28" />
                     </h1>
                     <p class="demo__subtitle">
-                        "Dogfood panels: colocated html + scss + rs, AOT to Leptos CSR / wasm."
+                        "Live AOT panels beside a floating code showcase — scroll a fixture, watch the source follow."
                     </p>
                     <SeedBarPanel applied_seed=applied_seed />
                     <nav class="demo__nav" aria-label="Demo panels">

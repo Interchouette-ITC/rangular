@@ -78,7 +78,11 @@ fn apply_seed(seed: &RwSignal<String>, applied_seed: RwSignal<String>) {
     applied_seed.set(current);
 }
 
-fn apply_random(seed: &RwSignal<String>, applied_seed: RwSignal<String>, random_seq: RwSignal<u32>) {
+fn apply_random(
+    seed: &RwSignal<String>,
+    applied_seed: RwSignal<String>,
+    random_seq: RwSignal<u32>,
+) {
     random_seq.update(|n| {
         *n = n.wrapping_add(1);
         if *n == 0 {
@@ -94,9 +98,7 @@ fn random_seed_hex(seq: u32) -> String {
     let mut out = String::with_capacity(16);
     let mut state = seq.wrapping_add(0xA5A5_1234);
     for _ in 0..8 {
-        state = state
-            .wrapping_mul(0x9E37_79B9)
-            .wrapping_add(0x517C_C911);
+        state = state.wrapping_mul(0x9E37_79B9).wrapping_add(0x517C_C911);
         let b = (state >> 24) as u8;
         let _ = write!(out, "{b:02x}");
     }

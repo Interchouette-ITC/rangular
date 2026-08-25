@@ -13,9 +13,7 @@ pub fn ChromeHeaderPanel(applied_seed: RwSignal<String>) -> impl IntoView {
     let enabled_count = RwSignal::new(2_u32);
     let total_count = RwSignal::new(5_u32);
     let paused_count = Memo::new(move |_| total_count.get().saturating_sub(enabled_count.get()));
-    let count_label = Memo::new(move |_| {
-        format!("{}/{}", enabled_count.get(), total_count.get())
-    });
+    let count_label = Memo::new(move |_| format!("{}/{}", enabled_count.get(), total_count.get()));
 
     Effect::new(move |_| {
         let seed = applied_seed.get();

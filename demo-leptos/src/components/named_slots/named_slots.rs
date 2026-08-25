@@ -34,9 +34,7 @@ pub fn NamedSlotsPanel(applied_seed: RwSignal<String>) -> impl IntoView {
 
     named_slots_view(
         HostCell::new(EmptyHost),
-        Box::new(move || {
-            view! { <h1 class="header">{move || header.get()}</h1> }.into_any()
-        }),
+        Box::new(move || view! { <h1 class="header">{move || header.get()}</h1> }.into_any()),
         Box::new(move || view! { <p>{move || body.get()}</p> }.into_any()),
     )
 }

@@ -71,10 +71,7 @@ const fn mark_shuffle_hash(tick: u32, index: u32) -> u32 {
 
 fn style_from_hash(h: u32, kind: u32, mark_load: bool) -> String {
     let (left, top) = if kind == 0 {
-        (
-            f64::from(h % 86) + 4.0,
-            f64::from((h >> 8) % 80) + 6.0,
-        )
+        (f64::from(h % 86) + 4.0, f64::from((h >> 8) % 80) + 6.0)
     } else if mark_load {
         (
             f64::from((h >> 3) % 86) + 4.0,
@@ -92,5 +89,7 @@ fn style_from_hash(h: u32, kind: u32, mark_load: bool) -> String {
     } else {
         0.65 + f64::from((h >> 24) % 35) / 100.0
     };
-    format!("left: {left:.1}%; top: {top:.1}%; transform: rotate({rotate:.1}deg) scale({scale:.2});")
+    format!(
+        "left: {left:.1}%; top: {top:.1}%; transform: rotate({rotate:.1}deg) scale({scale:.2});"
+    )
 }
