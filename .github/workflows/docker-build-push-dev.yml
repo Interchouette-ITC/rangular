@@ -22,7 +22,7 @@ env:
 
 jobs:
   build-push-dev:
-    name: Build and Push Docker Image :dev
+    name: Build and Push Docker Image :dev / :latest
     runs-on: ubuntu-latest
 
     steps:
@@ -35,7 +35,7 @@ jobs:
       - name: Set up Make
         run: sudo apt-get install -y make
 
-      - name: Build Docker image :dev
+      - name: Build Docker image :dev and :latest
         run: make docker-build-dev
 
       - name: Log in to Docker Hub
@@ -44,7 +44,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Push :dev to Docker Hub
+      - name: Push :dev and :latest to Docker Hub
         run: make docker-push-dev-hub
 
       - name: Log in to GHCR (personal)
@@ -54,7 +54,7 @@ jobs:
           username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Push :dev to personal GHCR
+      - name: Push :dev and :latest to personal GHCR
         run: make docker-push-dev-ghcr-personal
 
       - name: Log in to GHCR (Interchouette / ITC)
@@ -64,5 +64,5 @@ jobs:
           username: ${{ secrets.GHCR_USERNAME_ITC }}
           password: ${{ secrets.GHCR_PAT_ITC }}
 
-      - name: Push :dev to ghcr.io/interchouette and interchouette-itc
+      - name: Push :dev and :latest to ghcr.io/interchouette and interchouette-itc
         run: make docker-push-dev-ghcr-itc

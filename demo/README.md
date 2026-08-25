@@ -64,7 +64,7 @@ Production URL: https://rangular.interchouette.net/
 Pull:
 
 ```bash
-docker pull interchouette/rangular-demo:dev
+docker pull interchouette/rangular-demo:latest
 ```
 
 ## Lint
