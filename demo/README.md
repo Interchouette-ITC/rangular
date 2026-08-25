@@ -61,6 +61,8 @@ make docker-run
 
 Production URL: [https://rangular.interchouette.net](https://rangular.interchouette.net)
 
+Desktop installers: **[GitHub Releases](https://github.com/Interchouette-ITC/rangular/releases)** (Linux `.deb` / AppImage, Windows NSIS).
+
 Pull:
 
 ```bash

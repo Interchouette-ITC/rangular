@@ -6,7 +6,19 @@ demo only.
 
 Stack: **Tauri → Leptos → rangular**.
 
-## Run
+## Release installers
+
+Pre-built bundles ship on **[GitHub Releases](https://github.com/Interchouette-ITC/rangular/releases)**:
+
+- Linux: `.deb` and AppImage
+- Windows: NSIS `.exe`
+- macOS: not in v1
+
+Download from the latest release assets, then install or run the AppImage / setup
+exe. The browser demo stays at
+[https://rangular.interchouette.net](https://rangular.interchouette.net).
+
+## Run locally
 
 ```bash
 make demo-desktop
@@ -15,7 +27,7 @@ make demo-desktop
 Opens a native window pointed at `http://127.0.0.1:4180/` (Trunk). If that port
 is already serving the browser demo, the shell reuses it.
 
-Release bundles (Linux `deb` / AppImage, Windows NSIS):
+Local release build:
 
 ```bash
 make demo-desktop-build

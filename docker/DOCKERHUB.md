@@ -17,7 +17,7 @@ Live: [https://rangular.interchouette.net](https://rangular.interchouette.net)
 | Tag       | Meaning                                          |
 | --------- | ------------------------------------------------ |
 | `:dev`    | Tip of `dev`                                     |
-| `:latest` | Rolling tip (same digest as `:dev` on tip pushes) |
+| `:latest` | Rolling tip on tip pushes; also on GitHub Release |
 | `:X.Y.Z`  | Stable GitHub Release matching workspace version |
 
 ```bash
