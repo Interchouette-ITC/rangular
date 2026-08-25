@@ -1,6 +1,7 @@
 /target/
 /demo/dist/
 /demo/target/
+/demo-desktop/src-tauri/target/
 **/*.rs.bk
 *.pdb
 .DS_Store

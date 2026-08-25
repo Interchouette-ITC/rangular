@@ -3,6 +3,7 @@
 SHELL := /bin/bash
 ROOT := $(abspath .)
 DEMO := $(ROOT)/demo
+DESKTOP := $(ROOT)/demo-desktop/src-tauri
 CARGO ?= cargo
 TRUNK := env -u NO_COLOR $(HOME)/.cargo/bin/trunk
 CLIPPY_FLAGS := -D warnings -D clippy::all -D clippy::pedantic -D clippy::nursery
@@ -22,6 +23,7 @@ TAG ?= dev
 
 .PHONY: help check test lint format format-check clean ci no-panic \
 	demo demo-build demo-check \
+	demo-desktop demo-desktop-build \
 	docker-build docker-build-dev docker-run \
 	docker-push-dev-hub docker-push-dev-ghcr-personal docker-push-dev-ghcr-itc
 
@@ -40,6 +42,8 @@ help:
 	@echo "  make demo          Trunk serve → http://$(DEMO_ADDR):$(DEMO_PORT)/"
 	@echo "  make demo-build    Trunk release dist in demo/"
 	@echo "  make demo-check    fmt + clippy on demo wasm target"
+	@echo "  make demo-desktop  Tauri window (reuses :$(DEMO_PORT) if already up)"
+	@echo "  make demo-desktop-build  Tauri release bundles"
 	@echo ""
 	@echo "Docker (browser SPA for Render):"
 	@echo "  make docker-build      Build $(HUB_IMAGE):$(APP_VERSION)"
@@ -85,6 +89,21 @@ demo-build:
 
 demo-check: format-check
 	cd $(DEMO) && $(CARGO) clippy --target wasm32-unknown-unknown --all-targets -- $(CLIPPY_FLAGS)
+
+demo-desktop:
+	@if pgrep -f 'rangular-demo-desktop' >/dev/null 2>&1; then \
+		echo "rangular-demo-desktop already running - reuse that window"; \
+		exit 0; \
+	fi
+	@if ss -tlnp 2>/dev/null | grep -q ':$(DEMO_PORT) '; then \
+		echo "Port $(DEMO_PORT) in use - Tauri will attach without starting Trunk"; \
+		cd $(DESKTOP) && $(CARGO) tauri dev --config '{"build":{"beforeDevCommand":""}}'; \
+	else \
+		cd $(DESKTOP) && $(CARGO) tauri dev; \
+	fi
+
+demo-desktop-build:
+	cd $(DESKTOP) && $(CARGO) tauri build
 
 docker-build:
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build --pull --network=host \

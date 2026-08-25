@@ -59,13 +59,23 @@ make docker-run
 # → http://127.0.0.1:8080/
 ```
 
-Production URL: https://rangular.interchouette.net/
+Production URL: [https://rangular.interchouette.net](https://rangular.interchouette.net)
 
 Pull:
 
 ```bash
 docker pull interchouette/rangular-demo:latest
 ```
+
+## Desktop (Tauri)
+
+Same SPA in a native webview:
+
+```bash
+make demo-desktop
+```
+
+Details: [`../demo-desktop/README.md`](../demo-desktop/README.md).
 
 ## Lint
 
