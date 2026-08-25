@@ -5,7 +5,8 @@ on:
   push:
     branches: [dev]
     paths:
-      - demo/**
+      - demo-leptos/**
+      - demo-tauri/**
       - docker/**
       - crates/**
       - tests/fixtures/**

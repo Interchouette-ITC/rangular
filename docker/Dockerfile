@@ -27,12 +27,12 @@ COPY Cargo.toml Cargo.lock ./
 COPY crates ./crates
 COPY tests/fixtures ./tests/fixtures
 COPY docs/assets ./docs/assets
-COPY demo ./demo
+COPY demo-leptos ./demo-leptos
 
 ENV CARGO_TERM_COLOR=never \
     CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 
-RUN cd demo && trunk build --release
+RUN cd demo-leptos && trunk build --release
 
 FROM ${NGINX_IMAGE} AS runtime
 
@@ -41,7 +41,7 @@ USER root
 
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY --chmod=755 docker/entrypoint.sh /entrypoint.sh
-COPY --from=builder /app/demo/dist /usr/share/nginx/html
+COPY --from=builder /app/demo-leptos/dist /usr/share/nginx/html
 RUN chown -R nginx:nginx /usr/share/nginx/html
 
 USER nginx

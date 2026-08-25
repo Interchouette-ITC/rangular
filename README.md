@@ -69,9 +69,9 @@ flowchart LR
 | SCSS                 | `rangular-css` (`compile_scss` or encapsulate; Bootstrap utilities stay global) |
 | Registry             | Component tags + typed `provide` / `inject`                                     |
 | Growth               | Fixture corpus in [`tests/fixtures/`](tests/fixtures/) (tests; not the demo) |
-| Demo                 | [`demo/`](demo/) dogfoods AOT with its own panels                           |
+| Demo                 | [`demo-leptos/`](demo-leptos/) dogfoods AOT with its own panels                           |
 
-Layers: `tests/fixtures/` is the language growth corpus for crate tests; `demo/` is an independent dogfood app with its own panels; other rangular apps live out of this tree.
+Layers: `tests/fixtures/` is the language growth corpus for crate tests; `demo-leptos/` is an independent dogfood app with its own panels; other rangular apps live out of this tree.
 
 Honest subset, not full Angular. New syntax lands through fixtures and semver.
 Unsupported input yields `RANG*` diagnostics; templates must never panic the process.
@@ -87,13 +87,13 @@ Same habit as Angular, with **`.rs` instead of `.ts`**:
 | `item_list.rs`   | class / component.ts | Rust `Host` + Leptos `#[component]`               |
 
 ```text
-demo/src/components/item_list/
+demo-leptos/src/components/item_list/
   item_list.html    # familiar Angular-shaped template
   item_list.scss    # familiar component SCSS
   item_list.rs      # state + handlers
 ```
 
-Live Host example: [`demo/src/components/item_list/`](demo/src/components/item_list/).
+Live Host example: [`demo-leptos/src/components/item_list/`](demo-leptos/src/components/item_list/).
 Growth corpus (tests only): [`tests/fixtures/components/`](tests/fixtures/components/).
 
 **Template** (`item_list.html`):
@@ -255,11 +255,11 @@ macOS is not in v1.
 Local shell (same SPA as the browser demo):
 
 ```bash
-make demo-desktop
-make demo-desktop-build   # Linux deb/AppImage, Windows NSIS
+make demo-tauri
+make demo-tauri-build   # Linux deb/AppImage, Windows NSIS
 ```
 
-Details: [`demo-desktop/README.md`](demo-desktop/README.md).
+Details: [`demo-tauri/README.md`](demo-tauri/README.md).
 
 ```mermaid
 flowchart TB
@@ -288,7 +288,7 @@ docker run --rm -p 8080:8080 interchouette/rangular-demo:latest
 
 Live: [https://rangular.interchouette.net](https://rangular.interchouette.net)
 
-Details: [`demo/README.md`](demo/README.md).
+Details: [`demo-leptos/README.md`](demo-leptos/README.md).
 
 ## Working on this repo
 

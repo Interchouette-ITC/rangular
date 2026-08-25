@@ -1,8 +1,8 @@
-# Browser demo
+# Browser demo (Leptos)
 
 Leptos CSR app that dogfoods rangular with colocated panels under
-`demo/src/components/<name>/` (`html` + `scss` + `rs`). The demo does **not**
-compile `tests/fixtures/`; that corpus is for crate tests only.
+`demo-leptos/src/components/<name>/` (`html` + `scss` + `rs`). The demo does
+**not** compile `tests/fixtures/`; that corpus is for crate tests only.
 
 ## Panels
 
@@ -74,10 +74,10 @@ docker pull interchouette/rangular-demo:latest
 Same SPA in a native webview:
 
 ```bash
-make demo-desktop
+make demo-tauri
 ```
 
-Details: [`../demo-desktop/README.md`](../demo-desktop/README.md).
+Details: [`../demo-tauri/README.md`](../demo-tauri/README.md).
 
 ## Lint
 

@@ -1,4 +1,4 @@
-//! Thin Tauri 2 shell: loads the Trunk-built rangular demo SPA. No invoke commands.
+//! Thin Tauri 2 shell: loads the Trunk-built rangular Leptos demo SPA. No invoke commands.
 
 use tauri::Manager;
 
@@ -23,5 +23,5 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running rangular-demo-desktop");
+        .expect("error while running rangular-demo-tauri");
 }

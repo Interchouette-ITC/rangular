@@ -2,8 +2,8 @@
 
 SHELL := /bin/bash
 ROOT := $(abspath .)
-DEMO := $(ROOT)/demo
-DESKTOP := $(ROOT)/demo-desktop/src-tauri
+DEMO_LEPTOS := $(ROOT)/demo-leptos
+DEMO_TAURI := $(ROOT)/demo-tauri/src
 CARGO ?= cargo
 TRUNK := env -u NO_COLOR $(HOME)/.cargo/bin/trunk
 CLIPPY_FLAGS := -D warnings -D clippy::all -D clippy::pedantic -D clippy::nursery
@@ -11,7 +11,7 @@ DEMO_PORT ?= 4180
 DEMO_ADDR ?= 127.0.0.1
 DOCKER_PORT ?= 8080
 DOCKER_BUILDKIT ?= 1
-APP_VERSION := $(shell grep '^version' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+APP_VERSION := $(shell awk '/^\[workspace.package\]/{p=1;next} p&&/^version = /{gsub(/"/,"",$$3); print $$3; exit}' Cargo.toml)
 HUB_IMAGE := interchouette/rangular-demo
 GHCR_PERSONAL_IMAGE := ghcr.io/groussac/rangular-demo
 GHCR_WORKER_IMAGE := ghcr.io/interchouette/rangular-demo
@@ -22,11 +22,12 @@ TAG ?= dev
 .DEFAULT_GOAL := help
 
 .PHONY: help check test lint format format-check clean ci no-panic \
-	demo demo-build demo-check \
-	demo-desktop demo-desktop-build \
+	demo demo-leptos demo-build demo-leptos-build demo-check demo-leptos-check \
+	demo-desktop demo-tauri demo-desktop-build demo-tauri-build \
 	docker-build docker-build-dev docker-run \
 	docker-push-dev-hub docker-push-dev-ghcr-personal docker-push-dev-ghcr-itc \
-	docker-push-release-hub docker-push-release-ghcr-personal docker-push-release-ghcr-itc
+	docker-push-release-hub docker-push-release-ghcr-personal docker-push-release-ghcr-itc \
+	version-show version-bump-patch version-bump-minor version-bump-major version-set
 
 help:
 	@echo "rangular targets"
@@ -39,17 +40,24 @@ help:
 	@echo "  make format        cargo fmt"
 	@echo "  make clean         cargo clean"
 	@echo ""
-	@echo "Demo (Leptos CSR / wasm):"
-	@echo "  make demo          Trunk serve → http://$(DEMO_ADDR):$(DEMO_PORT)/"
-	@echo "  make demo-build    Trunk release dist in demo/"
-	@echo "  make demo-check    fmt + clippy on demo wasm target"
-	@echo "  make demo-desktop  Tauri window (reuses :$(DEMO_PORT) if already up)"
-	@echo "  make demo-desktop-build  Tauri release bundles"
+	@echo "Demo Leptos (CSR / wasm):"
+	@echo "  make demo / demo-leptos          Trunk serve → http://$(DEMO_ADDR):$(DEMO_PORT)/"
+	@echo "  make demo-build / demo-leptos-build"
+	@echo "  make demo-check / demo-leptos-check"
+	@echo ""
+	@echo "Demo Tauri:"
+	@echo "  make demo-tauri / demo-desktop   Tauri window (reuses :$(DEMO_PORT) if up)"
+	@echo "  make demo-tauri-build / demo-desktop-build"
 	@echo ""
 	@echo "Docker (browser SPA for Render):"
 	@echo "  make docker-build      Build $(HUB_IMAGE):$(APP_VERSION) + :latest"
 	@echo "  make docker-build-dev  Tag :dev + :latest (Hub + GHCR names)"
 	@echo "  make docker-run        Run image on :$(DOCKER_PORT)"
+	@echo ""
+	@echo "Version:"
+	@echo "  make version-show"
+	@echo "  make version-bump-patch|minor|major"
+	@echo "  make version-set VERSION=x.y.z"
 	@echo ""
 	@echo "Overrides: DEMO_PORT=$(DEMO_PORT) DEMO_ADDR=$(DEMO_ADDR) DOCKER_PORT=$(DOCKER_PORT)"
 
@@ -78,33 +86,33 @@ ci: lint test no-panic
 clean:
 	cd $(ROOT) && $(CARGO) clean
 
-demo:
+demo demo-leptos:
 	@if ss -tlnp 2>/dev/null | grep -q ':$(DEMO_PORT) '; then \
 		echo "Port $(DEMO_PORT) already in use - reuse that server or set DEMO_PORT"; \
 		exit 1; \
 	fi
-	cd $(DEMO) && $(TRUNK) serve --release --port $(DEMO_PORT) --address $(DEMO_ADDR)
+	cd $(DEMO_LEPTOS) && $(TRUNK) serve --release --port $(DEMO_PORT) --address $(DEMO_ADDR)
 
-demo-build:
-	cd $(DEMO) && $(TRUNK) build --release
+demo-build demo-leptos-build:
+	cd $(DEMO_LEPTOS) && $(TRUNK) build --release
 
-demo-check: format-check
-	cd $(DEMO) && $(CARGO) clippy --target wasm32-unknown-unknown --all-targets -- $(CLIPPY_FLAGS)
+demo-check demo-leptos-check: format-check
+	cd $(DEMO_LEPTOS) && $(CARGO) clippy --target wasm32-unknown-unknown --all-targets -- $(CLIPPY_FLAGS)
 
-demo-desktop:
-	@if pgrep -f 'rangular-demo-desktop' >/dev/null 2>&1; then \
-		echo "rangular-demo-desktop already running - reuse that window"; \
+demo-desktop demo-tauri:
+	@if pgrep -f 'rangular-demo-tauri' >/dev/null 2>&1; then \
+		echo "rangular-demo-tauri already running - reuse that window"; \
 		exit 0; \
 	fi
 	@if ss -tlnp 2>/dev/null | grep -q ':$(DEMO_PORT) '; then \
 		echo "Port $(DEMO_PORT) in use - Tauri will attach without starting Trunk"; \
-		cd $(DESKTOP) && $(CARGO) tauri dev --config '{"build":{"beforeDevCommand":""}}'; \
+		cd $(DEMO_TAURI) && $(CARGO) tauri dev --config '{"build":{"beforeDevCommand":""}}'; \
 	else \
-		cd $(DESKTOP) && $(CARGO) tauri dev; \
+		cd $(DEMO_TAURI) && $(CARGO) tauri dev; \
 	fi
 
-demo-desktop-build:
-	cd $(DESKTOP) && $(CARGO) tauri build
+demo-desktop-build demo-tauri-build:
+	cd $(DEMO_TAURI) && $(CARGO) tauri build
 
 docker-build:
 	DOCKER_BUILDKIT=$(DOCKER_BUILDKIT) docker build --pull --network=host \
@@ -162,3 +170,45 @@ docker-push-release-ghcr-itc:
 	docker push $(GHCR_WORKER_IMAGE):latest
 	docker push $(GHCR_ORG_IMAGE):$(APP_VERSION)
 	docker push $(GHCR_ORG_IMAGE):latest
+
+# Version helpers (workspace + demos + tauri.conf); release via GitHub Release tag v$$(APP_VERSION)
+version-show:
+	@echo "Current version: $(APP_VERSION)"; \
+	echo "demo-leptos:     $$(awk '/^version = /{gsub(/"/,"",$$3); print $$3; exit}' demo-leptos/Cargo.toml)"; \
+	echo "demo-tauri:      $$(awk '/^version = /{gsub(/"/,"",$$3); print $$3; exit}' demo-tauri/src/Cargo.toml)"; \
+	echo "tauri.conf.json: $$(python3 -c "import json; print(json.load(open('demo-tauri/src/tauri.conf.json'))['version'])")"; \
+	echo ""; \
+	echo "Suggested GitHub Release tag:"; \
+	echo "  v$(APP_VERSION)"; \
+	echo ""; \
+	echo "When creating a GitHub Release, use the Tag field (not only the title)."
+
+define version-apply
+	@current="$(APP_VERSION)"; \
+	new="$(1)"; \
+	if [ -z "$$new" ]; then echo "empty version"; exit 1; fi; \
+	sed -i "s/version = \"$$current\"/version = \"$$new\"/g" Cargo.toml; \
+	sed -i "s/^version = \"$$current\"/version = \"$$new\"/" demo-leptos/Cargo.toml; \
+	sed -i "s/^version = \"$$current\"/version = \"$$new\"/" demo-tauri/src/Cargo.toml; \
+	python3 -c "import json; p='demo-tauri/src/tauri.conf.json'; c=json.load(open(p)); c['version']='$$new'; json.dump(c, open(p,'w'), indent=2); open(p,'a').write('\n')"; \
+	$(CARGO) metadata --format-version 1 --no-deps >/dev/null; \
+	$(CARGO) metadata --manifest-path demo-leptos/Cargo.toml --format-version 1 --no-deps >/dev/null; \
+	$(CARGO) metadata --manifest-path demo-tauri/src/Cargo.toml --format-version 1 --no-deps >/dev/null; \
+	echo "Version $$current → $$new (workspace + demos + tauri.conf)"
+endef
+
+version-bump-patch:
+	$(call version-apply,$(shell echo "$(APP_VERSION)" | awk -F. '{print $$1"."$$2"."($$3+1)}'))
+
+version-bump-minor:
+	$(call version-apply,$(shell echo "$(APP_VERSION)" | awk -F. '{print $$1"."($$2+1)".0"}'))
+
+version-bump-major:
+	$(call version-apply,$(shell echo "$(APP_VERSION)" | awk -F. '{print ($$1+1)".0.0"}'))
+
+version-set:
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Usage: make version-set VERSION=x.y.z"; \
+		exit 1; \
+	fi
+	$(call version-apply,$(VERSION))
