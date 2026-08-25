@@ -58,6 +58,7 @@ help:
 	@echo "  make version-show"
 	@echo "  make version-bump-patch|minor|major"
 	@echo "  make version-set VERSION=x.y.z"
+	@echo "  Release: wait until CI + tip Docker are green, then create GitHub Release tag v\$$(APP_VERSION)"
 	@echo ""
 	@echo "Overrides: DEMO_PORT=$(DEMO_PORT) DEMO_ADDR=$(DEMO_ADDR) DOCKER_PORT=$(DOCKER_PORT)"
 

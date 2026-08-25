@@ -1,7 +1,8 @@
 name: Release
 
-# On GitHub Release created (tag vX.Y.Z): validate version, push Docker
-# :version + :latest, attach Linux/Windows Tauri demo installers.
+# After CI is green on the version commit: create GitHub Release tag vX.Y.Z.
+# This workflow then validates, pushes Docker :version+:latest, and attaches
+# Linux/Windows Tauri installers (cargo tauri build + softprops upload).
 
 on:
   release:
@@ -130,7 +131,9 @@ jobs:
       matrix:
         include:
           - platform: ubuntu-22.04
+            bundles: deb,appimage
           - platform: windows-latest
+            bundles: nsis
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout code
@@ -168,12 +171,34 @@ jobs:
       - name: Install tauri-cli
         run: cargo install --locked tauri-cli --version '^2'
 
-      - name: Build and upload Tauri bundles
-        uses: tauri-apps/tauri-action@v0
+      - name: Build Tauri bundles
+        working-directory: demo-tauri/src
+        run: cargo tauri build --bundles ${{ matrix.bundles }}
+
+      - name: Stage release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          V="${{ needs.validate.outputs.version }}"
+          if [ "${{ matrix.platform }}" = "ubuntu-22.04" ]; then
+            mapfile -t DEBS < <(find demo-tauri/src/target/release/bundle/deb -type f -name '*.deb' 2>/dev/null | sort)
+            mapfile -t APPS < <(find demo-tauri/src/target/release/bundle/appimage -type f -name '*.AppImage' 2>/dev/null | sort)
+            test "${#DEBS[@]}" -ge 1 || { echo "missing .deb"; exit 1; }
+            test "${#APPS[@]}" -ge 1 || { echo "missing AppImage"; exit 1; }
+            cp "${DEBS[0]}" "release-assets/rangular-demo-${V}-linux-amd64.deb"
+            cp "${APPS[0]}" "release-assets/rangular-demo-${V}-linux-x86_64.AppImage"
+            chmod +x "release-assets/rangular-demo-${V}-linux-x86_64.AppImage"
+          else
+            mapfile -t EXES < <(find demo-tauri/src/target/release/bundle/nsis -type f -name '*.exe' 2>/dev/null | sort)
+            test "${#EXES[@]}" -ge 1 || { echo "missing NSIS .exe"; exit 1; }
+            cp "${EXES[0]}" "release-assets/rangular-demo-${V}-windows-x64-setup.exe"
+          fi
+          ls -la release-assets
+
+      - name: Upload assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          projectPath: demo-tauri/src
-          tauriScript: cargo tauri
-          releaseId: ${{ github.event.release.id }}
-          uploadUpdaterJson: false
