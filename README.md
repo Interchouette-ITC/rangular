@@ -13,6 +13,8 @@ render with [Leptos](https://leptos.dev/) in the browser (CSR / Trunk / wasm).
 
 **Live:** [https://rangular.interchouette.net](https://rangular.interchouette.net)
 
+Pre-built desktop demos: **[GitHub Releases](https://github.com/Interchouette-ITC/rangular/releases)** (Linux `.deb` / AppImage, Windows NSIS). macOS not in v1.
+
 If you know Angular component files, you will feel at home. If you know Rust,
 you keep ownership of the real logic. **[rangular](https://github.com/Interchouette-ITC/rangular)**
 sits between the two: a **versioned subset**, not a full Angular port, with
@@ -246,7 +248,11 @@ Leptos + Trunk build that uses rangular components can run inside that webview
 the same way it runs in Chrome. rangular still speaks DOM / wasm, not egui /
 iced / GTK.
 
-In-repo shell (same SPA as the browser demo):
+Pre-built installers (Linux `.deb` / AppImage, Windows NSIS) ship on
+**[GitHub Releases](https://github.com/Interchouette-ITC/rangular/releases)**.
+macOS is not in v1.
+
+Local shell (same SPA as the browser demo):
 
 ```bash
 make demo-desktop
