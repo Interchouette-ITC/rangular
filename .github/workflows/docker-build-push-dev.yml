@@ -66,3 +66,22 @@ jobs:
 
       - name: Push :dev and :latest to ghcr.io/interchouette and interchouette-itc
         run: make docker-push-dev-ghcr-itc
+
+      - name: Redeploy Render
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "${RENDER_DEPLOY_HOOK_URL}" ]; then
+            echo "RENDER_DEPLOY_HOOK_URL secret not set; skipping Render redeploy"
+            exit 0
+          fi
+          hook="$(printf '%s' "$RENDER_DEPLOY_HOOK_URL" | tr -d '\r\n')"
+          # GET, no body. Do not print the URL (it is the secret).
+          http_code="$(curl -sS -o /tmp/render-hook.json -w '%{http_code}' --get "$hook")"
+          echo "render_hook_http=${http_code}"
+          cat /tmp/render-hook.json
+          echo
+          case "$http_code" in
+            200|202) ;;
+            *) exit 1 ;;
+          esac
