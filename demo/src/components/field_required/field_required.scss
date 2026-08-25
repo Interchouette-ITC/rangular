@@ -1,0 +1,45 @@
+:host {
+  display: block;
+}
+
+/* Demo panel polish */
+.field-required {
+  width: 100%;
+}
+
+.field-required__row {
+  display: grid;
+  grid-template-columns: auto minmax(6rem, 10rem) minmax(0, 1fr);
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.field-required__label {
+  font-size: 0.875rem;
+  color: var(--app-text-muted, #787b86);
+  white-space: nowrap;
+}
+
+.field-required input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--app-border, #434651);
+  border-radius: 0.25rem;
+  background: var(--app-surface-elevated, #2a2e39);
+  color: var(--app-text, #d1d4dc);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.field-required .error {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #ef5350;
+  font-size: 0.875rem;
+}

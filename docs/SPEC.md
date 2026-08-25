@@ -68,7 +68,7 @@ Parse expands banana into a property binding plus an event handler that calls
 internal `$bananaSet(ident, $event)`. AOT `HostCell` and the Host `set` path
 apply the write; no full `NgModel` / forms module.
 
-Fixture: [`tests/fixtures/html/two-way.html`](../tests/fixtures/html/two-way.html).
+Fixture: [`tests/fixtures/components/two-way/two-way.html`](../tests/fixtures/components/two-way/two-way.html).
 
 ### Host-side validation (minimal)
 
@@ -85,7 +85,7 @@ and messages with helpers such as [`required`](../crates/rangular-host/src/valid
 
 Show the alert only when invalid **and** dirty: `@if (nameInvalid && nameDirty)` (Angular pristine field hides errors until edit).
 
-Fixture: [`tests/fixtures/html/field-required.html`](../tests/fixtures/html/field-required.html)
+Fixture: [`tests/fixtures/components/field-required/field-required.html`](../tests/fixtures/components/field-required/field-required.html)
 (`[(value)]` plus `@if` alert). Full `NgModel`, `FormGroup`, and directive
 validators remain out of scope (tracked as a follow-up issue).
 
@@ -99,7 +99,7 @@ validators remain out of scope (tracked as a follow-up issue).
 Handler names resolve through the host `call` API. `$event` is a typed
 [`EventPayload`](../crates/rangular-host/src/event.rs) (`Click { x, y }`, `Input { value }`,
 `Error`, `Load`, or `Custom`) exposed as `Value::Event` (see fixture
-[`tests/fixtures/html/event-payload.html`](../tests/fixtures/html/event-payload.html)).
+[`tests/fixtures/components/event-payload/event-payload.html`](../tests/fixtures/components/event-payload/event-payload.html)).
 
 ### Content projection
 
@@ -126,7 +126,7 @@ Runtime partitions projected roots with [`ProjectionBag`](../crates/rangular-run
 | `[ngTemplateOutlet]="ref"`          | Stamp that fragment (fixture syntax)       |
 
 Typically hosted on `<ng-container>`. Fixture:
-[`tests/fixtures/html/template-outlet.html`](../tests/fixtures/html/template-outlet.html).
+[`tests/fixtures/components/template-outlet/template-outlet.html`](../tests/fixtures/components/template-outlet/template-outlet.html).
 
 **Not in v0.1:** `@ContentChild` / `@ViewChild`, `ngProjectAs`, `*ngTemplateOutlet`
 micro-syntax (use `[ngTemplateOutlet]`).
@@ -137,7 +137,7 @@ Parent ↔ child communication uses `[input]` and `(output)` on registered tags.
 Teaching fixtures:
 
 - [`tests/fixtures/components/io-child/`](../tests/fixtures/components/io-child/)
-- [`tests/fixtures/html/io-parent.html`](../tests/fixtures/html/io-parent.html)
+- [`tests/fixtures/components/io-parent/io-parent.html`](../tests/fixtures/components/io-parent/io-parent.html)
 
 `Registry` stores input / output names per tag (`app-io-child`, `app-chrome-header`).
 [`classify_bindings`](../crates/rangular-parser/src/component_io.rs) rewrites matching
@@ -148,13 +148,13 @@ Full view-fn composition remains a follow-up.
 
 ### Control flow
 
-| Construct                               | Notes                           |
-| --------------------------------------- | ------------------------------- |
-| `@if (cond) { … }`                      | Primary v0.1 conditional        |
-| `@else { … }`                           | Optional else block             |
+| Construct                               | Notes                                                                             |
+| --------------------------------------- | --------------------------------------------------------------------------------- |
+| `@if (cond) { … }`                      | Primary v0.1 conditional                                                          |
+| `@else { … }`                           | Optional else block                                                               |
 | `@for (item of list; track item) { … }` | Primary v0.1 loop; `$index`, `$count`, `$first`, `$last`, `$even`, `$odd` in body |
-| `*ngIf="cond"`                          | Desugars to `@if` during parse  |
-| `*ngFor="let x of xs"`                  | Desugars to `@for` during parse |
+| `*ngIf="cond"`                          | Desugars to `@if` during parse                                                    |
+| `*ngFor="let x of xs"`                  | Desugars to `@for` during parse                                                   |
 
 ### Expressions (v0.1)
 
@@ -175,7 +175,7 @@ Builtins (pure transforms on eval): `uppercase`, `lowercase`, `number`, `json`.
 Apps register custom pipes on [`Registry::register_pipe`](../crates/rangular/src/registry.rs)
 (same map for AOT `HostCell::with_pipes` and runtime `interpret_with_pipes`).
 
-Fixture: [`tests/fixtures/html/pipes.html`](../tests/fixtures/html/pipes.html).
+Fixture: [`tests/fixtures/components/pipes/pipes.html`](../tests/fixtures/components/pipes/pipes.html).
 
 **Not in v0.1:** ternary, nullish coalescing, assignment expressions (banana
 uses `Host::set` instead), impure pipe change-detection, arbitrary method
@@ -243,6 +243,8 @@ Rules:
 - Selectors that are **only** known global utility classes (for example
   `.btn`, `.btn-primary`, `.container`) are **not** scoped, so host-app
   Bootstrap (or similar) sheets keep matching.
+- `@media`, `@supports`, `@container`, and `@layer` pass through; inner
+  selectors still encapsulate.
 - Unbalanced or malformed input yields `RANG301` diagnostics; never panics.
 
 API: `rangular_css::encapsulate` (SCSS) with `ScopeAttrs`. Flat CSS helpers are

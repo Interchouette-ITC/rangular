@@ -1,0 +1,91 @@
+:host {
+  display: block;
+}
+
+/* Demo panel polish */
+.event-payload {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.event-payload__controls {
+  display: grid;
+  grid-template-columns: auto minmax(6rem, 9rem) auto auto auto auto auto;
+  gap: 0.5rem 0.65rem;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.event-payload__label {
+  font-size: 0.8125rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--app-text-muted, #787b86);
+  white-space: nowrap;
+}
+
+.event-payload input[type="text"] {
+  width: 100%;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--app-border, #434651);
+  border-radius: 0.25rem;
+  background: var(--app-surface-elevated, #2a2e39);
+  color: var(--app-text, #d1d4dc);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.event-payload__go,
+.event-payload__img-toggle {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--app-border, #434651);
+  border-radius: 0.25rem;
+  background: var(--app-surface-elevated, #2a2e39);
+  color: var(--app-text, #d1d4dc);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.event-payload__go:hover,
+.event-payload__img-toggle:hover {
+  background: var(--app-surface-hover, #363a45);
+}
+
+.event-payload__logo {
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  object-fit: contain;
+  border-radius: 0.25rem;
+  border: 1px dashed var(--app-border, #434651);
+  background: var(--app-bg, #131722);
+}
+
+.event-payload__mirror {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.event-payload__mirror-label {
+  flex-shrink: 0;
+  color: var(--app-text-muted, #787b86);
+}
+
+.event-payload__mirror-value {
+  min-width: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--app-section-header-text, #e8e8e8);
+  word-break: break-all;
+}

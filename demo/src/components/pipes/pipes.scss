@@ -1,0 +1,22 @@
+:host {
+  display: block;
+}
+
+/* Demo panel polish */
+.pipes-demo p,
+.pipes-demo .crab {
+  margin: 0.35rem 0;
+}
+
+.pipes-demo .crab {
+  font-size: 0.9375rem;
+  color: var(--app-section-header-text, #e8e8e8);
+}
+.pipes-demo .upper,
+.pipes-demo .lower,
+.pipes-demo .amount,
+.pipes-demo .json,
+.two-way .mirror,
+.field-required .error {
+  margin: 0.35rem 0;
+}

@@ -4,7 +4,7 @@ dist = "dist"
 no_sri = true
 
 [watch]
-watch = [".", "../tests/fixtures/components", "../crates"]
+watch = [".", "../crates"]
 
 [serve]
 no_autoreload = false

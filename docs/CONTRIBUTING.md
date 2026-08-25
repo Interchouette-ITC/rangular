@@ -18,16 +18,6 @@ document as unsupported.
    `REQUIRED_FIXTURES` in `crates/rangular-parser/tests/fixtures_gate.rs` so CI
    fails if the fixture disappears.
 
-### Add flat html/scss samples
-
-One-off files under:
-
-- `tests/fixtures/html/`
-- `tests/fixtures/scss/`
-
-Use these for minimal reproducers (single binding, one `:host` rule) without a
-full component folder.
-
 ### Unsupported syntax
 
 If a fixture uses syntax **outside** the current `SPEC.md` version:

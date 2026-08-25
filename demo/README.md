@@ -1,28 +1,37 @@
 # Browser demo
 
-Leptos CSR app that AOT-compiles the full fixture corpus from `tests/fixtures/`:
+Leptos CSR app that dogfoods rangular with colocated panels under
+`demo/src/components/<name>/` (`html` + `scss` + `rs`). The demo does **not**
+compile `tests/fixtures/`; that corpus is for crate tests only.
 
-**Components** (`tests/fixtures/components/`):
+## Panels
 
-- `chrome-header` - bindings, `(click)`, keyboard `M`
-- `color-field` - `@for`, inputs, palette
-- `item-list` - `{{ }}`, `@for`
-- `asset-icon` - `@if`, `[src]`, letter fallback
-- `layout-shell` - `<rg-content>` projection
-- `named-slots` - `<rg-content select>` + default slot
-- `io-child` - `[label]` / `[muted]` in, `(muteToggle)` out
+Each feature panel is its own folder:
 
-**HTML fixtures** (`tests/fixtures/html/`):
+| Panel             | Notes                                                            |
+| ----------------- | ---------------------------------------------------------------- |
+| `seed_bar`        | AOT seed input, Generate / Random (drives shared tick)           |
+| `chrome_header`   | bindings, `(click)`, keyboard `M`                                |
+| `color_field`     | `@for`, inputs, palette                                          |
+| `item_list`       | `{{ }}`, `@for`                                                  |
+| `asset_icon`      | `@if`, `[src]`, letter fallback                                  |
+| `layout_shell`    | `<rg-content>` projection                                        |
+| `named_slots`     | `<rg-content select>` + default slot                             |
+| `io_child`        | `[label]` / `[muted]` in, `(muteToggle)` out                     |
+| `io_parent`       | AOT heading + live AOT `io_child` (nested tags are not live yet) |
+| `pipes`           | builtins + demo custom `crab`                                    |
+| `two_way`         | `[(value)]` banana                                               |
+| `field_required`  | Host `required` + dirty error                                    |
+| `event_payload`   | typed `$event` / `EventPayload`                                  |
+| `template_outlet` | `ng-template` + `[ngTemplateOutlet]`                             |
 
-- `seed-bar` - seed input, Generate / Random (Random drives demo state)
-- `pipes` - builtins (`uppercase`, `lowercase`, `number`, `json`) + demo custom `crab`
-- `two-way` - `[(value)]` banana: type in the field (view → Host) or **Push from Host** (Host → view); mirror line shows Host state
-- `field-required` - Host `required` validation + `nameDirty` (error after edit)
-- `event-payload` - typed `$event` / `EventPayload`
-- `template-outlet` - `ng-template` + `[ngTemplateOutlet]`
-- `io-parent` - parent IO shape (live child wired in demo host)
+Page chrome (`app.rs` / `decor.rs`) stays plain Leptos.
 
-Use **Random** on the seed bar (or fixture panels reacting to the shared tick) to cycle demo state.
+`style/demo-swatches.css` is a demo-only workaround: swatch paints keyed off
+`data-swatch` (dynamic style binding is not available yet) plus small decor
+overrides. Panel look lives in each panel `.scss`.
+
+Use **Generate** / **Random** on the seed bar to cycle panel state.
 
 ## Run locally
 

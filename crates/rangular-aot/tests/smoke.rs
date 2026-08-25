@@ -10,7 +10,7 @@ fn assert_emits(html: &str, fn_name: &str, label: &str) {
 
 #[test]
 fn seed_bar_emits_leptos_view() {
-    let html = include_str!("../../../tests/fixtures/html/seed-bar.html");
+    let html = include_str!("../../../tests/fixtures/components/seed-bar/seed-bar.html");
     assert_emits(html, "seed_bar_view", "seed-bar");
 }
 
@@ -61,7 +61,7 @@ fn layout_shell_emits_children_slot() {
 
 #[test]
 fn two_way_emits_leptos_view() {
-    let html = include_str!("../../../tests/fixtures/html/two-way.html");
+    let html = include_str!("../../../tests/fixtures/components/two-way/two-way.html");
     assert_emits(html, "two_way_view", "two-way");
     let out = compile(html, "two_way_view");
     assert!(
@@ -85,7 +85,8 @@ fn named_slots_emits_slot_params() {
 
 #[test]
 fn template_outlet_emits_stamped_body() {
-    let html = include_str!("../../../tests/fixtures/html/template-outlet.html");
+    let html =
+        include_str!("../../../tests/fixtures/components/template-outlet/template-outlet.html");
     assert_emits(html, "template_outlet_view", "template-outlet");
     let out = compile(html, "template_outlet_view");
     assert!(

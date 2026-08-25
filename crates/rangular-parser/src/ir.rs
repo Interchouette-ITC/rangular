@@ -324,7 +324,7 @@ mod tests {
 
     #[test]
     fn seed_bar_ir_lists_handlers() {
-        let src = include_str!("../../../tests/fixtures/html/seed-bar.html");
+        let src = include_str!("../../../tests/fixtures/components/seed-bar/seed-bar.html");
         let parsed = parse(src, "seed-bar.html");
         assert!(parsed.ok(), "{:?}", parsed.diagnostics);
         let ir = from_template(&parsed.template);

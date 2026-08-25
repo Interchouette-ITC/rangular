@@ -1,0 +1,30 @@
+<div class="chrome-header">
+  <div class="chrome-header__start">
+    <h2 class="chrome-header__title">
+      Alerts
+      <span
+        class="chrome-header__count"
+        [attr.aria-label]="enabledCount + ' active of ' + totalCount + ' alerts'"
+        [title]="enabledCount + ' active, ' + pausedCount + ' paused'"
+        >{{ countLabel }}</span
+      >
+    </h2>
+  </div>
+  <div class="chrome-header__tools">
+    <span
+      class="chrome-header__shortcut-hint"
+      title="Keyboard shortcut to mute sounds."
+      >Press <kbd>M</kbd> to mute.</span
+    >
+    <button
+      type="button"
+      class="chrome-header__mute-btn"
+      [class.chrome-header__mute-btn--active]="muted"
+      [attr.aria-pressed]="muted"
+      [title]="muted ? 'Turn sounds back on' : 'Silence all sounds'"
+      (click)="toggleMute()"
+    >
+      {{ muted ? 'Unmute' : 'Mute all' }}
+    </button>
+  </div>
+</div>

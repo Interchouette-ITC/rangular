@@ -2,18 +2,18 @@ use leptos::prelude::*;
 
 use crate::components::{
     AssetIconPanel, ChromeHeaderPanel, ColorFieldPanel, EventPayloadPanel, FieldRequiredPanel,
-    IoChildDemoPanel, ItemListPanel, LayoutShellPanel, NamedSlotsPanel, PipesPanel, SeedBarPanel,
+    IoParentPanel, ItemListPanel, LayoutShellPanel, NamedSlotsPanel, PipesPanel, SeedBarPanel,
     TemplateOutletPanel, TwoWayPanel,
 };
 use crate::decor::DemoDecor;
 
-const FIXTURE_NAV: [(&str, &str); 12] = [
+const PANEL_NAV: [(&str, &str); 12] = [
     ("chrome-header", "chrome-header"),
     ("color-field", "color-field"),
     ("asset-icon", "asset-icon"),
     ("layout-shell", "layout-shell"),
     ("named-slots", "named-slots"),
-    ("io-child", "io-child"),
+    ("io-parent", "io-parent"),
     ("pipes", "pipes"),
     ("two-way", "two-way"),
     ("field-required", "field-required"),
@@ -37,11 +37,11 @@ pub fn App() -> impl IntoView {
                         <img class="demo__title-logo" src="/logo-256.png" alt="" width="28" height="28" />
                     </h1>
                     <p class="demo__subtitle">
-                        "Full fixture corpus from tests/fixtures/, compiled AOT to Leptos CSR / wasm."
+                        "Dogfood panels: colocated html + scss + rs, AOT to Leptos CSR / wasm."
                     </p>
                     <SeedBarPanel applied_seed=applied_seed />
-                    <nav class="demo__nav" aria-label="Fixture panels">
-                        {FIXTURE_NAV
+                    <nav class="demo__nav" aria-label="Demo panels">
+                        {PANEL_NAV
                             .iter()
                             .map(|(id, label)| {
                                 view! {
@@ -81,9 +81,9 @@ pub fn App() -> impl IntoView {
                 <NamedSlotsPanel applied_seed=applied_seed />
             </section>
 
-            <section class="demo__panel demo__panel--io-child" id="io-child">
-                <h2 class="demo__panel-title">"io-child"</h2>
-                <IoChildDemoPanel applied_seed=applied_seed />
+            <section class="demo__panel demo__panel--io-parent" id="io-parent">
+                <h2 class="demo__panel-title">"io-parent"</h2>
+                <IoParentPanel applied_seed=applied_seed />
             </section>
 
             <section class="demo__panel" id="pipes">

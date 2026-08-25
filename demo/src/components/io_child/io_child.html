@@ -1,0 +1,12 @@
+<div class="io-child" role="group" [attr.aria-label]="label">
+  <span class="io-child__label">{{ label }}</span>
+  <button
+    type="button"
+    class="io-child__mute"
+    [class.io-child__mute--on]="muted"
+    [attr.aria-pressed]="muted"
+    (click)="muteToggle($event)"
+  >
+    {{ muted ? 'Off' : 'On' }}
+  </button>
+</div>

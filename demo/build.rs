@@ -3,82 +3,59 @@ use std::path::{Path, PathBuf};
 
 fn main() {
     let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let fixture_root = manifest.join("../tests/fixtures");
+    let components = manifest.join("src/components");
     let css_out = manifest.join("style/components.generated.css");
     let out_dir = Path::new(&std::env::var("OUT_DIR").expect("OUT_DIR")).join("rangular");
     std::fs::create_dir_all(&out_dir).expect("create rangular OUT_DIR");
 
-    println!("cargo:rerun-if-changed={}", fixture_root.display());
+    println!("cargo:rerun-if-changed=src/components");
 
-    let mut css = String::from("/* Generated from fixture SCSS - do not edit. */\n");
-
-    let components = [
-        ("chrome-header", "chrome_header_view"),
-        ("color-field", "color_field_view"),
-        ("item-list", "item_list_view"),
-        ("asset-icon", "asset_icon_view"),
-        ("layout-shell", "layout_shell_view"),
-        ("named-slots", "named_slots_view"),
-        ("io-child", "io_child_view"),
+    // (dir under src/components, AOT fn name)
+    let panels = [
+        ("seed_bar", "seed_bar_view"),
+        ("chrome_header", "chrome_header_view"),
+        ("color_field", "color_field_view"),
+        ("item_list", "item_list_view"),
+        ("asset_icon", "asset_icon_view"),
+        ("layout_shell", "layout_shell_view"),
+        ("named_slots", "named_slots_view"),
+        ("io_child", "io_child_view"),
+        ("io_parent", "io_parent_view"),
+        ("pipes", "pipes_view"),
+        ("two_way", "two_way_view"),
+        ("field_required", "field_required_view"),
+        ("event_payload", "event_payload_view"),
+        ("template_outlet", "template_outlet_view"),
     ];
 
-    for (name, fn_name) in components {
-        compile_component(
-            &fixture_root,
-            &out_dir,
-            &mut css,
-            name,
-            fn_name,
-            &format!("tests/fixtures/components/{name}/{name}.html"),
-        );
+    let mut css = String::from(
+        "/* Generated from panel component SCSS - do not edit. */\n@layer components {\n",
+    );
+    for (dir, fn_name) in panels {
+        compile_panel(&components, &out_dir, &mut css, dir, fn_name);
     }
-
-    let html_fixtures = [
-        ("pipes.html", "pipes_view", None),
-        ("two-way.html", "two_way_view", None),
-        ("field-required.html", "field_required_view", None),
-        ("event-payload.html", "event_payload_view", None),
-        ("template-outlet.html", "template_outlet_view", None),
-        ("seed-bar.html", "seed_bar_view", Some("scss/seed-bar-coexist.scss")),
-        ("io-parent.html", "io_parent_view", None),
-    ];
-
-    for (html_name, fn_name, scss_rel) in html_fixtures {
-        let html_path = fixture_root.join("html").join(html_name);
-        let html = std::fs::read_to_string(&html_path).unwrap_or_else(|err| {
-            panic!("read {}: {err}", html_path.display());
-        });
-        let source = format!("tests/fixtures/html/{html_name}");
-        emit_aot(&out_dir, &html, &source, fn_name);
-
-        if let Some(scss_rel) = scss_rel {
-            let scss_path = fixture_root.join(scss_rel);
-            append_scss(&mut css, html_name.trim_end_matches(".html"), &scss_path);
-        }
-    }
+    css.push_str("}\n");
 
     std::fs::write(&css_out, css).unwrap_or_else(|err| {
         panic!("write {}: {err}", css_out.display());
     });
 }
 
-fn compile_component(
-    fixture_root: &Path,
-    out_dir: &Path,
-    css: &mut String,
-    name: &str,
-    fn_name: &str,
-    source: &str,
-) {
-    let panel_dir = fixture_root.join("components").join(name);
-    let scss_path = panel_dir.join(format!("{name}.scss"));
-    append_scss(css, name, &scss_path);
+fn compile_panel(components: &Path, out_dir: &Path, css: &mut String, dir: &str, fn_name: &str) {
+    let panel_dir = components.join(dir);
+    append_scss(css, dir, &panel_dir.join(format!("{dir}.scss")));
 
-    let html_path = panel_dir.join(format!("{name}.html"));
+    let html_path = panel_dir.join(format!("{dir}.html"));
     let html = std::fs::read_to_string(&html_path).unwrap_or_else(|err| {
         panic!("read {}: {err}", html_path.display());
     });
-    emit_aot(out_dir, &html, source, fn_name);
+    let source = format!("src/components/{dir}/{dir}.html");
+    let aot = rangular_aot::compile_named(&html, &source, fn_name);
+    assert!(aot.ok(), "{dir}.html: {:?}", aot.issues);
+    let rs_path = out_dir.join(format!("{fn_name}.rs"));
+    std::fs::write(&rs_path, &aot.code).unwrap_or_else(|err| {
+        panic!("write {}: {err}", rs_path.display());
+    });
 }
 
 fn append_scss(css: &mut String, label: &str, scss_path: &Path) {
@@ -90,13 +67,4 @@ fn append_scss(css: &mut String, label: &str, scss_path: &Path) {
     let _ = write!(css, "\n/* --- {label} --- */\n");
     css.push_str(&result.css);
     css.push('\n');
-}
-
-fn emit_aot(out_dir: &Path, html: &str, source: &str, fn_name: &str) {
-    let aot = rangular_aot::compile_named(html, source, fn_name);
-    assert!(aot.ok(), "{source}: {:?}", aot.issues);
-    let rs_path = out_dir.join(format!("{fn_name}.rs"));
-    std::fs::write(&rs_path, &aot.code).unwrap_or_else(|err| {
-        panic!("write {}: {err}", rs_path.display());
-    });
 }

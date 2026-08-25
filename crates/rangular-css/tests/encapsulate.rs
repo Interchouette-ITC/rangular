@@ -142,8 +142,62 @@ fn chrome_header_scss_fixture_media() {
 }
 
 #[test]
+fn compile_scss_keeps_container_and_has() {
+    let out = compile_scss(
+        r"
+.item-list {
+  container-type: inline-size;
+}
+.item-list:has(.item-list__implicit) {
+  outline: 1px solid red;
+}
+@container (max-width: 20rem) {
+  .item-list { flex-direction: column; }
+}
+",
+    );
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.css.contains("container-type: inline-size"));
+    assert!(out.css.contains(".item-list:has(.item-list__implicit)"));
+    assert!(out.css.contains("@container (max-width: 20rem)"));
+}
+
+#[test]
+fn encapsulate_keeps_container_and_has() {
+    let out = encapsulate(
+        r"
+.item-list {
+  container-type: inline-size;
+}
+.item-list:has(.item-list__implicit) {
+  outline: 1px solid red;
+}
+@container (max-width: 20rem) {
+  .item-list__row { color: blue; }
+}
+",
+        &scope(),
+    );
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.css.contains("@container (max-width: 20rem)"));
+    assert!(out
+        .css
+        .contains(".item-list[_ngcontent-r0]:has(.item-list__implicit)"));
+    assert!(out.css.contains(".item-list__row[_ngcontent-r0]"));
+}
+
+#[test]
+fn encapsulate_css_scopes_inside_layer() {
+    let out = encapsulate_css("@layer components { .x { color: red; } }", &scope());
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.css.contains("@layer components"));
+    assert!(out.css.contains(".x[_ngcontent-r0]"));
+}
+
+#[test]
 fn seed_bar_bootstrap_coexist_fixture() {
-    let scss = std::fs::read_to_string(fixture_root().join("scss/seed-bar-coexist.scss")).unwrap();
+    let scss =
+        std::fs::read_to_string(fixture_root().join("components/seed-bar/seed-bar.scss")).unwrap();
     let out = encapsulate(&scss, &scope());
     assert!(out.ok(), "{:?}", out.issues);
     assert!(out.css.contains("[_nghost-r0]"));

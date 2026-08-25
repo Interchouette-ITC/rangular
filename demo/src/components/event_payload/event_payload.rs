@@ -12,7 +12,7 @@ pub fn EventPayloadPanel() -> impl IntoView {
     let draft = RwSignal::new(String::new());
     let icon_src = RwSignal::new(String::from(LOGO_SRC));
     let img_broken = RwSignal::new(false);
-    let payload_label = RwSignal::new(String::from("—"));
+    let payload_label = RwSignal::new(String::from("-"));
 
     event_payload_view(HostCell::new(EventPayloadHost {
         draft,

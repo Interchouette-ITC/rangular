@@ -133,7 +133,7 @@ fn flatten_at_rule(prelude: &str, body: &str) -> Result<String, CssIssue> {
         .next()
         .unwrap_or("@")
         .to_ascii_lowercase();
-    if name == "@media" || name == "@supports" || name == "@container" {
+    if is_nested_at_rule(&name) {
         let inner = flatten_block(body)?;
         if inner.trim().is_empty() {
             return Ok(String::new());
@@ -275,13 +275,17 @@ fn rewrite_rule(rule: &str, scope: &ScopeAttrs) -> Result<String, CssIssue> {
     Ok(format!("{} {{{}}}", selectors.join(", "), body.trim()))
 }
 
+fn is_nested_at_rule(name: &str) -> bool {
+    matches!(name, "@media" | "@supports" | "@container" | "@layer")
+}
+
 fn rewrite_at_rule(prelude: &str, body: &str, scope: &ScopeAttrs) -> Result<String, CssIssue> {
     let name = prelude
         .split_whitespace()
         .next()
         .unwrap_or("@")
         .to_ascii_lowercase();
-    if name == "@media" || name == "@supports" || name == "@container" {
+    if is_nested_at_rule(&name) {
         let inner = process_block(body, scope)?;
         return Ok(format!("{prelude} {{\n{inner}}}"));
     }

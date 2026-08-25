@@ -49,7 +49,7 @@ fn corpus_parses_without_errors() {
 
 #[test]
 fn seed_bar_has_generate_binding() {
-    let path = fixture_root().join("html/seed-bar.html");
+    let path = fixture_root().join("components/seed-bar/seed-bar.html");
     let src = std::fs::read_to_string(path).unwrap();
     let parsed = parse(&src, "seed-bar.html");
     assert!(parsed.ok());
@@ -117,7 +117,7 @@ fn find_element<'a>(nodes: &'a [Node], tag: &str) -> Option<&'a rangular_parser:
 
 #[test]
 fn two_way_desugars_to_property_and_input_event() {
-    let path = fixture_root().join("html/two-way.html");
+    let path = fixture_root().join("components/two-way/two-way.html");
     let src = std::fs::read_to_string(path).unwrap();
     let parsed = parse(&src, "two-way.html");
     assert!(parsed.ok(), "{:?}", parsed.diagnostics);
@@ -163,7 +163,7 @@ fn ng_content_alias_parses_like_rg_content() {
 
 #[test]
 fn template_outlet_parses_ref() {
-    let path = fixture_root().join("html/template-outlet.html");
+    let path = fixture_root().join("components/template-outlet/template-outlet.html");
     let src = std::fs::read_to_string(path).unwrap();
     let parsed = parse(&src, "template-outlet.html");
     assert!(parsed.ok(), "{:?}", parsed.diagnostics);

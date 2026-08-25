@@ -1,0 +1,56 @@
+:host {
+  display: block;
+}
+
+.io-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--app-border, #434651);
+  border-radius: 0.375rem;
+  background: var(--app-surface-elevated, #2a2e39);
+}
+
+.io-child__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--app-section-header-text, #e8e8e8);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.io-child__mute {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  padding: 0.3125rem 0.625rem;
+  border: 1px solid var(--app-border, #434651);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--app-text-muted, #787b86);
+  font: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+
+  &:hover {
+    background: var(--app-surface-hover, #363a45);
+    color: var(--app-text, #d1d4dc);
+  }
+
+  &--on {
+    border-color: var(--app-accent, #ce422b);
+    background: var(--app-surface-hover, #363a45);
+    color: var(--app-text, #d1d4dc);
+  }
+}

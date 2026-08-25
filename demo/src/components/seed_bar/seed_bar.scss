@@ -1,0 +1,45 @@
+:host {
+  display: block;
+}
+
+.seed-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.seed-bar label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.seed-bar input[type="text"] {
+  min-width: 14rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.25rem;
+  background: var(--app-surface-elevated);
+  color: var(--app-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.seed-bar .btn {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.25rem;
+  background: var(--app-accent);
+  color: #fff;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.seed-bar .btn-secondary {
+  background: var(--app-surface-elevated);
+  color: var(--app-text);
+}
+
+.seed-bar .btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

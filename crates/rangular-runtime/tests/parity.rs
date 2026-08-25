@@ -264,7 +264,8 @@ fn empty_template_same_rang401() {
 
 #[test]
 fn seed_bar_runtime_snapshot() {
-    let src = std::fs::read_to_string(fixture_root().join("html/seed-bar.html")).unwrap();
+    let src =
+        std::fs::read_to_string(fixture_root().join("components/seed-bar/seed-bar.html")).unwrap();
     let mut host = SeedBarHost {
         seed: "abc".into(),
         worker_ready: true,
@@ -286,7 +287,8 @@ fn seed_bar_runtime_snapshot() {
 
 #[test]
 fn seed_bar_disabled_when_busy() {
-    let src = std::fs::read_to_string(fixture_root().join("html/seed-bar.html")).unwrap();
+    let src =
+        std::fs::read_to_string(fixture_root().join("components/seed-bar/seed-bar.html")).unwrap();
     let mut host = SeedBarHost {
         seed: "abc".into(),
         worker_ready: true,
@@ -409,7 +411,9 @@ fn item_list_runtime_snapshot() {
 
 #[test]
 fn event_payload_fixture_ir_and_aot() {
-    let src = std::fs::read_to_string(fixture_root().join("html/event-payload.html")).unwrap();
+    let src =
+        std::fs::read_to_string(fixture_root().join("components/event-payload/event-payload.html"))
+            .unwrap();
     let ir = rangular_aot::structural_ir(&src, "event-payload.html")
         .unwrap()
         .1;
@@ -438,7 +442,10 @@ fn layout_shell_has_rg_content_ir() {
 
 #[test]
 fn io_parent_and_child_compile() {
-    for rel in ["html/io-parent.html", "components/io-child/io-child.html"] {
+    for rel in [
+        "components/io-parent/io-parent.html",
+        "components/io-child/io-child.html",
+    ] {
         let src = std::fs::read_to_string(fixture_root().join(rel)).unwrap();
         assert!(
             compile(&src, "io_view").ok(),
@@ -491,7 +498,8 @@ fn ng_content_alias_projects_runtime_slot() {
 
 #[test]
 fn io_parent_classifies_inputs_and_outputs() {
-    let src = std::fs::read_to_string(fixture_root().join("html/io-parent.html")).unwrap();
+    let src = std::fs::read_to_string(fixture_root().join("components/io-parent/io-parent.html"))
+        .unwrap();
     let mut host = ParentHost {
         heading: "Alerts".into(),
         child_label: "Sounds".into(),
@@ -544,7 +552,7 @@ fn pipes_runtime_snapshot() {
         }
     }
 
-    let src = std::fs::read_to_string(fixture_root().join("html/pipes.html")).unwrap();
+    let src = std::fs::read_to_string(fixture_root().join("components/pipes/pipes.html")).unwrap();
     let mut host = PipesHost;
     let mut pipes = PipeRegistry::with_builtins();
     pipes.register("crab", pipe_crab);
@@ -592,7 +600,8 @@ fn two_way_runtime_snapshot() {
         }
     }
 
-    let src = std::fs::read_to_string(fixture_root().join("html/two-way.html")).unwrap();
+    let src =
+        std::fs::read_to_string(fixture_root().join("components/two-way/two-way.html")).unwrap();
     let mut host = TwoWayHost { seed: "abc".into() };
     let out = interpret(&src, "two-way.html", &mut host);
     assert!(out.ok(), "{:?}", out.issues);
@@ -651,7 +660,10 @@ fn field_required_host_validation() {
         }
     }
 
-    let src = std::fs::read_to_string(fixture_root().join("html/field-required.html")).unwrap();
+    let src = std::fs::read_to_string(
+        fixture_root().join("components/field-required/field-required.html"),
+    )
+    .unwrap();
     let mut host = FieldHost {
         name: String::new(),
         dirty: false,
@@ -728,7 +740,10 @@ fn template_outlet_stamps_fragment() {
         }
     }
 
-    let src = std::fs::read_to_string(fixture_root().join("html/template-outlet.html")).unwrap();
+    let src = std::fs::read_to_string(
+        fixture_root().join("components/template-outlet/template-outlet.html"),
+    )
+    .unwrap();
     let mut host = LabelHost;
     let out = interpret(&src, "template-outlet.html", &mut host);
     assert!(out.ok(), "{:?}", out.issues);

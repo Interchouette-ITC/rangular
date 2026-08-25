@@ -1,0 +1,83 @@
+:host.asset-icon-host {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+:host.asset-icon-host--empty {
+  display: none;
+}
+
+.asset-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background-color: var(--app-surface-elevated, #2a2e39);
+  overflow: hidden;
+  flex-shrink: 0;
+
+  &--sm {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+.asset-icon__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.asset-icon__letter {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--app-text, #fff);
+}
+
+.asset-icon--sm .asset-icon__letter {
+  font-size: 0.6875rem;
+}
+
+/* Demo panel polish */
+.asset-icon-panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.asset-icon-panel .asset-icon,
+.asset-icon-panel .asset-icon--sm {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.asset-icon-panel .asset-icon__letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--demo-accent, #ce422b);
+  font-weight: 700;
+  background: transparent;
+}
+
+.asset-icon-panel .asset-icon__img {
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: contain;
+}
+
+.asset-icon__img {
+  width: 1.5rem;
+  height: 1.5rem;
+  object-fit: contain;
+}
+
+/* Decor cluster: fixture rules above force 1.5rem; override last. */

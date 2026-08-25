@@ -1,0 +1,39 @@
+:host {
+  display: block;
+}
+
+/* Demo panel polish */
+.template-outlet {
+  width: 100%;
+}
+.template-outlet__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.65rem;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.template-outlet__ref,
+.template-outlet__via {
+  font-size: 0.8125rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--app-text-muted, #787b86);
+  white-space: nowrap;
+}
+
+.template-outlet__stamp {
+  min-width: 0;
+}
+
+.template-outlet .card {
+  margin: 0;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--app-border, #434651);
+  border-radius: 0.25rem;
+  background: var(--app-surface-elevated, #2a2e39);
+  font-size: 0.875rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--app-section-header-text, #e8e8e8);
+}
