@@ -36,11 +36,13 @@ RUN cd demo && trunk build --release
 
 FROM ${NGINX_IMAGE} AS runtime
 
-COPY docker/nginx.conf /etc/nginx/nginx.conf
-COPY docker/entrypoint.sh /entrypoint.sh
-COPY --from=builder /app/demo/dist /usr/share/nginx/html
+# Base image defaults to USER nginx; root is required to install config and assets.
+USER root
 
-RUN chmod +x /entrypoint.sh
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+COPY --chmod=755 docker/entrypoint.sh /entrypoint.sh
+COPY --from=builder /app/demo/dist /usr/share/nginx/html
+RUN chown -R nginx:nginx /usr/share/nginx/html
 
 USER nginx
 EXPOSE 8080
