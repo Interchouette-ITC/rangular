@@ -12,7 +12,6 @@ on:
       - tests/fixtures/**
       - Cargo.toml
       - Cargo.lock
-      - render.yaml
 
 permissions:
   contents: read
