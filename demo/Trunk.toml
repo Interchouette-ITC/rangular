@@ -1,0 +1,10 @@
+[build]
+target = "index.html"
+dist = "dist"
+no_sri = true
+
+[watch]
+watch = [".", "../crates"]
+
+[serve]
+no_autoreload = false

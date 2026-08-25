@@ -2,6 +2,7 @@ use crate::ast::{Attr, Element, ForBlock, IfBlock, NgTemplate, Node, Projection,
 use crate::banana::{banana_event_name, banana_write_expr};
 use crate::diag::Diagnostic;
 use crate::expr::{parse_into, Expr};
+use crate::projection::is_projection_tag;
 use crate::span::{pos, Span};
 
 const VOID: &[&str] = &[
@@ -118,7 +119,7 @@ impl<'a> Parser<'a> {
             }
         }
         let span = span_open.merge(Span::new(pos(start), pos(self.pos)));
-        if tag == "ng-content" {
+        if is_projection_tag(&tag) {
             let select = attrs.iter().find_map(|attr| match attr {
                 Attr::Static {
                     name,

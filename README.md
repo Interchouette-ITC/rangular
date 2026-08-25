@@ -64,7 +64,10 @@ flowchart LR
 | Runtime              | `rangular-runtime` (parity / tooling)                                           |
 | SCSS                 | `rangular-css` (`compile_scss` or encapsulate; Bootstrap utilities stay global) |
 | Registry             | Component tags + typed `provide` / `inject`                                     |
-| Growth               | Fixture corpus in [`tests/fixtures/`](tests/fixtures/)                          |
+| Growth               | Fixture corpus in [`tests/fixtures/`](tests/fixtures/) (tests; not the demo) |
+| Demo                 | [`demo/`](demo/) dogfoods AOT with its own panels                           |
+
+Layers: `tests/fixtures/` is the language growth corpus for crate tests; `demo/` is an independent dogfood app with its own panels; other rangular apps live out of this tree.
 
 Honest subset, not full Angular. New syntax lands through fixtures and semver.
 Unsupported input yields `RANG*` diagnostics; templates must never panic the process.
@@ -80,15 +83,14 @@ Same habit as Angular, with **`.rs` instead of `.ts`**:
 | `item_list.rs`   | class / component.ts | Rust `Host` + Leptos `#[component]`               |
 
 ```text
-src/components/item_list/
+demo/src/components/item_list/
   item_list.html    # familiar Angular-shaped template
   item_list.scss    # familiar component SCSS
   item_list.rs      # state + handlers
 ```
 
-Full fixture (HTML + SCSS):
-[`tests/fixtures/components/item-list/`](tests/fixtures/components/item-list/).
-Also see `color-field`, `chrome-header`, `asset-icon` in the same tree.
+Live Host example: [`demo/src/components/item_list/`](demo/src/components/item_list/).
+Growth corpus (tests only): [`tests/fixtures/components/`](tests/fixtures/components/).
 
 **Template** (`item_list.html`):
 
@@ -261,7 +263,25 @@ flowchart TB
   end
 ```
 
-A Tauri demo that reuses the fixture components is planned for this repository.
+### Browser demo (live)
+
+Dogfood app with colocated `html` / `scss` / `rs` panels (not the fixture corpus):
+
+```bash
+make demo
+# → http://127.0.0.1:4180/
+```
+
+Docker (same SPA, nginx):
+
+```bash
+docker pull interchouette/rangular-demo:dev
+docker run --rm -p 8080:8080 interchouette/rangular-demo:dev
+```
+
+Live: https://rangular.interchouette.net/
+
+Details: [`demo/README.md`](demo/README.md).
 
 ## Working on this repo
 
@@ -294,12 +314,12 @@ Shipped on `dev` (fixture-backed):
 
 - [x] AOT and runtime aligned on the fixture corpus (parity / shared IR)
 - [x] Fixture gate for planned constructs (`REQUIRED_FIXTURES`)
-- [x] Default content projection (`<ng-content>`) for layout shells
+- [x] Default content projection (`<rg-content>`; `<ng-content>` alias) for layout shells
 - [x] Typed `$event` / `EventPayload` on the Host
 - [x] Component Input / Output on registered tags
 - [x] Pipes (`uppercase`, `lowercase`, `number`, `json` + custom registry)
 - [x] Two-way banana `[(prop)]` (Host `get` / `set`)
-- [x] Named `<ng-content select>` + `ng-template` / `[ngTemplateOutlet]`
+- [x] Named `<rg-content select>` + `ng-template` / `[ngTemplateOutlet]`
 - [x] Host-side `required` validation pattern (fixture; not NgModel)
 
 Still future:

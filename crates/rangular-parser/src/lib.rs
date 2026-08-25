@@ -20,7 +20,7 @@ pub use ir::{
 pub use parser::{parse, Parsed};
 pub use projection::{
     collect_ng_templates, collect_projection_selects, has_default_projection, is_outlet_container,
-    matches_select, select_param_name, template_outlet_ref,
+    is_projection_tag, matches_select, select_param_name, template_outlet_ref,
 };
 pub use span::{line_col, Span};
 

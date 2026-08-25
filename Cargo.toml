@@ -9,6 +9,7 @@ members = [
     "crates/rangular-parser",
     "crates/rangular-runtime",
 ]
+exclude = ["demo"]
 resolver = "2"
 
 [workspace.package]

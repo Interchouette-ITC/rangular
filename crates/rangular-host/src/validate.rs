@@ -2,6 +2,12 @@
 
 use crate::value::Value;
 
+/// Show validation UI only after the user has edited the field (Angular dirty semantics).
+#[must_use]
+pub const fn show_when_dirty(invalid: bool, dirty: bool) -> bool {
+    invalid && dirty
+}
+
 /// Error when `value` is empty or whitespace-only.
 #[must_use]
 pub fn required(value: &str) -> Option<&'static str> {

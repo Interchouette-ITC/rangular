@@ -70,7 +70,7 @@ fn write_tree(tt: TokenTree, out: &mut String, needs_space: &mut bool, last_char
             let ch = punct.as_char();
             out.push(ch);
             *needs_space = match ch {
-                '<' | ':' | '.' | '#' => false,
+                '<' | ':' | '.' | '#' | '=' => false,
                 '/' if *last_char == '<' => false,
                 _ => punct.spacing() == Spacing::Alone,
             };
@@ -96,6 +96,30 @@ mod tests {
         attr.extend([TokenTree::Literal(Literal::string("Seed"))]);
         let src = tokens_to_rust_source(&attr);
         assert_eq!(src, r#"aria-label="Seed""#);
+    }
+
+    #[test]
+    fn class_attr_joint_eq_before_brace() {
+        use proc_macro2::{Delimiter, TokenStream};
+        use quote::quote;
+
+        let value: TokenStream = quote! {{ false }};
+        let mut out = proc_macro2::TokenStream::new();
+        out.extend([TokenTree::Ident(format_ident!("class"))]);
+        out.extend([TokenTree::Punct(Punct::new(':', Spacing::Alone))]);
+        let mut name = proc_macro2::TokenStream::new();
+        name.extend([TokenTree::Ident(format_ident!("color"))]);
+        name.extend([TokenTree::Punct(Punct::new('-', Spacing::Joint))]);
+        name.extend([TokenTree::Ident(format_ident!("field__toggle"))]);
+        name.extend([TokenTree::Punct(Punct::new('-', Spacing::Joint))]);
+        name.extend([TokenTree::Punct(Punct::new('-', Spacing::Joint))]);
+        name.extend([TokenTree::Ident(format_ident!("open"))]);
+        let paren = proc_macro2::Group::new(Delimiter::Parenthesis, name);
+        out.extend([TokenTree::Group(paren)]);
+        out.extend([TokenTree::Punct(Punct::new('=', Spacing::Joint))]);
+        out.extend(value);
+        let src = tokens_to_rust_source(&out);
+        assert!(src.contains("class:(color-field__toggle--open)={"), "{src}");
     }
 
     #[test]

@@ -3,7 +3,12 @@
 use crate::ast::{Attr, Element, Node};
 use crate::expr::Expr;
 
-/// True when `select` matches a projected root element (fixture subset).
+/// True for default or named content projection tags (`rg-content` or Angular `ng-content`).
+#[must_use]
+pub fn is_projection_tag(tag: &str) -> bool {
+    tag == "rg-content" || tag == "ng-content"
+}
+
 ///
 /// Supported: tag name (`header`), class (`.header`), attribute (`[data-slot]` /
 /// `[data-slot=main]`).
@@ -44,7 +49,7 @@ pub fn template_outlet_ref(attrs: &[Attr]) -> Option<&str> {
     })
 }
 
-/// Collect unique `select` values from `<ng-content select>` in document order.
+/// Collect unique `select` values from `<rg-content select>` / `<ng-content select>` in document order.
 #[must_use]
 pub fn collect_projection_selects(nodes: &[Node]) -> Vec<String> {
     let mut out = Vec::new();
@@ -76,7 +81,7 @@ fn walk_selects(nodes: &[Node], out: &mut Vec<String>) {
     }
 }
 
-/// Whether the tree has a default (unselected) `<ng-content>`.
+/// Whether the tree has a default (unselected) content projection slot.
 #[must_use]
 pub fn has_default_projection(nodes: &[Node]) -> bool {
     nodes.iter().any(|node| match node {

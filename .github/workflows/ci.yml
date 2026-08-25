@@ -51,3 +51,19 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: No-panic corpus
         run: make no-panic
+
+  demo:
+    name: demo Trunk build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Install trunk
+        run: cargo install --locked trunk --version 0.21.14
+      - name: Demo check + build
+        run: make demo-check && make demo-build

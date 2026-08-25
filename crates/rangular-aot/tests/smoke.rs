@@ -10,7 +10,7 @@ fn assert_emits(html: &str, fn_name: &str, label: &str) {
 
 #[test]
 fn seed_bar_emits_leptos_view() {
-    let html = include_str!("../../../tests/fixtures/html/seed-bar.html");
+    let html = include_str!("../../../tests/fixtures/components/seed-bar/seed-bar.html");
     assert_emits(html, "seed_bar_view", "seed-bar");
 }
 
@@ -27,6 +27,12 @@ fn color_field_parse_has_nodes() {
     let parsed = rangular_parser::parse(html, "color-field.html");
     assert!(parsed.ok(), "{:?}", parsed.diagnostics);
     assert!(!parsed.template.nodes.is_empty(), "expected root nodes");
+}
+
+#[test]
+fn chrome_header_emits_leptos_view() {
+    let html = include_str!("../../../tests/fixtures/components/chrome-header/chrome-header.html");
+    assert_emits(html, "chrome_header_view", "chrome-header");
 }
 
 #[test]
@@ -55,7 +61,7 @@ fn layout_shell_emits_children_slot() {
 
 #[test]
 fn two_way_emits_leptos_view() {
-    let html = include_str!("../../../tests/fixtures/html/two-way.html");
+    let html = include_str!("../../../tests/fixtures/components/two-way/two-way.html");
     assert_emits(html, "two_way_view", "two-way");
     let out = compile(html, "two_way_view");
     assert!(
@@ -79,7 +85,8 @@ fn named_slots_emits_slot_params() {
 
 #[test]
 fn template_outlet_emits_stamped_body() {
-    let html = include_str!("../../../tests/fixtures/html/template-outlet.html");
+    let html =
+        include_str!("../../../tests/fixtures/components/template-outlet/template-outlet.html");
     assert_emits(html, "template_outlet_view", "template-outlet");
     let out = compile(html, "template_outlet_view");
     assert!(
@@ -129,6 +136,44 @@ fn banana_hostcell_sets_via_dom_event() {
     let write = banana_write_expr(&Expr::Ident("seed".into()));
     cell.emit_dom_event_call("$bananaSet", &write, "input", "xyz".into());
     assert_eq!(*seed.borrow(), "xyz");
+}
+
+#[test]
+fn hostcell_dom_event_passes_dollar_event_to_handler() {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    use rangular_aot::HostCell;
+    use rangular_expr::{parse, Host, Value};
+    use rangular_host::{EventPayload, HostError};
+
+    struct CaptureHost {
+        args: Rc<RefCell<Vec<Value>>>,
+    }
+
+    impl Host for CaptureHost {
+        fn get(&self, _: &str) -> Option<Value> {
+            None
+        }
+
+        fn call(&mut self, _: &str, args: &[Value]) -> Result<Value, HostError> {
+            *self.args.borrow_mut() = args.to_vec();
+            Ok(Value::Unit)
+        }
+    }
+
+    let args = Rc::new(RefCell::new(Vec::new()));
+    let cell = HostCell::new(CaptureHost {
+        args: Rc::clone(&args),
+    });
+    let handler = parse("onInput($event)").expr.expect("expr");
+    cell.emit_dom_event_call("onInput", &handler, "input", "typed".into());
+    let got = args.borrow().clone();
+    assert_eq!(got.len(), 1);
+    assert!(matches!(
+        got[0].as_event(),
+        Some(EventPayload::Input { value }) if value == "typed"
+    ));
 }
 
 #[test]

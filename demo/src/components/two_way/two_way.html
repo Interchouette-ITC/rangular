@@ -1,0 +1,19 @@
+<section class="two-way" aria-label="Two-way">
+  <div class="two-way__row">
+    <label class="two-way__label" for="two-way-seed">Seed</label>
+    <input
+      id="two-way-seed"
+      type="text"
+      [(value)]="seed"
+      spellcheck="false"
+      autocomplete="off"
+    />
+    <p class="two-way__mirror">
+      <span class="two-way__mirror-label">Mirror:</span>
+      <span class="two-way__mirror-value">{{ seed }}</span>
+    </p>
+    <button type="button" class="two-way__push" (click)="pushFromHost()">
+      Push from Host
+    </button>
+  </div>
+</section>

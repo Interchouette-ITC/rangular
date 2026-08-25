@@ -49,7 +49,7 @@ fn corpus_parses_without_errors() {
 
 #[test]
 fn seed_bar_has_generate_binding() {
-    let path = fixture_root().join("html/seed-bar.html");
+    let path = fixture_root().join("components/seed-bar/seed-bar.html");
     let src = std::fs::read_to_string(path).unwrap();
     let parsed = parse(&src, "seed-bar.html");
     assert!(parsed.ok());
@@ -105,24 +105,23 @@ fn has_for(nodes: &[Node]) -> bool {
     })
 }
 
+fn find_element<'a>(nodes: &'a [Node], tag: &str) -> Option<&'a rangular_parser::Element> {
+    nodes.iter().find_map(|n| match n {
+        Node::Element(el) if el.tag == tag => Some(el),
+        Node::Element(el) => find_element(&el.children, tag),
+        Node::If(b) => find_element(&b.then_branch, tag)
+            .or_else(|| b.else_branch.as_ref().and_then(|e| find_element(e, tag))),
+        _ => None,
+    })
+}
+
 #[test]
 fn two_way_desugars_to_property_and_input_event() {
-    let path = fixture_root().join("html/two-way.html");
+    let path = fixture_root().join("components/two-way/two-way.html");
     let src = std::fs::read_to_string(path).unwrap();
     let parsed = parse(&src, "two-way.html");
     assert!(parsed.ok(), "{:?}", parsed.diagnostics);
-    let input = parsed
-        .template
-        .nodes
-        .iter()
-        .find_map(|n| match n {
-            Node::Element(el) if el.tag == "section" => el.children.iter().find_map(|c| match c {
-                Node::Element(child) if child.tag == "input" => Some(child),
-                _ => None,
-            }),
-            _ => None,
-        })
-        .expect("input");
+    let input = find_element(&parsed.template.nodes, "input").expect("input");
     assert!(input.attrs.iter().any(|a| matches!(
         a,
         rangular_parser::Attr::Property { name, .. } if name == "value"
@@ -148,8 +147,23 @@ fn named_slots_parse_select() {
 }
 
 #[test]
+fn ng_content_alias_parses_like_rg_content() {
+    let src = r#"<div class="stage"><ng-content select=".header"></ng-content><ng-content></ng-content></div>"#;
+    let parsed = parse(src, "ng-content.html");
+    assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+    let selects = rangular_parser::collect_projection_selects(&parsed.template.nodes);
+    assert_eq!(selects, vec![".header".to_owned()]);
+    assert!(rangular_parser::has_default_projection(
+        &parsed.template.nodes
+    ));
+    assert!(rangular_parser::is_projection_tag("ng-content"));
+    assert!(rangular_parser::is_projection_tag("rg-content"));
+    assert!(!rangular_parser::is_projection_tag("ng-template"));
+}
+
+#[test]
 fn template_outlet_parses_ref() {
-    let path = fixture_root().join("html/template-outlet.html");
+    let path = fixture_root().join("components/template-outlet/template-outlet.html");
     let src = std::fs::read_to_string(path).unwrap();
     let parsed = parse(&src, "template-outlet.html");
     assert!(parsed.ok(), "{:?}", parsed.diagnostics);

@@ -14,13 +14,13 @@ pub enum Node {
     Comment(String, Span),
     If(IfBlock),
     For(ForBlock),
-    /// Angular-shaped content projection (`<ng-content>` / optional `select`).
+    /// Content projection (`<rg-content>` or Angular-compatible `<ng-content>` / optional `select`).
     Projection(Projection),
     /// Deferred fragment (`<ng-template #ref>…</ng-template>`).
     NgTemplate(NgTemplate),
 }
 
-/// Default or named content projection slot (`<ng-content>` / `select`).
+/// Default or named content projection slot (`<rg-content>` / `<ng-content>` / `select`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Projection {
     pub select: Option<String>,
