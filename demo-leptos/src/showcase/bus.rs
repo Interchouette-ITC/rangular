@@ -103,8 +103,8 @@ fn default_expanded() -> bool {
         }
         if let Ok(width) = window.inner_width() {
             if let Some(w) = width.as_f64() {
-                // First visit on phone: start collapsed so the demo stays usable.
-                if w <= 719.0 {
+                // First visit on narrow viewports: start collapsed so the demo stays usable.
+                if w <= 1024.0 {
                     return false;
                 }
             }
