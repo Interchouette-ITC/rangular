@@ -2,7 +2,10 @@ use leptos::prelude::*;
 use rangular_aot::HostCell;
 use rangular_host::{Host, HostError, Value};
 
-include!(concat!(env!("OUT_DIR"), "/rangular/template_outlet_view.rs"));
+include!(concat!(
+    env!("OUT_DIR"),
+    "/rangular/template_outlet_view.rs"
+));
 
 const LABELS: [&str; 4] = ["Card", "Panel", "Tile", "Stamp"];
 

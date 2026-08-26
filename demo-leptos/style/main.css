@@ -260,3 +260,15 @@ body {
 
 @layer utilities {
 }
+
+@media (max-width: 1024px) {
+  html,
+  body {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  .demo-decor {
+    display: none;
+  }
+}

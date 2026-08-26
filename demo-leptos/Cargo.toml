@@ -7,8 +7,15 @@ license = "Apache-2.0"
 publish = false
 
 [dependencies]
+arborium = { version = "2.18", default-features = false, features = [
+    "lang-html",
+    "lang-css",
+    "lang-rust",
+] }
 console_error_panic_hook = "0.1"
+gloo-timers = { version = "0.3", features = ["futures"] }
 js-sys = "0.3"
+kode-leptos = "0.5.4"
 leptos = { version = "0.8", features = ["csr"] }
 rangular-aot = { path = "../crates/rangular-aot" }
 rangular-expr = { path = "../crates/rangular-expr" }
@@ -19,8 +26,16 @@ web-sys = { version = "0.3", features = [
     "KeyboardEvent",
     "Event",
     "HtmlInputElement",
+    "HtmlElement",
+    "Element",
     "Document",
     "Node",
+    "NodeList",
+    "Location",
+    "Storage",
+    "IntersectionObserver",
+    "IntersectionObserverEntry",
+    "IntersectionObserverInit",
 ] }
 
 [build-dependencies]

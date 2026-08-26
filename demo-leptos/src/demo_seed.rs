@@ -4,9 +4,7 @@ pub fn seed_to_tick(seed: &str) -> u32 {
     }
     let mut hash = 0_u32;
     for byte in seed.bytes() {
-        hash = hash
-            .wrapping_mul(0x9E37_79B9)
-            .wrapping_add(u32::from(byte));
+        hash = hash.wrapping_mul(0x9E37_79B9).wrapping_add(u32::from(byte));
     }
     hash.max(1)
 }
