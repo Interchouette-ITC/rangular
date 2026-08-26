@@ -1559,7 +1559,7 @@ dependencies = [
 
 [[package]]
 name = "rangular-aot"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1571,14 +1571,14 @@ dependencies = [
 
 [[package]]
 name = "rangular-css"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "grass",
 ]
 
 [[package]]
 name = "rangular-demo"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "arborium",
  "console_error_panic_hook",
@@ -1596,18 +1596,18 @@ dependencies = [
 
 [[package]]
 name = "rangular-expr"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "rangular-host",
 ]
 
 [[package]]
 name = "rangular-host"
-version = "1.0.1"
+version = "1.0.2"
 
 [[package]]
 name = "rangular-parser"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "rangular-expr",
 ]
