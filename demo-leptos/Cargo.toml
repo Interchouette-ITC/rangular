@@ -33,9 +33,7 @@ web-sys = { version = "0.3", features = [
     "NodeList",
     "Location",
     "Storage",
-    "IntersectionObserver",
-    "IntersectionObserverEntry",
-    "IntersectionObserverInit",
+    "DomRect",
 ] }
 
 [build-dependencies]
