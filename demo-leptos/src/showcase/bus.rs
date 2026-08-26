@@ -20,10 +20,6 @@ pub struct ShowcaseBus {
     pub file_index: RwSignal<usize>,
     pub pulse: RwSignal<ShowcasePulse>,
     pub status: RwSignal<&'static str>,
-    /// When true, intersection updates are ignored (hash / pulse navigation).
-    pub ignore_observer: RwSignal<bool>,
-    /// When true, scroll spy is paused (pointer is over a panel).
-    pub hover_lock: RwSignal<bool>,
 }
 
 impl ShowcaseBus {
@@ -34,9 +30,7 @@ impl ShowcaseBus {
             expanded,
             file_index: RwSignal::new(0),
             pulse: RwSignal::new(ShowcasePulse::None),
-            status: RwSignal::new("follows scroll"),
-            ignore_observer: RwSignal::new(false),
-            hover_lock: RwSignal::new(false),
+            status: RwSignal::new("hover a panel"),
         }
     }
 
@@ -48,27 +42,16 @@ impl ShowcaseBus {
         self.file_index
             .set(crate::showcase::sources::default_file_index(panel_id));
         self.pulse.set(ShowcasePulse::None);
-        self.status.set("panel in view");
     }
 
-    /// Pointer hover over a fixture panel.
+    /// Pointer enter over a fixture panel; stays until another panel or hash nav.
     pub fn set_panel_from_hover(&self, panel_id: &'static str) {
-        self.hover_lock.set(true);
-        if self.active_panel.get_untracked() == panel_id {
-            self.status.set("hover");
-            return;
-        }
-        self.active_panel.set(panel_id);
-        self.file_index
-            .set(crate::showcase::sources::default_file_index(panel_id));
-        self.pulse.set(ShowcasePulse::None);
+        self.set_panel(panel_id);
         self.status.set("hover");
     }
 
-    /// Pin a panel from hash/nav; stay pinned until the user scrolls.
+    /// Pin a panel from hash / in-page nav.
     pub fn set_panel_from_nav(&self, panel_id: &'static str) {
-        self.ignore_observer.set(true);
-        self.hover_lock.set(false);
         self.set_panel(panel_id);
         self.status.set("hash nav");
     }
@@ -107,7 +90,7 @@ impl ShowcaseBus {
         let status = self.status;
         Timeout::new(PULSE_MS, move || {
             pulse.set(ShowcasePulse::None);
-            status.set("follows scroll");
+            status.set("hover a panel");
         })
         .forget();
     }

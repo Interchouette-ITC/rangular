@@ -15,16 +15,16 @@ resolver = "2"
 [workspace.package]
 edition = "2021"
 license = "Apache-2.0"
-version = "1.0.1"
+version = "1.0.2"
 authors = ["Interchouette"]
 repository = "https://github.com/Interchouette-ITC/rangular"
 rust-version = "1.75"
 
 [workspace.dependencies]
-rangular-aot = { path = "crates/rangular-aot", version = "1.0.1" }
-rangular-css = { path = "crates/rangular-css", version = "1.0.1" }
-rangular-expr = { path = "crates/rangular-expr", version = "1.0.1" }
-rangular-host = { path = "crates/rangular-host", version = "1.0.1" }
-rangular-macros = { path = "crates/rangular-macros", version = "1.0.1" }
-rangular-parser = { path = "crates/rangular-parser", version = "1.0.1" }
-rangular-runtime = { path = "crates/rangular-runtime", version = "1.0.1" }
+rangular-aot = { path = "crates/rangular-aot", version = "1.0.2" }
+rangular-css = { path = "crates/rangular-css", version = "1.0.2" }
+rangular-expr = { path = "crates/rangular-expr", version = "1.0.2" }
+rangular-host = { path = "crates/rangular-host", version = "1.0.2" }
+rangular-macros = { path = "crates/rangular-macros", version = "1.0.2" }
+rangular-parser = { path = "crates/rangular-parser", version = "1.0.2" }
+rangular-runtime = { path = "crates/rangular-runtime", version = "1.0.2" }
