@@ -27,6 +27,13 @@ Each feature panel is its own folder:
 
 Page chrome (`app.rs` / `decor.rs`) stays plain Leptos.
 
+## Code showcase
+
+A floating **CODE** rail (`src/showcase/`) embeds each panel’s colocated
+`.html` / `.scss` / `.rs` via `include_str!` and presents them in a read-only
+editor. Scroll / hash updates the active panel; on viewports ≤1024px the rail
+defaults to collapsed and expands as a bottom sheet.
+
 `style/demo-swatches.css` is a demo-only workaround: swatch paints keyed off
 `data-swatch` (dynamic style binding is not available yet) plus small decor
 overrides. Panel look lives in each panel `.scss`.

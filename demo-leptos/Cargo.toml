@@ -1,7 +1,7 @@
 [package]
 name = "rangular-demo"
 description = "Browser demo for rangular (Leptos CSR + colocated panels)"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 license = "Apache-2.0"
 publish = false
