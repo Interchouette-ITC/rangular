@@ -8,3 +8,7 @@ watch = [".", "../crates"]
 
 [serve]
 no_autoreload = false
+
+[tools]
+# Trunk 0.21 defaults to version_123; pin current Binaryen (matches host wasm-opt).
+wasm_opt = "version_132"
