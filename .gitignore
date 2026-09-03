@@ -9,3 +9,6 @@
 .vscode/
 
 .github_credentials
+
+# Nested Cursor product config (separate git)
+.cursor/

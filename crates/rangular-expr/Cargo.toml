@@ -1,7 +1,7 @@
 [package]
 name = "rangular-expr"
 description = "Expression AST and evaluation for rangular templates"
-readme = "../../README.md"
+readme = "../../docs/README.md"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
