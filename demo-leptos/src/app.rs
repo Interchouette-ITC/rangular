@@ -2,13 +2,13 @@ use leptos::prelude::*;
 
 use crate::components::{
     AssetIconPanel, ChromeHeaderPanel, ColorFieldPanel, EventPayloadPanel, FieldRequiredPanel,
-    IoParentPanel, ItemListPanel, LayoutShellPanel, NamedSlotsPanel, PipesPanel, SeedBarPanel,
-    TemplateOutletPanel, TwoWayPanel,
+    FieldValidatorsPanel, IoParentPanel, ItemListPanel, LayoutShellPanel, NamedSlotsPanel,
+    PipesPanel, SeedBarPanel, TemplateOutletPanel, TwoWayPanel,
 };
 use crate::decor::DemoDecor;
 use crate::showcase::{CodeShowcase, ShowcaseBus};
 
-const PANEL_NAV: [(&str, &str); 12] = [
+const PANEL_NAV: [(&str, &str); 13] = [
     ("chrome-header", "chrome-header"),
     ("color-field", "color-field"),
     ("asset-icon", "asset-icon"),
@@ -18,6 +18,7 @@ const PANEL_NAV: [(&str, &str); 12] = [
     ("pipes", "pipes"),
     ("two-way", "two-way"),
     ("field-required", "field-required"),
+    ("field-validators", "field-validators"),
     ("event-payload", "event-payload"),
     ("template-outlet", "template-outlet"),
     ("item-list", "item-list"),
@@ -103,6 +104,11 @@ pub fn App() -> impl IntoView {
             <section class="demo__panel" id="field-required">
                 <h2 class="demo__panel-title">"field-required"</h2>
                 <FieldRequiredPanel applied_seed=applied_seed />
+            </section>
+
+            <section class="demo__panel" id="field-validators">
+                <h2 class="demo__panel-title">"field-validators"</h2>
+                <FieldValidatorsPanel applied_seed=applied_seed />
             </section>
 
             <section class="demo__panel" id="event-payload">

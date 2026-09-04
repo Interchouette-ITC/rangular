@@ -22,6 +22,7 @@ Each feature panel is its own folder:
 | `pipes`           | builtins + demo custom `crab`                                    |
 | `two_way`         | `[(value)]` banana                                               |
 | `field_required`  | Host `required` + dirty error                                    |
+| `field_validators`| Multi-field Host helpers (`first_error`, length, pattern)        |
 | `event_payload`   | typed `$event` / `EventPayload`                                  |
 | `template_outlet` | `ng-template` + `[ngTemplateOutlet]`                             |
 

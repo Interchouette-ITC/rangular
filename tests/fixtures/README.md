@@ -49,6 +49,7 @@ tests/fixtures/
     pipes/               # {{ value | pipe }} builtins
     two-way/             # [(value)] banana Host get/set
     field-required/      # banana + Host required / error text
+    field-validators/    # multi-field Host helpers (length, pattern, first_error)
     template-outlet/     # ng-template #ref + [ngTemplateOutlet]
     item-list/           # simple @for list
     chrome-header/       # [attr], [class], (click), {{ }}

@@ -689,6 +689,119 @@ fn field_required_host_validation() {
 }
 
 #[test]
+fn field_validators_multi_field_host() {
+    use rangular_host::{first_error, min_length, pattern, required, Regex};
+
+    struct FieldValidatorsHost {
+        name: String,
+        name_dirty: bool,
+        code: String,
+        code_dirty: bool,
+        code_re: Regex,
+    }
+
+    impl FieldValidatorsHost {
+        fn name_error(&self) -> Option<&'static str> {
+            first_error(&[required(&self.name), min_length(&self.name, 3)])
+        }
+
+        fn code_error(&self) -> Option<&'static str> {
+            first_error(&[required(&self.code), pattern(&self.code, &self.code_re)])
+        }
+    }
+
+    impl Host for FieldValidatorsHost {
+        fn get(&self, key: &str) -> Option<Value> {
+            match key {
+                "name" => Some(Value::Str(self.name.clone())),
+                "nameDirty" => Some(Value::Bool(self.name_dirty)),
+                "nameInvalid" => Some(Value::Bool(self.name_error().is_some())),
+                "nameError" => Some(Value::Str(self.name_error().unwrap_or("").to_owned())),
+                "code" => Some(Value::Str(self.code.clone())),
+                "codeDirty" => Some(Value::Bool(self.code_dirty)),
+                "codeInvalid" => Some(Value::Bool(self.code_error().is_some())),
+                "codeError" => Some(Value::Str(self.code_error().unwrap_or("").to_owned())),
+                _ => None,
+            }
+        }
+
+        fn set(&mut self, key: &str, value: Value) -> Result<(), HostError> {
+            match key {
+                "name" => {
+                    self.name_dirty = true;
+                    if let Some(s) = value.as_str() {
+                        self.name = s.to_owned();
+                    }
+                }
+                "code" => {
+                    self.code_dirty = true;
+                    if let Some(s) = value.as_str() {
+                        self.code = s.to_owned();
+                    }
+                }
+                _ => {}
+            }
+            Ok(())
+        }
+
+        fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+            Ok(Value::Unit)
+        }
+    }
+
+    let src = std::fs::read_to_string(
+        fixture_root().join("components/field-validators/field-validators.html"),
+    )
+    .unwrap();
+    let mut host = FieldValidatorsHost {
+        name: String::new(),
+        name_dirty: false,
+        code: String::new(),
+        code_dirty: false,
+        code_re: Regex::new(r"^\d{4}$").expect("four-digit code regex"),
+    };
+    let out = interpret(&src, "field-validators.html", &mut host);
+    assert!(out.ok(), "{:?}", out.issues);
+    let snap = out.snapshot();
+    assert!(
+        !snap.contains("This field is required")
+            && !snap.contains("Minimum length is not met")
+            && !snap.contains("Invalid format"),
+        "pristine fields must not show errors: {snap}"
+    );
+
+    host.set("name", Value::Str(String::new())).unwrap();
+    let snap_name_req = interpret(&src, "field-validators.html", &mut host).snapshot();
+    assert!(
+        snap_name_req.contains("This field is required"),
+        "{snap_name_req}"
+    );
+
+    host.set("name", Value::Str("ab".into())).unwrap();
+    let snap_name_min = interpret(&src, "field-validators.html", &mut host).snapshot();
+    assert!(
+        snap_name_min.contains("Minimum length is not met"),
+        "{snap_name_min}"
+    );
+
+    host.set("name", Value::Str("Ada".into())).unwrap();
+    host.set("code", Value::Str("12a".into())).unwrap();
+    let snap_code_pat = interpret(&src, "field-validators.html", &mut host).snapshot();
+    assert!(snap_code_pat.contains("Invalid format"), "{snap_code_pat}");
+    assert!(
+        !snap_code_pat.contains("Minimum length is not met"),
+        "{snap_code_pat}"
+    );
+
+    host.set("code", Value::Str("1234".into())).unwrap();
+    let snap_ok = interpret(&src, "field-validators.html", &mut host).snapshot();
+    assert!(!snap_ok.contains("This field is required"), "{snap_ok}");
+    assert!(!snap_ok.contains("Minimum length is not met"), "{snap_ok}");
+    assert!(!snap_ok.contains("Invalid format"), "{snap_ok}");
+    assert!(compile(&src, "field_validators_view").ok());
+}
+
+#[test]
 fn named_slots_partition_projection() {
     let src =
         std::fs::read_to_string(fixture_root().join("components/named-slots/named-slots.html"))

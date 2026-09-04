@@ -327,7 +327,7 @@ Shipped on `dev` (fixture-backed):
 - [x] Pipes (`uppercase`, `lowercase`, `number`, `json` + custom registry)
 - [x] Two-way banana `[(prop)]` (Host `get` / `set`)
 - [x] Named `<rg-content select>` + `ng-template` / `[ngTemplateOutlet]`
-- [x] Host-side `required` validation pattern (fixture; not NgModel)
+- [x] Host-side validation helpers (`required`, length, `pattern`, `first_error`; fixtures; not NgModel)
 
 Still future:
 

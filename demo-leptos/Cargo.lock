@@ -1604,6 +1604,9 @@ dependencies = [
 [[package]]
 name = "rangular-host"
 version = "1.0.2"
+dependencies = [
+ "regex",
+]
 
 [[package]]
 name = "rangular-parser"

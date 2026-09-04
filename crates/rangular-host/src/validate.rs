@@ -81,3 +81,9 @@ pub fn pattern(value: &str, re: &Regex) -> Option<&'static str> {
 pub fn pattern_value(value: &Value, re: &Regex) -> Option<&'static str> {
     pattern(value.as_str().unwrap_or(""), re)
 }
+
+/// First non-`None` message in `checks` (compose `required` + length / pattern).
+#[must_use]
+pub fn first_error(checks: &[Option<&'static str>]) -> Option<&'static str> {
+    checks.iter().copied().find_map(|msg| msg)
+}
