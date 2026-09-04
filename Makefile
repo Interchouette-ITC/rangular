@@ -21,7 +21,7 @@ TAG ?= dev
 
 .DEFAULT_GOAL := help
 
-.PHONY: help check test lint format format-check clean ci no-panic \
+.PHONY: help check test lint format format-check clean ci no-panic coverage \
 	demo demo-leptos demo-build demo-leptos-build demo-check demo-leptos-check \
 	demo-desktop demo-tauri demo-desktop-build demo-tauri-build \
 	docker-build docker-build-dev docker-run \
@@ -38,6 +38,7 @@ help:
 	@echo "  make no-panic      garbage fixtures (parser/aot/runtime)"
 	@echo "  make lint          fmt check + clippy (workspace)"
 	@echo "  make ci            lint + test + no-panic"
+	@echo "  make coverage      cargo llvm-cov → coverage/lcov.info"
 	@echo "  make audit         cargo audit"
 	@echo "  make deny          cargo deny check"
 	@echo "  make format        cargo fmt"
@@ -92,6 +93,10 @@ audit:
 ## Requires `cargo install cargo-deny`.
 deny:
 	cd $(ROOT) && $(CARGO) deny check
+
+## Requires `cargo install cargo-llvm-cov`. Writes `coverage/lcov.info`.
+coverage:
+	cd $(ROOT) && mkdir -p coverage && RUSTUP_TOOLCHAIN=stable $(CARGO) llvm-cov --workspace --lcov --output-path coverage/lcov.info
 
 ci: lint test no-panic
 

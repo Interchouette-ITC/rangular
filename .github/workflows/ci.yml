@@ -134,3 +134,36 @@ jobs:
       - name: Cargo audit and deny
         if: needs.changes.outputs.code == 'true'
         run: make audit && make deny
+
+  coverage:
+    name: coverage
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Markdown-only
+        if: needs.changes.outputs.code != 'true'
+        run: echo "markdown-only; skipping coverage"
+      - uses: dtolnay/rust-toolchain@stable
+        if: needs.changes.outputs.code == 'true'
+        with:
+          components: llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+        if: needs.changes.outputs.code == 'true'
+      - name: Install cargo-llvm-cov
+        if: needs.changes.outputs.code == 'true'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      - name: Coverage
+        if: needs.changes.outputs.code == 'true'
+        run: make coverage
+      - name: Upload to Codecov
+        if: needs.changes.outputs.code == 'true'
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage/lcov.info
+          flags: rust
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}

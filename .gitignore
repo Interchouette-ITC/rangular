@@ -1,4 +1,5 @@
 /target/
+coverage/
 /demo-leptos/dist/
 /demo-leptos/target/
 /demo-tauri/src/target/
