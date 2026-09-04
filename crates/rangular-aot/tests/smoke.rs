@@ -182,3 +182,59 @@ fn garbage_input_returns_issues_not_empty_code() {
     assert!(!out.ok());
     assert_eq!(out.code, "");
 }
+
+#[test]
+fn compile_tokens_and_named_error_paths() {
+    use rangular_aot::{compile_tokens, compile_tokens_named, structural_ir};
+
+    let ok = compile_tokens("<p>{{label}}</p>", "label_view");
+    assert!(ok.ok(), "{:?}", ok.issues);
+    assert!(!ok.tokens.is_empty(), "expected tokens");
+
+    let bad = compile_tokens_named("<@broken", "x.html", "broken_view");
+    assert!(!bad.ok());
+    assert!(bad.tokens.is_empty(), "expected empty tokens");
+
+    assert!(structural_ir("<p>hi</p>", "t.html").is_some());
+    assert!(structural_ir("<@broken", "t.html").is_none());
+}
+
+#[test]
+fn lower_edge_templates() {
+    assert_emits("<!-- only comment -->", "comment_only_view", "comment");
+    assert_emits(
+        "<ng-template #card><span>x</span></ng-template><ng-container [ngTemplateOutlet]=\"card\"></ng-container>",
+        "outlet_view",
+        "outlet",
+    );
+    assert_emits("<app-widget />", "custom_void_view", "custom void");
+    assert_emits(
+        "<app-widget title=\"t\">body</app-widget>",
+        "custom_body_view",
+        "custom body",
+    );
+    assert_emits(
+        "<button disabled [attr.aria-label]=\"label\" [class.open]=\"flag\" (click)=\"onTap()\"></button>",
+        "attrs_view",
+        "attrs",
+    );
+    assert_emits(
+        "@for (let item of items; track item) { <span>{{item}}</span> }",
+        "for_track_view",
+        "for track",
+    );
+    assert_emits(
+        "@for (let item of items) { <span>{{item}}</span> }",
+        "for_default_key_view",
+        "for default key",
+    );
+    let unknown = compile(
+        "<ng-container [ngTemplateOutlet]=\"missing\"></ng-container>",
+        "missing_outlet_view",
+    );
+    assert!(!unknown.ok());
+    assert!(unknown
+        .issues
+        .iter()
+        .any(|i| i.message.contains("unknown ngTemplateOutlet")));
+}

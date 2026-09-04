@@ -214,4 +214,21 @@ mod tests {
             Value::Str("HI!".into())
         );
     }
+
+    #[test]
+    fn pipes_arc_tags_and_tag_io_map() {
+        let mut reg = Registry::with_example_panels();
+        reg.register_tag("app-extra", "Extra");
+        let arc = reg.pipes_arc();
+        assert!(arc.contains("uppercase"));
+        let tags: Vec<_> = reg.tags().map(|e| e.tag.clone()).collect();
+        assert!(tags.contains(&APP_COLOR_FIELD.to_owned()));
+        assert!(tags.contains(&"app-extra".to_owned()));
+        let map = reg.tag_io_map();
+        let io = map.get(APP_IO_CHILD).expect("io child");
+        assert_eq!(io.inputs, vec!["label", "muted"]);
+        assert_eq!(io.outputs, vec!["muteToggle"]);
+        let bare = map.get("app-extra").expect("extra");
+        assert_eq!(bare.inputs.len(), 0);
+    }
 }
