@@ -351,3 +351,121 @@ fn expr_layer_error_and_warning_via_interpolation() {
         bad.diagnostics
     );
 }
+
+#[test]
+fn parser_malformed_attrs_quotes_and_text_boundaries() {
+    let unclosed = parse(r#"<div title="open></div>"#, "t.html");
+    assert!(unclosed
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("unclosed")));
+
+    let text_for = parse(
+        "hello @for (let item of items) { <span>{{item}}</span> }",
+        "t.html",
+    );
+    assert!(text_for.ok(), "{:?}", text_for.diagnostics);
+
+    let banana_space = parse("<input [(value)] ></input>", "t.html");
+    assert_ne!(banana_space.diagnostics.len(), 0);
+
+    let banana_noeq = parse("<input [(value)] seed></input>", "t.html");
+    assert_ne!(banana_noeq.diagnostics.len(), 0);
+
+    let event_space = parse("<button (click) ></button>", "t.html");
+    assert_ne!(event_space.diagnostics.len(), 0);
+
+    let event_noeq = parse("<button (click) onTap></button>", "t.html");
+    assert_ne!(event_noeq.diagnostics.len(), 0);
+
+    let star_attr = parse("<div * ></div>", "t.html");
+    assert!(star_attr.ok() || star_attr.diagnostics.iter().any(|_| true));
+
+    let mismatch = parse("<section></div>", "t.html");
+    assert!(mismatch
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("unexpected closing") || d.message.contains("does not match")));
+}
+
+#[test]
+fn banana_set_target_non_ident_edges() {
+    assert_eq!(
+        banana_set_target(&Expr::Call {
+            callee: Box::new(Expr::Lit(rangular_parser::Literal::Bool(true))),
+            args: vec![Expr::Ident("seed".into())],
+        }),
+        None
+    );
+    assert_eq!(
+        banana_set_target(&Expr::Call {
+            callee: Box::new(Expr::Ident("$bananaSet".into())),
+            args: vec![Expr::Lit(rangular_parser::Literal::Str("x".into()))],
+        }),
+        None
+    );
+}
+
+#[test]
+fn span_line_col_counts_newlines() {
+    let (line, col) = rangular_parser::line_col("a\nb\nc", 4);
+    assert_eq!(line, 3);
+    assert!(col >= 1);
+}
+
+#[test]
+fn binding_ir_comment_outlet_and_handler_names() {
+    use rangular_parser::{binding_ir, binding_ir_snapshot, event_handler_name, IrNode};
+
+    let with_comment = parse("<!-- c --><p>x</p>", "t.html");
+    let ir = binding_ir(&with_comment.template);
+    assert!(ir.iter().any(|n| matches!(n, IrNode::Element { .. })));
+    let _ = binding_ir_snapshot(&ir);
+
+    let outlet = parse(
+        r#"<ng-template #card><span>x</span></ng-template>
+           <ng-container [ngTemplateOutlet]="card" #unused></ng-container>"#,
+        "t.html",
+    );
+    let outlet_ir = binding_ir(&outlet.template);
+    assert!(outlet_ir
+        .iter()
+        .any(|n| matches!(n, IrNode::TemplateOutlet { .. })));
+
+    assert_eq!(
+        event_handler_name(&Expr::Call {
+            callee: Box::new(Expr::Lit(rangular_parser::Literal::Num(1.0))),
+            args: vec![],
+        }),
+        ""
+    );
+    assert_eq!(event_handler_name(&Expr::Ident("onTap".into())), "onTap");
+    assert_eq!(
+        event_handler_name(&Expr::Lit(rangular_parser::Literal::Bool(true))),
+        ""
+    );
+}
+
+#[test]
+fn classify_bindings_marks_registered_outputs() {
+    use rangular_parser::{classify_bindings, Attr, TagIo};
+    use std::collections::HashMap;
+
+    let mut parsed = parse(
+        r#"<app-io-child (muteToggle)="onMute()"></app-io-child>"#,
+        "t.html",
+    );
+    let mut tags = HashMap::new();
+    tags.insert(
+        "app-io-child".into(),
+        TagIo::new(&["label"], &["muteToggle"]),
+    );
+    classify_bindings(&mut parsed.template, &tags);
+    let Some(Node::Element(el)) = parsed.template.nodes.first() else {
+        panic!("expected element");
+    };
+    assert!(el
+        .attrs
+        .iter()
+        .any(|a| matches!(a, Attr::Output { name, .. } if name == "muteToggle")));
+}

@@ -192,3 +192,22 @@ fn host_cell_scoped_bool_none_item_and_event_helpers() {
         .and_then(Value::as_event)
         .is_some());
 }
+
+#[test]
+fn host_cell_compile_covers_bool_ne_and_add_literals() {
+    use rangular_aot::{compile, compile_tokens, tokens_to_rust_source};
+
+    let bool_lit = compile("@if (true) { <span>y</span> }", "bool_lit_view");
+    assert!(bool_lit.ok(), "{:?}", bool_lit.issues);
+
+    let ne = compile("@if (label != 'x') { <span>y</span> }", "ne_view");
+    assert!(ne.ok(), "{:?}", ne.issues);
+
+    let add = compile("<span>{{label + n}}</span>", "add_view");
+    assert!(add.ok(), "{:?}", add.issues);
+
+    let tokens = compile_tokens("<p>{{label}}</p>", "tok_view");
+    assert!(tokens.ok(), "{:?}", tokens.issues);
+    let src = tokens_to_rust_source(&tokens.tokens);
+    assert_ne!(src, "");
+}

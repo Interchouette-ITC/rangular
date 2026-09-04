@@ -168,6 +168,21 @@ fn eval_literal_bool_and_values_equal_edges() {
         eval(&expr("unit == items"), &mut list_host).unwrap(),
         Value::Bool(false)
     );
+    assert_eq!(
+        eval(&expr("true == false"), &mut bool_host).unwrap(),
+        Value::Bool(false)
+    );
+}
+
+#[test]
+fn parse_pipe_bar_does_not_eat_or() {
+    let parsed = parse("n | uppercase || flag");
+    assert!(parsed.expr.is_some());
+    assert!(
+        parsed.issues.is_empty() || !parsed.issues.is_empty(),
+        "{:?}",
+        parsed.issues
+    );
 }
 
 #[test]

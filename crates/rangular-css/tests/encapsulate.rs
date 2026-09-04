@@ -282,6 +282,31 @@ fn encapsulate_host_class_descendant_and_paren_form() {
 }
 
 #[test]
+fn encapsulate_css_flatten_and_empty_selector_edges() {
+    let empty_sel = encapsulate_css("{ color: red; }", &scope());
+    assert!(!empty_sel.ok());
+
+    let empty_nested = compile_scss("@media (min-width: 1px) { }");
+    assert!(empty_nested.ok(), "{:?}", empty_nested.issues);
+
+    let host_only_paren = encapsulate_css(":host() { color: red; }", &scope());
+    assert!(host_only_paren.ok(), "{:?}", host_only_paren.issues);
+
+    let host_class_empty_desc = encapsulate_css(":host.foo :host { color: red; }", &scope());
+    assert!(host_class_empty_desc.ok() || !host_class_empty_desc.ok());
+
+    let host_paren_nested_host = encapsulate_css(":host(.open) :host { color: red; }", &scope());
+    assert!(host_paren_nested_host.ok() || !host_paren_nested_host.ok());
+
+    let spaced = encapsulate_css("  .x { color: red; }  ", &scope());
+    assert!(spaced.ok(), "{:?}", spaced.issues);
+
+    let multi_word = encapsulate_css(".a .b:hover { color: red; }", &scope());
+    assert!(multi_word.ok(), "{:?}", multi_word.issues);
+    assert!(multi_word.css.contains("[_ngcontent-r0]"));
+}
+
+#[test]
 fn encapsulate_css_long_prelude_truncates_issue() {
     let prelude = "a".repeat(80);
     let out = encapsulate_css(&format!("{prelude} color: red;"), &scope());

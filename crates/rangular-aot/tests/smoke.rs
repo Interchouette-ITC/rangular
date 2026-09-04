@@ -252,3 +252,25 @@ fn lower_ng_container_passthrough_and_dashed_attrs() {
         "dashed static attr",
     );
 }
+
+#[test]
+fn tokens_to_rust_source_none_delimiter() {
+    use proc_macro2::{Delimiter, Group, TokenTree};
+    use quote::quote;
+    use rangular_aot::tokens_to_rust_source;
+
+    let inner = quote! { hello world };
+    let group = Group::new(Delimiter::None, inner);
+    let tokens: proc_macro2::TokenStream = TokenTree::Group(group).into();
+    let src = tokens_to_rust_source(&tokens);
+    assert!(src.contains("hello"));
+}
+
+#[test]
+fn compile_output_binding_and_ref_attr() {
+    assert_emits(
+        r#"<button (click)="onTap()" #btn>Go</button>"#,
+        "output_ref_view",
+        "output and ref",
+    );
+}
