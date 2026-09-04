@@ -368,5 +368,5 @@ Thank you to their maintainers and communities.
 **Apache-2.0** (Apache License, Version 2.0). See [`LICENSE`](../LICENSE).
 
 <p align="center">
-  <img src="assets/logo-128.png" alt="rangular mark" width="128" height="128" />
+  <img src="assets/logo-128.png" alt="rangular mark" width="128" height="128" style="margin-top: 1.25rem; margin-bottom: 0; vertical-align: middle;" />
 </p>
