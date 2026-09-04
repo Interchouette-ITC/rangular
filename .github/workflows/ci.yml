@@ -12,9 +12,11 @@ concurrency:
 permissions:
   contents: read
 
+# Action runtimes: Node 24+ (checkout v7, codecov-action v6).
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   changes:
@@ -161,7 +163,7 @@ jobs:
         run: make coverage
       - name: Upload to Codecov
         if: needs.changes.outputs.code == 'true'
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           files: coverage/lcov.info
           flags: rust
