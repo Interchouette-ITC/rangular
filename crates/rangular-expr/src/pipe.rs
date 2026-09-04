@@ -163,3 +163,46 @@ fn escape_json(s: &str) -> String {
     }
     out
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builtins_apply_case_and_json() {
+        let reg = PipeRegistry::with_builtins();
+        assert!(reg.contains("uppercase"));
+        assert_eq!(
+            reg.apply("uppercase", &Value::Str("ab".into()), &[])
+                .unwrap(),
+            Value::Str("AB".into())
+        );
+        assert_eq!(
+            reg.apply("lowercase", &Value::Str("AB".into()), &[])
+                .unwrap(),
+            Value::Str("ab".into())
+        );
+        assert_eq!(
+            reg.apply("json", &Value::Bool(true), &[]).unwrap(),
+            Value::Str("true".into())
+        );
+        assert!(matches!(
+            reg.apply("missing", &Value::Unit, &[]),
+            Err(EvalError::UnknownPipe(_))
+        ));
+    }
+
+    #[test]
+    fn number_pipe_formats_digits() {
+        let reg = PipeRegistry::with_builtins();
+        assert_eq!(
+            reg.apply("number", &Value::Num(1.5), &[Value::Num(2.0)])
+                .unwrap(),
+            Value::Str("1.50".into())
+        );
+        assert!(matches!(
+            reg.apply("number", &Value::Str("x".into()), &[]),
+            Err(EvalError::TypeMismatch(_))
+        ));
+    }
+}
