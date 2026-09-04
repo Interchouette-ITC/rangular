@@ -73,15 +73,25 @@ Fixture: [`tests/fixtures/components/two-way/two-way.html`](../tests/fixtures/co
 ### Host-side validation (minimal)
 
 Validation is **not** an Angular forms / `NgModel` module. Hosts compute validity
-and messages with helpers such as [`required`](../crates/rangular-host/src/validate.rs)
-/ `required_value`, then expose bindings the template already understands
-(`@if`, `{{ }}`).
+and messages with helpers in [`validate.rs`](../crates/rangular-host/src/validate.rs)
+(`required`, `min_length`, `max_length`, `pattern`, and matching `*_value`
+wrappers), then expose bindings the template already understands (`@if`, `{{ }}`).
+
+Compile a [`Regex`](https://docs.rs/regex) once when constructing the Host; pass
+`&Regex` into `pattern` / `pattern_value` on each `get`.
 
 | Pattern       | Meaning                                                     |
 | ------------- | ----------------------------------------------------------- |
-| `nameInvalid` | Bool from Host (`required(…).is_some()`)                    |
+| `nameInvalid` | Bool from Host (`required(…).is_some()`, or other helpers)  |
 | `nameDirty`   | Bool; Host sets true on first user edit via two-way binding |
-| `nameError`   | Message string from Host (`required(…).unwrap_or("")`)      |
+| `nameError`   | Message string from Host (`….unwrap_or("")`)                |
+
+| Helper        | Meaning                                                                 |
+| ------------- | ----------------------------------------------------------------------- |
+| `required`    | Empty or whitespace-only → error                                        |
+| `min_length`  | Non-empty value shorter than `min` Unicode scalars → error; empty passes |
+| `max_length`  | Longer than `max` Unicode scalars → error                               |
+| `pattern`     | `Regex::is_match` fails → error                                         |
 
 Show the alert only when invalid **and** dirty: `@if (nameInvalid && nameDirty)` (Angular pristine field hides errors until edit).
 
@@ -256,7 +266,7 @@ test/tooling only (`encapsulate_css`).
 | ------------------ | ------------------------------------------------ |
 | `get(path)`        | Read a binding value (`label`, `paletteOpen`, …) |
 | `set(path, value)` | Two-way / input side effects when needed         |
-| Validation helpers | `required` / `required_value` (Host-side checks) |
+| Validation helpers | `required`, `min_length`, `max_length`, `pattern` (+ `*_value`) |
 | `call(name, args)` | Invoke controller handlers                       |
 | Event bridge       | Map `(click)` etc. to host callables             |
 

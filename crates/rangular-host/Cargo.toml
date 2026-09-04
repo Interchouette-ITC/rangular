@@ -8,6 +8,8 @@ license.workspace = true
 authors.workspace = true
 publish = false
 
+[dependencies]
+regex = "1.11"
 
 [dev-dependencies]
 rangular-expr = { workspace = true }
