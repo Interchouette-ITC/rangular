@@ -1,4 +1,4 @@
-# [**rangular**](https://github.com/Interchouette-ITC/rangular) specification v0.1
+# rangular specification v0.1
 
 This document is the language contract for
 **[rangular](https://github.com/Interchouette-ITC/rangular)** **0.1.x**. Patch
