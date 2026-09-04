@@ -18,7 +18,7 @@ license = "Apache-2.0"
 version = "1.0.2"
 authors = ["Interchouette"]
 repository = "https://github.com/Interchouette-ITC/rangular"
-rust-version = "1.75"
+rust-version = "1.87"
 
 [workspace.dependencies]
 rangular-aot = { path = "crates/rangular-aot", version = "1.0.2" }

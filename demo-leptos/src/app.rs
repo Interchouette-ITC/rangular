@@ -42,7 +42,7 @@ pub fn App() -> impl IntoView {
                         <img class="demo__title-logo" src="/logo-256.png" alt="" width="28" height="28" />
                     </h1>
                     <p class="demo__subtitle">
-                        "Live AOT panels beside a floating code showcase — scroll a fixture, watch the source follow."
+                        "Live AOT panels beside a floating code showcase - scroll a fixture, watch the source follow."
                     </p>
                     <SeedBarPanel applied_seed=applied_seed />
                     <nav class="demo__nav" aria-label="Demo panels">
