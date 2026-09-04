@@ -231,4 +231,14 @@ mod tests {
         let bare = map.get("app-extra").expect("extra");
         assert_eq!(bare.inputs.len(), 0);
     }
+
+    #[test]
+    fn host_call_via_eval() {
+        let expr = parse("onTap()").expr.expect("call");
+        let mut host = LabelHost;
+        assert_eq!(
+            eval_with_pipes(&expr, &mut host, &PipeRegistry::with_builtins()).unwrap(),
+            Value::Unit
+        );
+    }
 }

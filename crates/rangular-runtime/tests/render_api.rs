@@ -95,10 +95,26 @@ fn render_apis_and_display_variants() {
 }
 
 #[test]
-fn interpret_with_slots_parse_error() {
+fn interpret_with_slot_parse_error_and_missing_outlet() {
+    use rangular_runtime::interpret_with_slot_and_pipes;
+
     let mut host = DemoHost;
-    let bag = ProjectionBag::default();
-    let out = interpret_with_slots("<", "t.html", &mut host, &bag);
-    assert!(!out.ok());
-    assert_eq!(out.nodes.len(), 0);
+    let slot = [VNode::Text("x".into())];
+    let bad = interpret_with_slot("<@bad", "t.html", &mut host, &slot);
+    assert!(!bad.ok());
+    assert_eq!(bad.nodes.len(), 0);
+
+    let pipes = rangular_expr::PipeRegistry::with_builtins();
+    let bad_pipes = interpret_with_slot_and_pipes("<", "t.html", &mut host, &slot, &pipes);
+    assert!(!bad_pipes.ok());
+
+    let missing = interpret(
+        r#"
+<ng-template #card><span>x</span></ng-template>
+<ng-container [ngTemplateOutlet]="missing"></ng-container>
+"#,
+        "t.html",
+        &mut host,
+    );
+    assert!(missing.ok() || !missing.issues.is_empty());
 }

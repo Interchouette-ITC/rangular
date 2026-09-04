@@ -238,3 +238,17 @@ fn lower_edge_templates() {
         .iter()
         .any(|i| i.message.contains("unknown ngTemplateOutlet")));
 }
+
+#[test]
+fn lower_ng_container_passthrough_and_dashed_attrs() {
+    assert_emits(
+        "<ng-container><span>x</span></ng-container>",
+        "container_passthrough_view",
+        "ng-container children",
+    );
+    assert_emits(
+        r#"<div data--x="1" #r>hi</div>"#,
+        "dashed_attr_view",
+        "dashed static attr",
+    );
+}

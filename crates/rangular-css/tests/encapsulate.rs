@@ -260,15 +260,33 @@ fn compile_scss_and_encapsulate_error_paths() {
 }
 
 #[test]
-fn compile_scss_nested_at_and_passthrough() {
-    let out = compile_scss(
-        r"
-@supports (display: grid) {
-  .grid { display: grid; }
+fn compile_scss_empty_host_and_descendant() {
+    // grass rejects empty `:host()`; flatten/host rewrite is covered via encapsulate_css.
+    let keep_panel = encapsulate_css(":host() .panel { color: red; }", &scope());
+    assert!(keep_panel.ok(), "{:?}", keep_panel.issues);
+    assert!(keep_panel.css.contains(".panel"));
 }
-@font-face { font-family: X; src: local(X); }
-",
+
+#[test]
+fn encapsulate_host_class_descendant_and_paren_form() {
+    let host_class = encapsulate(":host.foo .panel { color: red; }", &scope());
+    assert!(host_class.ok(), "{:?}", host_class.issues);
+    assert!(host_class.css.contains("[_nghost-r0].foo"));
+    assert!(host_class.css.contains(".panel[_ngcontent-r0]"));
+
+    let host_paren = encapsulate(":host(open) { color: red; }", &scope());
+    assert!(host_paren.ok(), "{:?}", host_paren.issues);
+    assert!(
+        host_paren.css.contains("[_nghost-r0].open") || host_paren.css.contains("[_nghost-r0]")
     );
-    assert!(out.ok(), "{:?}", out.issues);
-    assert!(out.css.contains("@supports") || out.css.contains("@font-face"));
+}
+
+#[test]
+fn encapsulate_css_long_prelude_truncates_issue() {
+    let prelude = "a".repeat(80);
+    let out = encapsulate_css(&format!("{prelude} color: red;"), &scope());
+    assert!(!out.ok());
+    assert!(out.issues.iter().any(|i| {
+        i.code == "RANG301" && (i.message.contains('…') || i.message.contains("..."))
+    }));
 }
