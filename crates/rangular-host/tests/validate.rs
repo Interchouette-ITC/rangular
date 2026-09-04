@@ -1,6 +1,6 @@
 use rangular_host::{
-    max_length, max_length_value, min_length, min_length_value, pattern, pattern_value, required,
-    required_value, show_when_dirty, Regex, Value,
+    first_error, max_length, max_length_value, min_length, min_length_value, pattern,
+    pattern_value, required, required_value, show_when_dirty, Regex, Value,
 };
 
 #[test]
@@ -78,4 +78,22 @@ fn pattern_value_treats_unit_as_empty() {
     let digits = Regex::new(r"^\d+$").expect("digits regex");
     assert_eq!(pattern_value(&Value::Unit, &digits), Some("Invalid format"));
     assert_eq!(pattern_value(&Value::Str("9".into()), &digits), None);
+}
+
+#[test]
+fn first_error_returns_earliest_message() {
+    assert_eq!(first_error(&[]), None);
+    assert_eq!(first_error(&[None, None]), None);
+    assert_eq!(
+        first_error(&[
+            None,
+            Some("Minimum length is not met"),
+            Some("Invalid format")
+        ]),
+        Some("Minimum length is not met")
+    );
+    assert_eq!(
+        first_error(&[Some("This field is required"), Some("Invalid format")]),
+        Some("This field is required")
+    );
 }

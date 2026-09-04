@@ -20,6 +20,8 @@ const REQUIRED_FIXTURES: &[&str] = &[
     "components/two-way/two-way.scss",
     "components/field-required/field-required.html",
     "components/field-required/field-required.scss",
+    "components/field-validators/field-validators.html",
+    "components/field-validators/field-validators.scss",
     "components/template-outlet/template-outlet.html",
     "components/template-outlet/template-outlet.scss",
     "components/item-list/item-list.html",
@@ -65,6 +67,7 @@ fn spec_mentions_fixture_gate_paths() {
         "template-outlet",
         "ngTemplateOutlet",
         "field-required",
+        "field-validators",
         "required",
     ] {
         assert!(

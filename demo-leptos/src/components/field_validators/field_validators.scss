@@ -1,0 +1,33 @@
+:host {
+  display: block;
+}
+
+.field-validators__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 0.75rem;
+  margin-block: 0.5rem;
+}
+
+.field-validators__label {
+  min-inline-size: 3.5rem;
+  font-weight: 600;
+}
+
+.field-validators input {
+  flex: 1 1 10rem;
+  max-inline-size: 16rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid color-mix(in srgb, CanvasText 28%, transparent);
+  border-radius: 0.25rem;
+  background: Canvas;
+  color: CanvasText;
+}
+
+.field-validators .error {
+  flex: 1 1 100%;
+  margin: 0;
+  color: #b42318;
+  font-size: 0.875rem;
+}

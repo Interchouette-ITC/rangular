@@ -24,6 +24,7 @@ fn main() {
         ("pipes", "pipes_view"),
         ("two_way", "two_way_view"),
         ("field_required", "field_required_view"),
+        ("field_validators", "field_validators_view"),
         ("event_payload", "event_payload_view"),
         ("template_outlet", "template_outlet_view"),
     ];

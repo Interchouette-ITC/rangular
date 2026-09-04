@@ -86,18 +86,23 @@ Compile a [`Regex`](https://docs.rs/regex) once when constructing the Host; pass
 | `nameDirty`   | Bool; Host sets true on first user edit via two-way binding |
 | `nameError`   | Message string from Host (`….unwrap_or("")`)                |
 
-| Helper        | Meaning                                                                 |
-| ------------- | ----------------------------------------------------------------------- |
-| `required`    | Empty or whitespace-only → error                                        |
-| `min_length`  | Non-empty value shorter than `min` Unicode scalars → error; empty passes |
-| `max_length`  | Longer than `max` Unicode scalars → error                               |
-| `pattern`     | `Regex::is_match` fails → error                                         |
+| Helper         | Meaning                                                                  |
+| -------------- | ------------------------------------------------------------------------ |
+| `required`     | Empty or whitespace-only → error                                         |
+| `min_length`   | Non-empty value shorter than `min` Unicode scalars → error; empty passes |
+| `max_length`   | Longer than `max` Unicode scalars → error                                |
+| `pattern`      | `Regex::is_match` fails → error                                          |
+| `first_error`  | First non-`None` message from a list of helper results                   |
 
 Show the alert only when invalid **and** dirty: `@if (nameInvalid && nameDirty)` (Angular pristine field hides errors until edit).
 
-Fixture: [`tests/fixtures/components/field-required/field-required.html`](../tests/fixtures/components/field-required/field-required.html)
-(`[(value)]` plus `@if` alert). Full `NgModel`, `FormGroup`, and directive
-validators remain out of scope (tracked as a follow-up issue).
+Fixtures:
+
+- Minimal required: [`tests/fixtures/components/field-required/field-required.html`](../tests/fixtures/components/field-required/field-required.html)
+- Multi-field compose (`required` + `min_length` / `pattern` via `first_error`):
+  [`tests/fixtures/components/field-validators/field-validators.html`](../tests/fixtures/components/field-validators/field-validators.html)
+
+Full `NgModel`, `FormGroup`, and directive validators remain out of scope.
 
 ### Event bindings
 
@@ -266,7 +271,7 @@ test/tooling only (`encapsulate_css`).
 | ------------------ | ------------------------------------------------ |
 | `get(path)`        | Read a binding value (`label`, `paletteOpen`, …) |
 | `set(path, value)` | Two-way / input side effects when needed         |
-| Validation helpers | `required`, `min_length`, `max_length`, `pattern` (+ `*_value`) |
+| Validation helpers | `required`, `min_length`, `max_length`, `pattern`, `first_error` (+ `*_value`) |
 | `call(name, args)` | Invoke controller handlers                       |
 | Event bridge       | Map `(click)` etc. to host callables             |
 
@@ -347,7 +352,7 @@ both success and expected unsupported cases.
 5. **Gate:** `rangular-parser` integration test `required_fixtures_exist` fails
    if a planned construct path is missing; SPEC must name the fixture paths for
    `EventPayload`, `rg-content`, `ng-content`, `layout-shell`, `io-child`, `pipes`, `two-way`,
-   `named-slots`, `template-outlet`, and `field-required`.
+   `named-slots`, `template-outlet`, `field-required`, and `field-validators`.
 
 ## SemVer summary
 

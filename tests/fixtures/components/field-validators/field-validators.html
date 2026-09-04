@@ -1,0 +1,28 @@
+<section class="field-validators" aria-label="Multi-field validators">
+  <div class="field-validators__row">
+    <label class="field-validators__label" for="name">Name</label>
+    <input
+      id="name"
+      type="text"
+      [(value)]="name"
+      spellcheck="false"
+      autocomplete="off"
+    />
+    @if (nameInvalid && nameDirty) {
+    <p class="error" role="alert">{{ nameError }}</p>
+    }
+  </div>
+  <div class="field-validators__row">
+    <label class="field-validators__label" for="code">Code</label>
+    <input
+      id="code"
+      type="text"
+      [(value)]="code"
+      spellcheck="false"
+      autocomplete="off"
+    />
+    @if (codeInvalid && codeDirty) {
+    <p class="error" role="alert">{{ codeError }}</p>
+    }
+  </div>
+</section>

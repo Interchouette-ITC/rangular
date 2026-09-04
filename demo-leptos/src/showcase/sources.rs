@@ -82,6 +82,7 @@ pub const SHOWCASE: &[ShowcaseEntry] = &[
     entry("pipes", &panel_triple!("pipes")),
     entry("two-way", &panel_triple!("two_way")),
     entry("field-required", &panel_triple!("field_required")),
+    entry("field-validators", &panel_triple!("field_validators")),
     entry("event-payload", &panel_triple!("event_payload")),
     entry("template-outlet", &panel_triple!("template_outlet")),
     entry("item-list", &panel_triple!("item_list")),
