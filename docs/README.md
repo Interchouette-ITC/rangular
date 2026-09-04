@@ -8,6 +8,11 @@
   <strong>Angular-shaped templates. Rust controllers. Browser DOM.</strong>
 </p>
 
+<p align="center">
+  <a href="https://github.com/Interchouette-ITC/rangular/actions/workflows/ci.yml"><img src="https://github.com/Interchouette-ITC/rangular/actions/workflows/ci.yml/badge.svg?branch=dev" alt="CI" /></a>
+  <a href="https://codecov.io/gh/Interchouette-ITC/rangular"><img src="https://codecov.io/gh/Interchouette-ITC/rangular/branch/dev/graph/badge.svg" alt="codecov" /></a>
+</p>
+
 Write markup in familiar `.html` / `.scss`, keep state and handlers in Rust, and
 render with [Leptos](https://leptos.dev/) in the browser (CSR / Trunk / wasm).
 
