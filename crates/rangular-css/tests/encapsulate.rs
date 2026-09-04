@@ -212,3 +212,63 @@ fn seed_bar_bootstrap_coexist_fixture() {
     assert!(out.css.contains(".btn-primary") || out.css.contains(".btn.btn-primary"));
     assert!(!out.css.contains(".btn-secondary[_ngcontent"));
 }
+
+#[test]
+fn compile_scss_and_encapsulate_error_paths() {
+    let bad_compile = compile_scss(".x { color: ");
+    assert!(!bad_compile.ok());
+    assert!(bad_compile.issues.iter().any(|i| i.code == "RANG301"));
+
+    let bad_enc = encapsulate(".x { color: ", &scope());
+    assert!(!bad_enc.ok());
+
+    let no_brace = encapsulate_css(".x color: red;", &scope());
+    assert!(!no_brace.ok());
+
+    let host_fn = encapsulate_css(":host(.open) .panel { color: red; }", &scope());
+    assert!(host_fn.ok(), "{:?}", host_fn.issues);
+    assert!(host_fn.css.contains("[_nghost-r0].open"));
+
+    let host_empty_fn = encapsulate_css(":host() .panel { color: red; }", &scope());
+    assert!(host_empty_fn.ok(), "{:?}", host_empty_fn.issues);
+
+    let malformed_host = encapsulate_css(":host(.open .panel { color: red; }", &scope());
+    assert!(!malformed_host.ok());
+
+    let keyframes = encapsulate_css(
+        "@keyframes spin { from { opacity: 0; } to { opacity: 1; } }",
+        &scope(),
+    );
+    assert!(keyframes.ok(), "{:?}", keyframes.issues);
+    assert!(keyframes.css.contains("@keyframes"));
+
+    let media = encapsulate_css(
+        "@media (min-width: 1px) { .panel:hover { color: blue; } }",
+        &scope(),
+    );
+    assert!(media.ok(), "{:?}", media.issues);
+    assert!(media.css.contains(".panel[_ngcontent-r0]:hover"));
+
+    let commented = encapsulate_css("/* note */ .x { color: red; }", &scope());
+    assert!(commented.ok(), "{:?}", commented.issues);
+    assert!(commented.css.contains(".x[_ngcontent-r0]"));
+
+    let flat_host = compile_scss(":host(.open) .panel { color: red; }");
+    assert!(flat_host.ok(), "{:?}", flat_host.issues);
+    assert!(!flat_host.css.contains(":host"));
+    assert!(flat_host.css.contains(".open"));
+}
+
+#[test]
+fn compile_scss_nested_at_and_passthrough() {
+    let out = compile_scss(
+        r"
+@supports (display: grid) {
+  .grid { display: grid; }
+}
+@font-face { font-family: X; src: local(X); }
+",
+    );
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.css.contains("@supports") || out.css.contains("@font-face"));
+}

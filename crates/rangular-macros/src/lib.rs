@@ -62,4 +62,11 @@ mod tests {
     fn default_fn_name_replaces_hyphens() {
         assert_eq!(default_fn_name("seed-bar.html"), "seed_bar");
     }
+
+    #[test]
+    fn default_fn_name_fallbacks() {
+        assert_eq!(default_fn_name("plain.html"), "plain");
+        assert_eq!(default_fn_name(""), "template");
+        assert_eq!(default_fn_name("/tmp/foo-bar.ng.html"), "foo_bar.ng");
+    }
 }

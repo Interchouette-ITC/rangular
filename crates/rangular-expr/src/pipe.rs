@@ -204,5 +204,73 @@ mod tests {
             reg.apply("number", &Value::Str("x".into()), &[]),
             Err(EvalError::TypeMismatch(_))
         ));
+        assert!(matches!(
+            reg.apply("number", &Value::Num(1.0), &[Value::Num(1.5)]),
+            Err(EvalError::TypeMismatch(_))
+        ));
+        assert!(matches!(
+            reg.apply("number", &Value::List(vec![]), &[]),
+            Err(EvalError::TypeMismatch(_))
+        ));
+        assert_eq!(
+            reg.apply("number", &Value::Bool(true), &[]).unwrap(),
+            Value::Str("1".into())
+        );
+        assert_eq!(
+            reg.apply("number", &Value::Num(3.0), &[]).unwrap(),
+            Value::Str("3".into())
+        );
+    }
+
+    #[test]
+    fn display_and_json_cover_value_variants() {
+        let reg = PipeRegistry::with_builtins();
+        assert_eq!(
+            reg.apply(
+                "uppercase",
+                &Value::List(vec![Value::Str("a".into()), Value::Bool(true)]),
+                &[]
+            )
+            .unwrap(),
+            Value::Str("A,TRUE".into())
+        );
+        assert_eq!(
+            reg.apply("lowercase", &Value::Unit, &[]).unwrap(),
+            Value::Str(String::new())
+        );
+        assert_eq!(
+            reg.apply(
+                "json",
+                &Value::List(vec![Value::Str("a\"b".into()), Value::Num(1.0)]),
+                &[]
+            )
+            .unwrap(),
+            Value::Str("[\"a\\\"b\",1]".into())
+        );
+        assert_eq!(
+            reg.apply("json", &Value::Unit, &[]).unwrap(),
+            Value::Str("null".into())
+        );
+        assert_eq!(
+            reg.apply("json", &Value::from(rangular_host::EventPayload::Load), &[])
+                .unwrap(),
+            Value::Str("\"Load\"".into())
+        );
+        assert_eq!(
+            reg.apply(
+                "uppercase",
+                &Value::from(rangular_host::EventPayload::Error),
+                &[]
+            )
+            .unwrap(),
+            Value::Str("ERROR".into())
+        );
+        assert_eq!(
+            reg.apply("json", &Value::Str("a\nb\rc\td\\e\"f".into()), &[])
+                .unwrap(),
+            Value::Str("\"a\\nb\\rc\\td\\\\e\\\"f\"".into())
+        );
+        let _ = PipeRegistry::builtins();
+        let _ = PipeRegistry::builtins_arc();
     }
 }
