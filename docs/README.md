@@ -344,6 +344,8 @@ Still future:
 
 - [`SPEC.md`](SPEC.md) - language contract (in / out of scope)
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) - fixtures and PR habits
+- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) - community standards
+- [`SECURITY.md`](SECURITY.md) - vulnerability reporting
 - [`OVERVIEW.md`](OVERVIEW.md) - docs index and related projects
 
 This repo’s logo combines the **Angular** shield with **[Ferris](https://rustacean.net/)**

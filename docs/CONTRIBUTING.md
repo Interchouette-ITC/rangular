@@ -60,7 +60,12 @@ Adjust the relative path to match your layout.
 - Prefer one concern per PR.
 - Run `make lint` and `make test` before push.
 - Conventional commits: `feat(parser): …`, `fix(aot): …`, etc.
+- PR body follows [`pull_request_template.md`](pull_request_template.md)
+  (**Summary** + **Test plan** only).
+- Follow the [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) and
+  [`SECURITY.md`](SECURITY.md).
 
 ## Questions
 
-Open an issue in this repository once it is published.
+Use GitHub issue forms (Bug report / Feature request) when opening an issue in
+this repository.
