@@ -1,4 +1,4 @@
-# [**rangular**](https://github.com/Interchouette-ITC/rangular) docs
+# rangular docs
 
 <p align="center">
   <img src="assets/logo-128.png" alt="rangular mark" width="96" height="96" />

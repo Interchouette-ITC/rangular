@@ -1,4 +1,4 @@
-# Contributing to [**rangular**](https://github.com/Interchouette-ITC/rangular)
+# Contributing to rangular
 
 ## Fixture-driven language growth
 

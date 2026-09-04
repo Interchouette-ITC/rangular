@@ -1,4 +1,4 @@
-# [**rangular**](https://github.com/Interchouette-ITC/rangular)
+# rangular
 
 <p align="center">
   <img src="assets/logo-256.png" alt="rangular logo: Angular-shaped shield with Ferris the crab" width="160" height="160" />
