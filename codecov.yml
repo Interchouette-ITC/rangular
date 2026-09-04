@@ -1,6 +1,6 @@
 # Paths excluded from Codecov totals (demo hosts).
+# Plain folder paths only (Codecov treats entries as regex; avoid ** bombs).
 # Upload token stays in GitHub Actions secrets, not here.
-# demo-* are already outside the Cargo workspace; ignore keeps reports clean.
 coverage:
   status:
     project:
@@ -11,5 +11,5 @@ coverage:
         informational: true
 
 ignore:
-  - "demo-leptos/**/*"
-  - "demo-tauri/**/*"
+  - "demo-leptos"
+  - "demo-tauri"
