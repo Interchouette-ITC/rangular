@@ -111,3 +111,26 @@ jobs:
       - name: Demo check + build
         if: needs.changes.outputs.code == 'true'
         run: make demo-check && make demo-build
+
+  supply-chain:
+    name: supply-chain
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Markdown-only
+        if: needs.changes.outputs.code != 'true'
+        run: echo "markdown-only; skipping supply-chain"
+      - uses: dtolnay/rust-toolchain@stable
+        if: needs.changes.outputs.code == 'true'
+      - uses: Swatinem/rust-cache@v2
+        if: needs.changes.outputs.code == 'true'
+      - name: Install cargo-audit and cargo-deny
+        if: needs.changes.outputs.code == 'true'
+        run: |
+          cargo install --locked cargo-audit --version 0.22.0
+          cargo install --locked cargo-deny --version 0.20.2
+      - name: Cargo audit and deny
+        if: needs.changes.outputs.code == 'true'
+        run: make audit && make deny

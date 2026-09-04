@@ -27,7 +27,8 @@ TAG ?= dev
 	docker-build docker-build-dev docker-run \
 	docker-push-dev-hub docker-push-dev-ghcr-personal docker-push-dev-ghcr-itc \
 	docker-push-release-hub docker-push-release-ghcr-personal docker-push-release-ghcr-itc \
-	version-show version-bump-patch version-bump-minor version-bump-major version-set
+	version-show version-bump-patch version-bump-minor version-bump-major version-set \
+	audit deny
 
 help:
 	@echo "rangular targets"
@@ -37,6 +38,8 @@ help:
 	@echo "  make no-panic      garbage fixtures (parser/aot/runtime)"
 	@echo "  make lint          fmt check + clippy (workspace)"
 	@echo "  make ci            lint + test + no-panic"
+	@echo "  make audit         cargo audit"
+	@echo "  make deny          cargo deny check"
 	@echo "  make format        cargo fmt"
 	@echo "  make clean         cargo clean"
 	@echo ""
@@ -81,6 +84,14 @@ format-check:
 
 lint: format-check
 	cd $(ROOT) && $(CARGO) clippy --workspace --all-targets -- $(CLIPPY_FLAGS)
+
+## Requires `cargo install cargo-audit`.
+audit:
+	cd $(ROOT) && $(CARGO) audit
+
+## Requires `cargo install cargo-deny`.
+deny:
+	cd $(ROOT) && $(CARGO) deny check
 
 ci: lint test no-panic
 
