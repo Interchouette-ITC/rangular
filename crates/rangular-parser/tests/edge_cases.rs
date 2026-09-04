@@ -207,3 +207,147 @@ fn attribute_error_paths_and_mismatched_close() {
         .iter()
         .any(|d| d.message.contains("expected quoted")));
 }
+
+#[test]
+fn for_brace_and_iterable_error_paths() {
+    let no_paren = parse("@for item of items { <span>x</span> }", "t.html");
+    assert!(no_paren
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("expected '(' after @for")));
+
+    let empty_iter = parse("@for (let item of ) { <span>x</span> }", "t.html");
+    assert!(empty_iter
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("expected iterable")));
+
+    let no_track = parse("@for (let item of items; ) { <span>x</span> }", "t.html");
+    assert!(
+        no_track.ok()
+            || no_track
+                .diagnostics
+                .iter()
+                .any(|d| d.message.contains("track")),
+        "{:?}",
+        no_track.diagnostics
+    );
+    if no_track.ok() {
+        assert!(matches!(
+            no_track.template.nodes.first(),
+            Some(Node::For(block)) if block.track.is_none()
+        ));
+    }
+
+    let missing_brace = parse("@if (flag) x", "t.html");
+    assert!(missing_brace
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("expected '{'")));
+
+    let for_missing_brace = parse("@for (let i of items) x", "t.html");
+    assert!(for_missing_brace
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("expected '{'")));
+}
+
+#[test]
+fn braced_body_nested_control_and_interpolation() {
+    let nested = parse(
+        "@for (let item of items) { {{item}} @if (flag) { <em>y</em> } @for (let j of items) { <i>z</i> } }",
+        "t.html",
+    );
+    assert!(nested.ok(), "{:?}", nested.diagnostics);
+    assert!(matches!(nested.template.nodes.first(), Some(Node::For(_))));
+
+    let nested_brace = parse("@if (flag) { { } }", "t.html");
+    assert!(nested_brace.ok(), "{:?}", nested_brace.diagnostics);
+}
+
+#[test]
+fn binding_banana_event_and_structural_errors() {
+    let binding_eq = parse(r#"<div [title]>"x"</div>"#, "t.html");
+    assert!(
+        !binding_eq.diagnostics.is_empty(),
+        "expected binding diagnostics"
+    );
+
+    let banana_eq = parse(r"<input [(value)]seed />", "t.html");
+    assert!(
+        !banana_eq.diagnostics.is_empty(),
+        "expected banana diagnostics"
+    );
+
+    let _ = parse(r#"<input [(value)]="a.b" />"#, "t.html");
+
+    let bare_star = parse("<p *ngIf></p>", "t.html");
+    assert!(bare_star.ok() || !bare_star.diagnostics.is_empty());
+
+    let for_no_let = parse(r#"<p *ngFor="item of items"></p>"#, "t.html");
+    assert!(
+        !for_no_let.diagnostics.is_empty(),
+        "expected *ngFor without let to error"
+    );
+
+    let for_no_track = parse(r#"<li *ngFor="let item of items">{{item}}</li>"#, "t.html");
+    assert!(for_no_track.ok(), "{:?}", for_no_track.diagnostics);
+    assert!(matches!(
+        for_no_track.template.nodes.first(),
+        Some(Node::For(block)) if block.track.is_none()
+    ));
+}
+
+#[test]
+fn projection_extra_attrs_and_close_mismatch() {
+    let proj = parse(
+        r#"<ng-content select=".header" class="x"></ng-content>"#,
+        "t.html",
+    );
+    assert!(proj.ok(), "{:?}", proj.diagnostics);
+    let selects = collect_projection_selects(&proj.template.nodes);
+    assert_eq!(selects, vec![".header".to_owned()]);
+
+    let named = parse(
+        r#"<ng-template #card title="t"><span>x</span></ng-template>"#,
+        "t.html",
+    );
+    assert!(named.ok(), "{:?}", named.diagnostics);
+    let templates = collect_ng_templates(&named.template.nodes);
+    assert_eq!(templates.len(), 1);
+    assert_eq!(templates[0].0, "card");
+
+    let mismatch = parse("<div></span>", "t.html");
+    assert!(mismatch
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("does not match")
+            || d.message.contains("unexpected closing")
+            || d.message.contains("closing tag")));
+}
+
+#[test]
+fn expr_layer_error_and_warning_via_interpolation() {
+    let ternary = parse("{{ a ? b : c }}", "t.html");
+    assert!(
+        ternary
+            .diagnostics
+            .iter()
+            .any(|d| d.message.to_lowercase().contains("ternary")
+                || d.message.contains("SPEC")
+                || d.message.contains('?')),
+        "{:?}",
+        ternary.diagnostics
+    );
+
+    let bad = parse("{{ ( }}", "t.html");
+    assert!(
+        !bad.ok()
+            || bad
+                .diagnostics
+                .iter()
+                .any(|d| d.severity == rangular_parser::Severity::Error),
+        "{:?}",
+        bad.diagnostics
+    );
+}

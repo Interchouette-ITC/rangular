@@ -155,3 +155,40 @@ fn host_cell_events_and_value_display_variants() {
     assert_eq!(cell2.prop_str(&expr("custom")), "event:custom:c");
     assert_eq!(cell2.prop_str(&expr("unit")), "");
 }
+
+#[test]
+fn host_cell_scoped_bool_none_item_and_event_helpers() {
+    let host = MapHost::new();
+    host.values
+        .borrow_mut()
+        .insert("label".into(), Value::Str("Hi".into()));
+    let cell = HostCell::new(host);
+    let scope = LoopScope {
+        item_name: Some("item"),
+        item_val: None,
+        index: Some(1),
+        count: Some(2),
+    };
+    assert!(cell.eval_bool_scoped(&expr("label"), scope));
+    assert!(!cell.eval_truthy_scoped(&expr("missing"), scope));
+
+    let scope_item = LoopScope {
+        item_name: Some("item"),
+        item_val: Some("row"),
+        index: Some(0),
+        count: Some(1),
+    };
+    cell.emit_event_call_scoped("onTap", &expr("onTap(item)"), scope_item);
+    cell.emit_event_call("noop", &Expr::Ident("noCall".into()));
+
+    let seed = MapHost::new();
+    let values = Rc::clone(&seed.values);
+    let cell2 = HostCell::new(seed);
+    let write = rangular_parser::banana_write_expr(&Expr::Ident("seed".into()));
+    cell2.emit_dom_event_call("$bananaSet", &write, "click", "1,2".into());
+    assert!(values
+        .borrow()
+        .get("seed")
+        .and_then(Value::as_event)
+        .is_some());
+}
