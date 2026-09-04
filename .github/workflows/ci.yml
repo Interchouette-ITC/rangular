@@ -17,53 +17,97 @@ env:
   RUSTFLAGS: "-D warnings"
 
 jobs:
+  changes:
+    name: detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - "**"
+              - "!**/*.md"
+
   lint:
     name: fmt · clippy
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+      - name: Markdown-only
+        if: needs.changes.outputs.code != 'true'
+        run: echo "markdown-only; skipping heavy lint"
       - uses: dtolnay/rust-toolchain@stable
+        if: needs.changes.outputs.code == 'true'
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+        if: needs.changes.outputs.code == 'true'
       - name: Lint
+        if: needs.changes.outputs.code == 'true'
         run: make lint
 
   test:
     name: workspace tests
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - name: Markdown-only
+        if: needs.changes.outputs.code != 'true'
+        run: echo "markdown-only; skipping heavy tests"
       - uses: dtolnay/rust-toolchain@stable
+        if: needs.changes.outputs.code == 'true'
       - uses: Swatinem/rust-cache@v2
+        if: needs.changes.outputs.code == 'true'
       - name: Test
+        if: needs.changes.outputs.code == 'true'
         run: make test
 
   no-panic:
     name: garbage fixtures never panic
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Markdown-only
+        if: needs.changes.outputs.code != 'true'
+        run: echo "markdown-only; skipping no-panic"
       - uses: dtolnay/rust-toolchain@stable
+        if: needs.changes.outputs.code == 'true'
       - uses: Swatinem/rust-cache@v2
+        if: needs.changes.outputs.code == 'true'
       - name: No-panic corpus
+        if: needs.changes.outputs.code == 'true'
         run: make no-panic
 
   demo:
     name: demo Trunk build
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Markdown-only
+        if: needs.changes.outputs.code != 'true'
+        run: echo "markdown-only; skipping demo build"
       - uses: dtolnay/rust-toolchain@stable
+        if: needs.changes.outputs.code == 'true'
         with:
           targets: wasm32-unknown-unknown
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+        if: needs.changes.outputs.code == 'true'
       - name: Install trunk
+        if: needs.changes.outputs.code == 'true'
         run: cargo install --locked trunk --version 0.21.14
       - name: Demo check + build
+        if: needs.changes.outputs.code == 'true'
         run: make demo-check && make demo-build
