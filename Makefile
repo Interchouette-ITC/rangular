@@ -95,8 +95,11 @@ deny:
 	cd $(ROOT) && $(CARGO) deny check
 
 ## Requires `cargo install cargo-llvm-cov`. Writes `coverage/lcov.info`.
+## demo hosts are workspace-excluded; regex keeps accidental paths out of lcov.
 coverage:
-	cd $(ROOT) && mkdir -p coverage && RUSTUP_TOOLCHAIN=stable $(CARGO) llvm-cov --workspace --lcov --output-path coverage/lcov.info
+	cd $(ROOT) && mkdir -p coverage && RUSTUP_TOOLCHAIN=stable $(CARGO) llvm-cov --workspace --lcov \
+		--ignore-filename-regex 'demo-leptos/|demo-tauri/' \
+		--output-path coverage/lcov.info
 
 ci: lint test no-panic
 
