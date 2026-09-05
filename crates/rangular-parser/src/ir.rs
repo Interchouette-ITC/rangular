@@ -335,4 +335,16 @@ mod tests {
         assert!(snap.contains("prop:value"), "{snap}");
         assert!(snap.contains("prop:disabled"), "{snap}");
     }
+
+    #[test]
+    fn from_attr_ref_arm() {
+        let binding = from_attr(&Attr::Ref {
+            name: "local".into(),
+            span: crate::Span::new(0, 1),
+        });
+        assert!(matches!(
+            binding,
+            IrBinding::Static { name } if name == "#local"
+        ));
+    }
 }

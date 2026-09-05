@@ -701,3 +701,27 @@ const fn sanitize_tag(tag: &str) -> &str {
         tag
     }
 }
+
+#[cfg(test)]
+mod coverage_arms {
+    use super::{lower_one_attr, sanitize_tag, HoistState, Scope};
+    use rangular_parser::{Attr, Span};
+
+    #[test]
+    fn lower_one_attr_ref_emits_empty() {
+        let mut hoist = HoistState::new();
+        let scope = Scope::root();
+        let attr = Attr::Ref {
+            name: "r".into(),
+            span: Span::new(0, 1),
+        };
+        let ts = lower_one_attr(&attr, &scope, &mut hoist);
+        assert!(ts.is_empty());
+    }
+
+    #[test]
+    fn sanitize_tag_empty_becomes_div() {
+        assert_eq!(sanitize_tag(""), "div");
+        assert_eq!(sanitize_tag("span"), "span");
+    }
+}

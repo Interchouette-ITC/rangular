@@ -274,3 +274,22 @@ fn compile_output_binding_and_ref_attr() {
         "output and ref",
     );
 }
+
+#[test]
+fn nested_unknown_outlet_and_non_ident_outlet() {
+    let nested = compile(
+        r#"<div><ng-container [ngTemplateOutlet]="missing"></ng-container></div>"#,
+        "nested_missing_outlet_view",
+    );
+    assert!(!nested.ok());
+    assert!(nested.issues.iter().any(|i| {
+        i.message.contains("unknown ngTemplateOutlet")
+            || i.message.contains("no lowerable template nodes")
+    }));
+
+    assert_emits(
+        r#"<span [ngTemplateOutlet]="'card'">x</span>"#,
+        "outlet_non_ident_view",
+        "non-ident outlet skipped",
+    );
+}
