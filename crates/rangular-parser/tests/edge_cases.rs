@@ -300,16 +300,18 @@ fn binding_banana_event_and_structural_errors() {
 
 #[test]
 fn projection_extra_attrs_and_close_mismatch() {
+    // Non-select attrs first so `find_map` hits the `_ => None` arm before `select`.
     let proj = parse(
-        r#"<ng-content select=".header" class="x"></ng-content>"#,
+        r#"<ng-content class="x" select=".header"></ng-content>"#,
         "t.html",
     );
     assert!(proj.ok(), "{:?}", proj.diagnostics);
     let selects = collect_projection_selects(&proj.template.nodes);
     assert_eq!(selects, vec![".header".to_owned()]);
 
+    // Non-ref attrs first so `find_map` hits `_ => None` before `#card`.
     let named = parse(
-        r#"<ng-template #card title="t"><span>x</span></ng-template>"#,
+        r#"<ng-template title="t" #card><span>x</span></ng-template>"#,
         "t.html",
     );
     assert!(named.ok(), "{:?}", named.diagnostics);
@@ -318,12 +320,34 @@ fn projection_extra_attrs_and_close_mismatch() {
     assert_eq!(templates[0].0, "card");
 
     let mismatch = parse("<div></span>", "t.html");
-    assert!(mismatch
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("does not match")
-            || d.message.contains("unexpected closing")
-            || d.message.contains("closing tag")));
+    assert!(
+        mismatch
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("does not match")),
+        "{:?}",
+        mismatch.diagnostics
+    );
+
+    let missing_close = parse("<div>hi", "t.html");
+    assert!(
+        missing_close
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("unexpected end")),
+        "{:?}",
+        missing_close.diagnostics
+    );
+
+    let unquoted_static = parse(r"<div class=foo></div>", "t.html");
+    assert!(
+        unquoted_static
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("malformed attribute")),
+        "{:?}",
+        unquoted_static.diagnostics
+    );
 }
 
 #[test]

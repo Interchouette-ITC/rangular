@@ -18,7 +18,8 @@ pub struct Parsed {
 
 enum Stop {
     Eof,
-    Close(String),
+    /// Stop before any `</…>` closing tag (name checked in `consume_close_tag`).
+    Close,
 }
 
 struct Parser<'a> {
@@ -51,7 +52,7 @@ impl<'a> Parser<'a> {
                 break;
             }
             if self.pos >= self.src.len() {
-                if matches!(stop, Stop::Close(_)) {
+                if matches!(stop, Stop::Close) {
                     self.error(self.span_here(), "unexpected end of template");
                 }
                 break;
@@ -112,11 +113,9 @@ impl<'a> Parser<'a> {
         let void = self_closing || VOID.contains(&tag.as_str());
         let mut children = Vec::new();
         if !void {
-            children = self.parse_nodes(&Stop::Close(tag.clone()));
+            children = self.parse_nodes(&Stop::Close);
             self.skip_ws();
-            if self.peek() == Some('<') {
-                self.consume_close_tag(&tag);
-            }
+            self.consume_close_tag(&tag);
         }
         let span = span_open.merge(Span::new(pos(start), pos(self.pos)));
         if is_projection_tag(&tag) {
@@ -712,23 +711,8 @@ impl<'a> Parser<'a> {
     fn at_stop(&self, stop: &Stop) -> bool {
         match stop {
             Stop::Eof => false,
-            Stop::Close(tag) => {
-                if self.peek() != Some('<') {
-                    return false;
-                }
-                let rest = &self.src[self.pos..];
-                if !rest.starts_with("</") {
-                    return false;
-                }
-                let mut p = Self {
-                    src: self.src,
-                    file: self.file,
-                    pos: self.pos + 2,
-                    diagnostics: Vec::new(),
-                };
-                let close = p.read_tag_name().unwrap_or_default();
-                close.eq_ignore_ascii_case(tag)
-            }
+            // Any closing tag ends the child list; `consume_close_tag` warns on name mismatch.
+            Stop::Close => self.peek() == Some('<') && self.src[self.pos..].starts_with("</"),
         }
     }
 
@@ -825,4 +809,46 @@ fn parse_ng_for(src: &str, span: Span, p: &mut Parser<'_>) -> Option<NgForAttr> 
 #[must_use]
 pub fn parse(src: &str, file: &str) -> Parsed {
     Parser::parse(src, file)
+}
+
+#[cfg(test)]
+mod coverage_edges {
+    use super::*;
+
+    #[test]
+    fn parse_text_returns_none_at_markup_boundary() {
+        let mut p = Parser {
+            src: "<div>",
+            file: "t.html",
+            pos: 0,
+            diagnostics: Vec::new(),
+        };
+        assert!(p.parse_text().is_none());
+    }
+
+    #[test]
+    fn consume_close_tag_noop_when_not_lt() {
+        let mut p = Parser {
+            src: "x",
+            file: "t.html",
+            pos: 0,
+            diagnostics: Vec::new(),
+        };
+        p.consume_close_tag("div");
+        assert_eq!(p.pos, 0);
+        assert_eq!(p.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn consume_close_tag_resets_when_open_tag() {
+        let mut p = Parser {
+            src: "<div>",
+            file: "t.html",
+            pos: 0,
+            diagnostics: Vec::new(),
+        };
+        p.consume_close_tag("span");
+        assert_eq!(p.pos, 0);
+        assert_eq!(p.diagnostics.len(), 0);
+    }
 }
