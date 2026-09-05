@@ -315,3 +315,39 @@ fn encapsulate_css_long_prelude_truncates_issue() {
         i.code == "RANG301" && (i.message.contains('…') || i.message.contains("..."))
     }));
 }
+
+#[test]
+fn compile_scss_layer_font_and_host_descendants() {
+    // grass Ok + flatten Err → compile_scss issue arm
+    let layer = compile_scss("@layer foo;");
+    assert!(!layer.ok());
+    assert!(layer.issues.iter().any(|i| i.code == "RANG301"));
+
+    let font = compile_scss("@font-face { font-family: x; src: local(A); }");
+    assert!(font.ok(), "{:?}", font.issues);
+    assert!(font.css.contains("@font-face"));
+
+    let host_desc = compile_scss(":host .panel { color: red; }");
+    assert!(host_desc.ok(), "{:?}", host_desc.issues);
+    assert!(host_desc.css.contains(".panel"));
+
+    let host_host = compile_scss(":host :host { color: red; }");
+    assert!(host_host.ok(), "{:?}", host_host.issues);
+    assert_eq!(host_host.css, "");
+
+    let media_host = compile_scss("@media (min-width: 1px) { :host { display: block; } }");
+    assert!(media_host.ok(), "{:?}", media_host.issues);
+    assert_eq!(media_host.css, "");
+
+    let media_keep = compile_scss("@media (min-width: 1px) { .a { color: red; } }");
+    assert!(media_keep.ok(), "{:?}", media_keep.issues);
+    assert!(media_keep.css.contains("@media"));
+    assert!(media_keep.css.contains(".a"));
+
+    let empty_sel = encapsulate_css(".a,,.b { color: red; }", &scope());
+    assert!(!empty_sel.ok());
+    assert!(empty_sel
+        .issues
+        .iter()
+        .any(|i| i.message.contains("empty selector")));
+}

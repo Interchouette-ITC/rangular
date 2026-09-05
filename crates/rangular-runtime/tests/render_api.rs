@@ -152,3 +152,14 @@ fn structural_ir_and_projection_bag_edges() {
     );
     assert!(with_ref.ok(), "{:?}", with_ref.issues);
 }
+
+#[test]
+fn for_scope_nested_call_callee_returns_unit() {
+    let mut host = DemoHost;
+    let out = interpret(
+        r"@for (let item of items) { <span>{{foo()()}}</span> }",
+        "t.html",
+        &mut host,
+    );
+    assert!(out.ok(), "{:?}", out.issues);
+}

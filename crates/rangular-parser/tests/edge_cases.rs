@@ -469,3 +469,100 @@ fn classify_bindings_marks_registered_outputs() {
         .iter()
         .any(|a| matches!(a, Attr::Output { name, .. } if name == "muteToggle")));
 }
+
+#[test]
+fn banana_event_paren_and_for_ident_edges() {
+    // Terminate bananas on `>` / `/` so the attr loop advances (no hang).
+    let banana_paren = parse(r"<input [(value/>", "t.html");
+    assert!(banana_paren
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("expected ')' in two-way")));
+
+    let banana_bracket = parse(r"<input [(value)>", "t.html");
+    assert!(banana_bracket
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("expected ']' in two-way")));
+
+    let banana_quote = parse(r"<input [(value)]=seed />", "t.html");
+    assert!(banana_quote
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("expected quoted")));
+
+    let banana_warn = parse(r#"<input [(value)]="foo()" />"#, "t.html");
+    assert!(banana_warn
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("two-way binding target")));
+
+    let event_paren = parse(r"<button (click/>", "t.html");
+    assert!(event_paren
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("expected ')'")));
+
+    let bad_ident = parse("@for (let 1 of items) { x }", "t.html");
+    assert!(bad_ident
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("expected identifier")));
+
+    let nested_paren = parse("@if ((a)) { x }", "t.html");
+    assert!(nested_paren.ok(), "{:?}", nested_paren.diagnostics);
+    let call_paren = parse("@if (f(a)) { x }", "t.html");
+    assert!(call_paren.ok(), "{:?}", call_paren.diagnostics);
+
+    let braced_else = parse("@if (x) { @else }", "t.html");
+    assert!(braced_else
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("unexpected @else")));
+
+    let mismatch = parse("<p>hi</div>", "t.html");
+    assert!(mismatch
+        .diagnostics
+        .iter()
+        .any(|d| d.message.contains("does not match") || d.message.contains("closing")));
+}
+
+#[test]
+fn binding_ir_skips_non_ident_outlet_and_classify_passthrough() {
+    use rangular_parser::{binding_ir, classify_bindings, Attr, IrNode, TagIo};
+    use std::collections::HashMap;
+
+    let outlet = parse(r#"<div [ngTemplateOutlet]="foo()"></div>"#, "t.html");
+    let ir = binding_ir(&outlet.template);
+    assert!(matches!(
+        ir.first(),
+        Some(IrNode::Element { bindings, .. }) if bindings.is_empty()
+    ));
+
+    let mut parsed = parse(
+        r#"<app-x [label]="l" [extra]="e" (muteToggle)="onMute()" (click)="onClick()"></app-x>"#,
+        "t.html",
+    );
+    let mut tags = HashMap::new();
+    tags.insert("app-x".into(), TagIo::new(&["label"], &["muteToggle"]));
+    classify_bindings(&mut parsed.template, &tags);
+    let Some(Node::Element(el)) = parsed.template.nodes.first() else {
+        panic!("expected element");
+    };
+    assert!(el
+        .attrs
+        .iter()
+        .any(|a| matches!(a, Attr::Input { name, .. } if name == "label")));
+    assert!(el
+        .attrs
+        .iter()
+        .any(|a| matches!(a, Attr::Property { name, .. } if name == "extra")));
+    assert!(el
+        .attrs
+        .iter()
+        .any(|a| matches!(a, Attr::Output { name, .. } if name == "muteToggle")));
+    assert!(el
+        .attrs
+        .iter()
+        .any(|a| matches!(a, Attr::Event { name, .. } if name == "click")));
+}

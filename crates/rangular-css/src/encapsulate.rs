@@ -415,3 +415,24 @@ fn strip_comments(css: &str) -> String {
     }
     out
 }
+
+#[cfg(test)]
+mod coverage_arms {
+    use super::{append_attr, take_rule};
+
+    #[test]
+    fn append_attr_empty_selector_parts() {
+        assert_eq!(append_attr("   ", "x"), "   [x]");
+        assert_eq!(append_attr("", "x"), "[x]");
+    }
+
+    #[test]
+    fn take_rule_empty_input() {
+        let (rule, rest) = take_rule("").expect("empty");
+        assert_eq!(rule, "");
+        assert_eq!(rest, "");
+        let (rule, rest) = take_rule("   ").expect("ws");
+        assert_eq!(rule, "");
+        assert_eq!(rest, "");
+    }
+}

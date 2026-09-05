@@ -211,3 +211,47 @@ fn host_cell_compile_covers_bool_ne_and_add_literals() {
     let src = tokens_to_rust_source(&tokens.tokens);
     assert_ne!(src, "");
 }
+
+struct FailHost;
+
+impl Host for FailHost {
+    fn get(&self, _: &str) -> Option<Value> {
+        None
+    }
+    fn call(&mut self, name: &str, _: &[Value]) -> Result<Value, HostError> {
+        Err(HostError::UnknownMember(name.to_owned()))
+    }
+}
+
+#[test]
+fn host_cell_event_item_none_call_err_and_num_lit() {
+    use rangular_aot::compile;
+
+    let cell = HostCell::new(MapHost::new());
+    assert_eq!(cell.eval_value(&Expr::Ident("$event".into())), Value::Unit);
+
+    let scope = LoopScope {
+        item_name: Some("item"),
+        item_val: None,
+        index: Some(0),
+        count: Some(1),
+    };
+    assert_eq!(cell.eval_scoped(&expr("item"), scope), Value::Unit);
+
+    let fail = HostCell::new(FailHost);
+    assert_eq!(
+        fail.eval_scoped(&expr("onTap()"), LoopScope::NONE),
+        Value::Unit
+    );
+    let nested = Expr::Call {
+        callee: Box::new(Expr::Call {
+            callee: Box::new(Expr::Ident("foo".into())),
+            args: vec![],
+        }),
+        args: vec![],
+    };
+    assert_eq!(fail.eval_scoped(&nested, LoopScope::NONE), Value::Unit);
+
+    let num = compile("@if (1) { <span>y</span> }", "num_lit_view");
+    assert!(num.ok(), "{:?}", num.issues);
+}
