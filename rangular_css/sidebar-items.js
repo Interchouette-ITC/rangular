@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["VERSION"],"fn":["compile_scss","encapsulate","encapsulate_css","is_global_selector"],"struct":["CssIssue","CssResult","ScopeAttrs"]};

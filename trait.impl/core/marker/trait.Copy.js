@@ -1,0 +1,9 @@
+(function() {
+    const implementors = Object.fromEntries([["rangular_expr",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.98.1/core/marker/trait.Copy.html\" title=\"trait core::marker::Copy\">Copy</a> for <a class=\"enum\" href=\"rangular_expr/enum.BinOp.html\" title=\"enum rangular_expr::BinOp\">BinOp</a>",0],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.98.1/core/marker/trait.Copy.html\" title=\"trait core::marker::Copy\">Copy</a> for <a class=\"enum\" href=\"rangular_expr/enum.IssueSeverity.html\" title=\"enum rangular_expr::IssueSeverity\">IssueSeverity</a>",0],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.98.1/core/marker/trait.Copy.html\" title=\"trait core::marker::Copy\">Copy</a> for <a class=\"enum\" href=\"rangular_expr/enum.UnOp.html\" title=\"enum rangular_expr::UnOp\">UnOp</a>",0]]],["rangular_host",[["impl&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.98.1/core/marker/trait.Copy.html\" title=\"trait core::marker::Copy\">Copy</a> for <a class=\"struct\" href=\"rangular_host/struct.LoopScope.html\" title=\"struct rangular_host::LoopScope\">LoopScope</a>&lt;'a&gt;",0]]],["rangular_parser",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.98.1/core/marker/trait.Copy.html\" title=\"trait core::marker::Copy\">Copy</a> for <a class=\"enum\" href=\"rangular_parser/enum.Severity.html\" title=\"enum rangular_parser::Severity\">Severity</a>",0],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.98.1/core/marker/trait.Copy.html\" title=\"trait core::marker::Copy\">Copy</a> for <a class=\"struct\" href=\"rangular_parser/struct.Span.html\" title=\"struct rangular_parser::Span\">Span</a>",0]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":59,"fragment_lengths":[793,309,544]}

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["VERSION"],"enum":["IrBinding","IrNode"],"fn":["binding_ir","binding_ir_snapshot","compile","compile_named","compile_tokens","compile_tokens_named","emit_rust","emit_rust_tokens","structural_ir","tokens_to_rust_source"],"struct":["AotIssue","EmitResult","EmitTokens","HostCell"]};
