@@ -40,7 +40,7 @@ help:
 	@echo "  make lint          fmt check + clippy (workspace)"
 	@echo "  make doc           rustdoc → docs/api-rust/ (-D warnings)"
 	@echo "  make doc-open      build docs and open docs/api-rust/index.html"
-	@echo "  make ci            lint + test + no-panic + doc"
+	@echo "  make ci            lint + test + no-panic + doc + audit + deny"
 	@echo "  make coverage      cargo llvm-cov → coverage/lcov.info"
 	@echo "  make audit         cargo audit"
 	@echo "  make deny          cargo deny check"
@@ -104,7 +104,7 @@ coverage:
 		--ignore-filename-regex 'demo-leptos/|demo-tauri/' \
 		--output-path coverage/lcov.info
 
-ci: lint test no-panic doc
+ci: lint test no-panic doc audit deny
 
 ## rustdoc → `docs/api-rust/` (GitHub Pages publish folder).
 DOC_OUT ?= $(ROOT)/target/doc

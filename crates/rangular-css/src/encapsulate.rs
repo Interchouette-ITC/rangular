@@ -85,9 +85,6 @@ fn flatten_block(css: &str) -> Result<String, CssIssue> {
     while !rest.trim().is_empty() {
         let (rule, next) = take_rule(rest)?;
         rest = next;
-        if rule.trim().is_empty() {
-            continue;
-        }
         let rewritten = flatten_rule(&rule)?;
         if rewritten.trim().is_empty() {
             continue;
@@ -170,37 +167,34 @@ fn flatten_host(sel: &str) -> Result<Option<String>, CssIssue> {
         if out.is_empty() && after.is_empty() {
             return Ok(None);
         }
-        if !after.is_empty() {
-            if let Some(desc) = flatten_selector(after)? {
-                if out.is_empty() {
-                    out = desc;
-                } else {
-                    out.push(' ');
-                    out.push_str(&desc);
-                }
-            } else if out.is_empty() {
-                return Ok(None);
+        if after.is_empty() {
+            return Ok(Some(out));
+        }
+        match flatten_selector(after)? {
+            Some(desc) if out.is_empty() => out = desc,
+            Some(desc) => {
+                out.push(' ');
+                out.push_str(&desc);
             }
+            None if out.is_empty() => return Ok(None),
+            None => {}
         }
         return Ok(Some(out));
     }
 
     let (host_part, descendant) = split_descendant(rest);
     let mut out = host_part.to_owned();
-    if let Some(desc) = descendant {
-        if let Some(d) = flatten_selector(desc)? {
-            if out.is_empty() {
-                out = d;
-            } else {
-                out.push(' ');
-                out.push_str(&d);
-            }
-        } else if out.is_empty() {
-            return Ok(None);
+    let Some(desc) = descendant else {
+        return Ok(Some(out));
+    };
+    match flatten_selector(desc)? {
+        Some(d) if out.is_empty() => out = d,
+        Some(d) => {
+            out.push(' ');
+            out.push_str(&d);
         }
-    }
-    if out.is_empty() {
-        return Ok(None);
+        None if out.is_empty() => return Ok(None),
+        None => {}
     }
     Ok(Some(out))
 }
@@ -211,9 +205,6 @@ fn process_block(css: &str, scope: &ScopeAttrs) -> Result<String, CssIssue> {
     while !rest.trim().is_empty() {
         let (rule, next) = take_rule(rest)?;
         rest = next;
-        if rule.trim().is_empty() {
-            continue;
-        }
         out.push_str(&rewrite_rule(&rule, scope)?);
         if !out.ends_with('\n') {
             out.push('\n');
@@ -418,7 +409,10 @@ fn strip_comments(css: &str) -> String {
 
 #[cfg(test)]
 mod coverage_arms {
-    use super::{append_attr, take_rule};
+    use super::{
+        append_attr, flatten_block, flatten_host, flatten_selector, process_block, take_rule,
+        ScopeAttrs,
+    };
 
     #[test]
     fn append_attr_empty_selector_parts() {
@@ -434,5 +428,56 @@ mod coverage_arms {
         let (rule, rest) = take_rule("   ").expect("ws");
         assert_eq!(rule, "");
         assert_eq!(rest, "");
+    }
+
+    #[test]
+    fn flatten_selector_rejects_empty() {
+        let err = flatten_selector("").expect_err("empty");
+        assert_eq!(err.code, "RANG301");
+        assert!(err.message.contains("empty selector"));
+        let err = flatten_selector("   ").expect_err("ws");
+        assert!(err.message.contains("empty selector"));
+    }
+
+    #[test]
+    fn flatten_host_paren_and_descendant_none_arms() {
+        assert_eq!(flatten_host(":host()").expect("bare fn"), None);
+        assert_eq!(
+            flatten_host(":host() .panel").expect("empty inner + desc"),
+            Some(".panel".to_owned())
+        );
+        assert_eq!(
+            flatten_host(":host() :host").expect("empty inner + bare host"),
+            None
+        );
+        assert_eq!(flatten_host(":host :host").expect("bare + bare"), None);
+        assert_eq!(
+            flatten_host(":host(.open)").expect("paren only"),
+            Some(".open".to_owned())
+        );
+        assert_eq!(
+            flatten_host(":host.foo").expect("class only"),
+            Some(".foo".to_owned())
+        );
+        assert_eq!(
+            flatten_host(":host(.open) :host").expect("class + bare host"),
+            Some(".open".to_owned())
+        );
+        assert_eq!(
+            flatten_host(":host.foo :host").expect("class keeps host part"),
+            Some(".foo".to_owned())
+        );
+    }
+
+    #[test]
+    fn flatten_and_process_tolerate_dropped_host_only_rules() {
+        let flat = flatten_block(":host() { color: red; }\n.panel { color: blue; }").expect("flat");
+        assert!(flat.contains(".panel"));
+        assert!(!flat.contains(":host"));
+
+        let scope = ScopeAttrs::new("r0");
+        let scoped = process_block(":host() { color: red; }\n.panel { color: blue; }", &scope)
+            .expect("proc");
+        assert!(scoped.contains(".panel"));
     }
 }
