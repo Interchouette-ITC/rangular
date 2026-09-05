@@ -257,6 +257,10 @@ mod tests {
             Value::Str("\"Load\"".into())
         );
         assert_eq!(
+            reg.apply("uppercase", &Value::Num(1.5), &[]).unwrap(),
+            Value::Str("1.5".into())
+        );
+        assert_eq!(
             reg.apply(
                 "uppercase",
                 &Value::from(rangular_host::EventPayload::Error),

@@ -118,3 +118,37 @@ fn interpret_with_slot_parse_error_and_missing_outlet() {
     );
     assert!(missing.ok() || !missing.issues.is_empty());
 }
+
+#[test]
+fn structural_ir_and_projection_bag_edges() {
+    use rangular_runtime::structural_ir;
+
+    assert!(structural_ir("<@bad", "t.html").is_none());
+    assert!(structural_ir("<p>ok</p>", "t.html").is_some());
+
+    let roots = [
+        VNode::Element {
+            tag: "div".into(),
+            attrs: vec![("class".into(), "header".into())],
+            children: vec![],
+        },
+        VNode::Text("loose".into()),
+        VNode::Element {
+            tag: "div".into(),
+            attrs: vec![("class".into(), "header footer".into())],
+            children: vec![],
+        },
+    ];
+    let bag = ProjectionBag::from_flat(&roots, &[".header".into(), ".footer".into()]);
+    assert_ne!(bag.for_select(Some(".header")).len(), 0);
+    assert_eq!(bag.for_select(Some(".missing")).len(), 0);
+    assert_ne!(bag.for_select(None).len(), 0);
+
+    let mut host = DemoHost;
+    let with_ref = interpret(
+        "<div #localRef [disabled]=\"flag\"></div>",
+        "t.html",
+        &mut host,
+    );
+    assert!(with_ref.ok(), "{:?}", with_ref.issues);
+}

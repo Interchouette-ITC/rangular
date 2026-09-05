@@ -126,5 +126,11 @@ mod tests {
         assert!(is_global_selector(".btn:hover"));
         assert!(!is_global_selector(".color-field"));
         assert!(!is_global_selector(".btn .color-field"));
+        assert!(!is_global_selector(""));
+        assert!(!is_global_selector(":host"));
+        assert!(!is_global_selector("[hidden]"));
+        assert!(!is_global_selector("*"));
+        assert!(!is_global_selector(".btn :hover"));
+        assert!(!is_global_selector("div"));
     }
 }

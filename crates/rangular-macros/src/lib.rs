@@ -56,7 +56,8 @@ fn default_fn_name(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::default_fn_name;
+    use super::{default_fn_name, TemplateInput};
+    use syn::parse_str;
 
     #[test]
     fn default_fn_name_replaces_hyphens() {
@@ -68,5 +69,16 @@ mod tests {
         assert_eq!(default_fn_name("plain.html"), "plain");
         assert_eq!(default_fn_name(""), "template");
         assert_eq!(default_fn_name("/tmp/foo-bar.ng.html"), "foo_bar.ng");
+    }
+
+    #[test]
+    fn template_input_parses_path_only_and_with_name() {
+        let path_only: TemplateInput = parse_str(r#""seed-bar.html""#).expect("path");
+        assert_eq!(path_only.path, "seed-bar.html");
+        assert!(path_only.fn_name.is_none());
+
+        let named: TemplateInput = parse_str(r#""seed-bar.html", "seed_bar_view""#).expect("named");
+        assert_eq!(named.path, "seed-bar.html");
+        assert_eq!(named.fn_name.as_deref(), Some("seed_bar_view"));
     }
 }
