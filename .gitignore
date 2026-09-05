@@ -13,3 +13,7 @@ coverage/
 
 # Nested Cursor product config (separate git)
 .cursor/
+
+# Generated rustdoc copy (rebuild with `make doc`)
+/docs/api-rust/**
+!/docs/api-rust/README.md

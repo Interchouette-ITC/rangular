@@ -114,6 +114,37 @@ jobs:
         if: needs.changes.outputs.code == 'true'
         run: make demo-check && make demo-build
 
+  doc:
+    name: rustdoc
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Markdown-only
+        if: needs.changes.outputs.code != 'true'
+        run: echo "markdown-only; skipping rustdoc"
+      - uses: dtolnay/rust-toolchain@stable
+        if: needs.changes.outputs.code == 'true'
+      - uses: Swatinem/rust-cache@v2
+        if: needs.changes.outputs.code == 'true'
+      - name: Doc
+        if: needs.changes.outputs.code == 'true'
+        run: make doc
+      - name: Github pages
+        if: >-
+          needs.changes.outputs.code == 'true'
+          && github.event_name == 'push'
+          && github.ref == 'refs/heads/dev'
+        uses: JamesIves/github-pages-deploy-action@ba1486788b0490a235422264426c45848eac35c6 # v4.4.1
+        with:
+          folder: docs/api-rust
+          branch: gh-pages
+          clean: true
+          commit-message: "Deploy documentation for ${{ github.sha }}"
+
   supply-chain:
     name: supply-chain
     needs: changes
