@@ -105,7 +105,10 @@ fn has_for(nodes: &[Node]) -> bool {
     })
 }
 
-fn find_element<'a>(nodes: &'a [Node], tag: &str) -> Option<&'a rangular_parser::Element> {
+fn find_element<'nodes>(
+    nodes: &'nodes [Node],
+    tag: &str,
+) -> Option<&'nodes rangular_parser::Element> {
     nodes.iter().find_map(|n| match n {
         Node::Element(el) if el.tag == tag => Some(el),
         Node::Element(el) => find_element(&el.children, tag),

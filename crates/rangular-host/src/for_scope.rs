@@ -4,9 +4,9 @@ use crate::value::Value;
 
 /// Active `@for` iteration when evaluating expressions in the loop body.
 #[derive(Clone, Copy, Default)]
-pub struct LoopScope<'a> {
-    pub item_name: Option<&'a str>,
-    pub item_val: Option<&'a str>,
+pub struct LoopScope<'src> {
+    pub item_name: Option<&'src str>,
+    pub item_val: Option<&'src str>,
     pub index: Option<usize>,
     pub count: Option<usize>,
 }
