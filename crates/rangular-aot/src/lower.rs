@@ -11,8 +11,8 @@ use rangular_parser::{
 use crate::error::{AotIssue, EmitResult, EmitTokens};
 use crate::expr_quote::expr_tokens;
 
-struct Scope<'a> {
-    loop_item: Option<&'a str>,
+struct Scope<'src> {
+    loop_item: Option<&'src str>,
 }
 
 impl Scope<'_> {

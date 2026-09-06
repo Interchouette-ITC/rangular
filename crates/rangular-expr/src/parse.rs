@@ -1,8 +1,8 @@
 use crate::ast::{BinOp, Expr, Literal, UnOp};
 use crate::parse_issue::{ParseIssue, ParseResult};
 
-struct Parser<'a> {
-    src: &'a str,
+struct Parser<'src> {
+    src: &'src str,
     pos: usize,
     issues: Vec<ParseIssue>,
 }

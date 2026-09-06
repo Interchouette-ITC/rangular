@@ -15,13 +15,13 @@ struct Frame {
     value: Value,
 }
 
-struct Ctx<'a, H: Host> {
-    host: &'a mut H,
-    pipes: &'a PipeRegistry,
+struct Ctx<'rt, H: Host> {
+    host: &'rt mut H,
+    pipes: &'rt PipeRegistry,
     frames: Vec<Frame>,
     loop_depth: Vec<(usize, usize)>,
     issues: Vec<RuntimeIssue>,
-    slots: &'a ProjectionBag,
+    slots: &'rt ProjectionBag,
     templates: HashMap<String, Vec<Node>>,
 }
 

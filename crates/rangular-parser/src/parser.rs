@@ -22,15 +22,15 @@ enum Stop {
     Close,
 }
 
-struct Parser<'a> {
-    src: &'a str,
-    file: &'a str,
+struct Parser<'src> {
+    src: &'src str,
+    file: &'src str,
     pos: usize,
     diagnostics: Vec<Diagnostic>,
 }
 
-impl<'a> Parser<'a> {
-    pub fn parse(src: &'a str, file: &'a str) -> Parsed {
+impl<'src> Parser<'src> {
+    pub fn parse(src: &'src str, file: &'src str) -> Parsed {
         let mut p = Self {
             src,
             file,
