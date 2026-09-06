@@ -1,4 +1,4 @@
-//! Fixture corpus gate: every planned construct must have a fixture path on disk.
+//! Fixture corpus gate: every SPEC construct must have a fixture path on disk.
 
 use std::path::{Path, PathBuf};
 
@@ -6,7 +6,7 @@ fn fixture_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/fixtures")
 }
 
-/// New grammar lands only when these paths exist (plan / SPEC growth contract).
+/// New grammar lands only when these paths exist (SPEC fixture gate).
 const REQUIRED_FIXTURES: &[&str] = &[
     "components/seed-bar/seed-bar.html",
     "components/seed-bar/seed-bar.scss",
@@ -72,7 +72,7 @@ fn spec_mentions_fixture_gate_paths() {
     ] {
         assert!(
             spec.contains(needle),
-            "SPEC.md must mention `{needle}` when that construct is in the growth contract"
+            "SPEC.md must mention `{needle}` when that construct is in the SPEC fixture gate"
         );
     }
 }
