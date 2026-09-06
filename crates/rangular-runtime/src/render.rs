@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
-use rangular_expr::{eval_with_pipes, Expr, PipeRegistry};
-use rangular_host::{for_implicit_value, Host, Value};
+use rangular_expr::{Expr, PipeRegistry, eval_with_pipes};
+use rangular_host::{Host, Value, for_implicit_value};
 use rangular_parser::{
-    builtin_tag_io, classify_bindings, collect_ng_templates, collect_projection_selects, parse,
-    template_outlet_ref, Attr, Diagnostic, Element, ForBlock, IfBlock, Node, Severity, Template,
+    Attr, Diagnostic, Element, ForBlock, IfBlock, Node, Severity, Template, builtin_tag_io,
+    classify_bindings, collect_ng_templates, collect_projection_selects, parse,
+    template_outlet_ref,
 };
 
 use crate::error::{RenderResult, RuntimeIssue};
@@ -401,9 +402,5 @@ fn display_value(value: &Value) -> String {
 }
 
 fn bool_str(b: bool) -> String {
-    if b {
-        "true".into()
-    } else {
-        "false".into()
-    }
+    if b { "true".into() } else { "false".into() }
 }

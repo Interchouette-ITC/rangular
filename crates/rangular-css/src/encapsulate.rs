@@ -410,8 +410,8 @@ fn strip_comments(css: &str) -> String {
 #[cfg(test)]
 mod coverage_arms {
     use super::{
-        append_attr, flatten_block, flatten_host, flatten_selector, process_block, take_rule,
-        ScopeAttrs,
+        ScopeAttrs, append_attr, flatten_block, flatten_host, flatten_selector, process_block,
+        take_rule,
     };
 
     #[test]

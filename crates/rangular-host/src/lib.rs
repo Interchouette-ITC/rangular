@@ -9,7 +9,7 @@ mod value;
 
 pub use error::HostError;
 pub use event::EventPayload;
-pub use for_scope::{for_implicit_value, LoopScope};
+pub use for_scope::{LoopScope, for_implicit_value};
 pub use host::Host;
 pub use regex::Regex;
 pub use validate::{

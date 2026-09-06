@@ -4,8 +4,8 @@ use proc_macro2::{Literal, Punct, Spacing, TokenStream, TokenTree};
 use quote::{format_ident, quote};
 use rangular_expr::Expr;
 use rangular_parser::{
-    collect_ng_templates, collect_projection_selects, has_default_projection, select_param_name,
-    template_outlet_ref, Attr, Element, ForBlock, IfBlock, Node, Projection, Template,
+    Attr, Element, ForBlock, IfBlock, Node, Projection, Template, collect_ng_templates,
+    collect_projection_selects, has_default_projection, select_param_name, template_outlet_ref,
 };
 
 use crate::error::{AotIssue, EmitResult, EmitTokens};
@@ -695,16 +695,12 @@ fn event_attr(name: &str, value: &TokenStream) -> TokenStream {
 }
 
 const fn sanitize_tag(tag: &str) -> &str {
-    if tag.is_empty() {
-        "div"
-    } else {
-        tag
-    }
+    if tag.is_empty() { "div" } else { tag }
 }
 
 #[cfg(test)]
 mod coverage_arms {
-    use super::{lower_one_attr, sanitize_tag, HoistState, Scope};
+    use super::{HoistState, Scope, lower_one_attr, sanitize_tag};
     use rangular_parser::{Attr, Span};
 
     #[test]

@@ -144,7 +144,7 @@ fn hostcell_dom_event_passes_dollar_event_to_handler() {
     use std::rc::Rc;
 
     use rangular_aot::HostCell;
-    use rangular_expr::{parse, Host, Value};
+    use rangular_expr::{Host, Value, parse};
     use rangular_host::{EventPayload, HostError};
 
     struct CaptureHost {
@@ -233,10 +233,12 @@ fn lower_edge_templates() {
         "missing_outlet_view",
     );
     assert!(!unknown.ok());
-    assert!(unknown
-        .issues
-        .iter()
-        .any(|i| i.message.contains("unknown ngTemplateOutlet")));
+    assert!(
+        unknown
+            .issues
+            .iter()
+            .any(|i| i.message.contains("unknown ngTemplateOutlet"))
+    );
 }
 
 #[test]

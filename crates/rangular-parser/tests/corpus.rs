@@ -1,4 +1,4 @@
-use rangular_parser::{parse, Node};
+use rangular_parser::{Node, parse};
 use std::path::{Path, PathBuf};
 
 fn fixture_root() -> PathBuf {
@@ -78,11 +78,13 @@ fn asset_icon_has_nested_if() {
     let src = std::fs::read_to_string(path).unwrap();
     let parsed = parse(&src, "asset-icon.html");
     assert!(parsed.ok());
-    assert!(parsed
-        .template
-        .nodes
-        .iter()
-        .any(|n| matches!(n, Node::If(_))));
+    assert!(
+        parsed
+            .template
+            .nodes
+            .iter()
+            .any(|n| matches!(n, Node::If(_)))
+    );
 }
 
 #[test]
@@ -179,10 +181,12 @@ fn template_outlet_parses_ref() {
             _ => None,
         })
         .expect("section");
-    assert!(section
-        .children
-        .iter()
-        .any(|c| { matches!(c, Node::NgTemplate(t) if t.name == "card") }));
+    assert!(
+        section
+            .children
+            .iter()
+            .any(|c| { matches!(c, Node::NgTemplate(t) if t.name == "card") })
+    );
 }
 
 #[test]
@@ -204,8 +208,10 @@ fn garbage_input_never_panics() {
 fn unknown_directive_warns_not_panics() {
     let parsed = parse(r#"<div *unknown="yes"></div>"#, "warn.html");
     assert!(parsed.ok());
-    assert!(parsed
-        .diagnostics
-        .iter()
-        .any(|d| d.code == "RANG101" && d.message.contains("unknown structural directive")));
+    assert!(
+        parsed
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "RANG101" && d.message.contains("unknown structural directive"))
+    );
 }

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use rangular_expr::{PipeFn, PipeRegistry};
-use rangular_parser::{builtin_tag_io, TagIo};
+use rangular_parser::{TagIo, builtin_tag_io};
 
 /// Example component tags aligned with `tests/fixtures/components/`.
 pub const APP_COLOR_FIELD: &str = "app-color-field";
@@ -157,7 +157,7 @@ impl Registry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rangular_expr::{eval_with_pipes, parse, Host, Value};
+    use rangular_expr::{Host, Value, eval_with_pipes, parse};
     use rangular_host::HostError;
 
     struct LabelHost;

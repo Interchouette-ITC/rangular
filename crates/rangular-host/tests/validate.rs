@@ -1,6 +1,6 @@
 use rangular_host::{
-    first_error, max_length, max_length_value, min_length, min_length_value, pattern,
-    pattern_value, required, required_value, show_when_dirty, Regex, Value,
+    Regex, Value, first_error, max_length, max_length_value, min_length, min_length_value, pattern,
+    pattern_value, required, required_value, show_when_dirty,
 };
 
 #[test]

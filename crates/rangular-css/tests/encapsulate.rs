@@ -1,4 +1,4 @@
-use rangular_css::{compile_scss, encapsulate, encapsulate_css, ScopeAttrs};
+use rangular_css::{ScopeAttrs, compile_scss, encapsulate, encapsulate_css};
 use std::path::{Path, PathBuf};
 
 fn fixture_root() -> PathBuf {
@@ -180,9 +180,10 @@ fn encapsulate_keeps_container_and_has() {
     );
     assert!(out.ok(), "{:?}", out.issues);
     assert!(out.css.contains("@container (max-width: 20rem)"));
-    assert!(out
-        .css
-        .contains(".item-list[_ngcontent-r0]:has(.item-list__implicit)"));
+    assert!(
+        out.css
+            .contains(".item-list[_ngcontent-r0]:has(.item-list__implicit)")
+    );
     assert!(out.css.contains(".item-list__row[_ngcontent-r0]"));
 }
 
@@ -346,8 +347,10 @@ fn compile_scss_layer_font_and_host_descendants() {
 
     let empty_sel = encapsulate_css(".a,,.b { color: red; }", &scope());
     assert!(!empty_sel.ok());
-    assert!(empty_sel
-        .issues
-        .iter()
-        .any(|i| i.message.contains("empty selector")));
+    assert!(
+        empty_sel
+            .issues
+            .iter()
+            .any(|i| i.message.contains("empty selector"))
+    );
 }
