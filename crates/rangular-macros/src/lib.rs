@@ -59,6 +59,17 @@ mod tests {
     use super::{default_fn_name, TemplateInput};
     use syn::parse_str;
 
+    fn resolve_fn_name(input: &TemplateInput) -> String {
+        input
+            .fn_name
+            .clone()
+            .unwrap_or_else(|| default_fn_name(&input.path))
+    }
+
+    fn include_suffix(fn_name: &str) -> String {
+        format!("/rangular/{fn_name}.rs")
+    }
+
     #[test]
     fn default_fn_name_replaces_hyphens() {
         assert_eq!(default_fn_name("seed-bar.html"), "seed_bar");
@@ -76,9 +87,16 @@ mod tests {
         let path_only: TemplateInput = parse_str(r#""seed-bar.html""#).expect("path");
         assert_eq!(path_only.path, "seed-bar.html");
         assert!(path_only.fn_name.is_none());
+        assert_eq!(resolve_fn_name(&path_only), "seed_bar");
+        assert_eq!(include_suffix("seed_bar"), "/rangular/seed_bar.rs");
 
         let named: TemplateInput = parse_str(r#""seed-bar.html", "seed_bar_view""#).expect("named");
         assert_eq!(named.path, "seed-bar.html");
         assert_eq!(named.fn_name.as_deref(), Some("seed_bar_view"));
+        assert_eq!(resolve_fn_name(&named), "seed_bar_view");
+        assert_eq!(
+            include_suffix("seed_bar_view"),
+            "/rangular/seed_bar_view.rs"
+        );
     }
 }
