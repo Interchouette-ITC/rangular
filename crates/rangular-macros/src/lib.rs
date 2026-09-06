@@ -15,8 +15,10 @@ use syn::{parse_macro_input, LitStr};
 #[proc_macro]
 pub fn rangular_template(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as TemplateInput);
-    let fn_name = resolve_fn_name(&input);
-    let suffix = include_suffix(&fn_name);
+    let fn_name = input
+        .fn_name
+        .unwrap_or_else(|| default_fn_name(&input.path));
+    let suffix = format!("/rangular/{fn_name}.rs");
     let suffix_lit = LitStr::new(&suffix, proc_macro2::Span::call_site());
     quote! {
         include!(concat!(env!("OUT_DIR"), #suffix_lit));
@@ -44,17 +46,6 @@ impl syn::parse::Parse for TemplateInput {
     }
 }
 
-fn resolve_fn_name(input: &TemplateInput) -> String {
-    input
-        .fn_name
-        .clone()
-        .unwrap_or_else(|| default_fn_name(&input.path))
-}
-
-fn include_suffix(fn_name: &str) -> String {
-    format!("/rangular/{fn_name}.rs")
-}
-
 fn default_fn_name(path: &str) -> String {
     PathBuf::from(path)
         .file_stem()
@@ -65,8 +56,19 @@ fn default_fn_name(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{default_fn_name, include_suffix, resolve_fn_name, TemplateInput};
+    use super::{default_fn_name, TemplateInput};
     use syn::parse_str;
+
+    fn resolve_fn_name(input: &TemplateInput) -> String {
+        input
+            .fn_name
+            .clone()
+            .unwrap_or_else(|| default_fn_name(&input.path))
+    }
+
+    fn include_suffix(fn_name: &str) -> String {
+        format!("/rangular/{fn_name}.rs")
+    }
 
     #[test]
     fn default_fn_name_replaces_hyphens() {
