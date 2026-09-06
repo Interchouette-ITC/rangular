@@ -15,13 +15,13 @@
 <a href=#15 id=15 data-nosnippet>15</a>    value: Value,
 <a href=#16 id=16 data-nosnippet>16</a>}
 <a href=#17 id=17 data-nosnippet>17</a>
-<a href=#18 id=18 data-nosnippet>18</a><span class="kw">struct </span>Ctx&lt;<span class="lifetime">'a</span>, H: Host&gt; {
-<a href=#19 id=19 data-nosnippet>19</a>    host: <span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span>H,
-<a href=#20 id=20 data-nosnippet>20</a>    pipes: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>PipeRegistry,
+<a href=#18 id=18 data-nosnippet>18</a><span class="kw">struct </span>Ctx&lt;<span class="lifetime">'rt</span>, H: Host&gt; {
+<a href=#19 id=19 data-nosnippet>19</a>    host: <span class="kw-2">&amp;</span><span class="lifetime">'rt </span><span class="kw-2">mut </span>H,
+<a href=#20 id=20 data-nosnippet>20</a>    pipes: <span class="kw-2">&amp;</span><span class="lifetime">'rt </span>PipeRegistry,
 <a href=#21 id=21 data-nosnippet>21</a>    frames: Vec&lt;Frame&gt;,
 <a href=#22 id=22 data-nosnippet>22</a>    loop_depth: Vec&lt;(usize, usize)&gt;,
 <a href=#23 id=23 data-nosnippet>23</a>    issues: Vec&lt;RuntimeIssue&gt;,
-<a href=#24 id=24 data-nosnippet>24</a>    slots: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>ProjectionBag,
+<a href=#24 id=24 data-nosnippet>24</a>    slots: <span class="kw-2">&amp;</span><span class="lifetime">'rt </span>ProjectionBag,
 <a href=#25 id=25 data-nosnippet>25</a>    templates: HashMap&lt;String, Vec&lt;Node&gt;&gt;,
 <a href=#26 id=26 data-nosnippet>26</a>}
 <a href=#27 id=27 data-nosnippet>27</a>

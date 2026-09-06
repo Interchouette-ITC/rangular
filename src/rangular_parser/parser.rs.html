@@ -22,15 +22,15 @@
 <a href=#22 id=22 data-nosnippet>22</a>    </span>Close,
 <a href=#23 id=23 data-nosnippet>23</a>}
 <a href=#24 id=24 data-nosnippet>24</a>
-<a href=#25 id=25 data-nosnippet>25</a><span class="kw">struct </span>Parser&lt;<span class="lifetime">'a</span>&gt; {
-<a href=#26 id=26 data-nosnippet>26</a>    src: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str,
-<a href=#27 id=27 data-nosnippet>27</a>    file: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str,
+<a href=#25 id=25 data-nosnippet>25</a><span class="kw">struct </span>Parser&lt;<span class="lifetime">'src</span>&gt; {
+<a href=#26 id=26 data-nosnippet>26</a>    src: <span class="kw-2">&amp;</span><span class="lifetime">'src </span>str,
+<a href=#27 id=27 data-nosnippet>27</a>    file: <span class="kw-2">&amp;</span><span class="lifetime">'src </span>str,
 <a href=#28 id=28 data-nosnippet>28</a>    pos: usize,
 <a href=#29 id=29 data-nosnippet>29</a>    diagnostics: Vec&lt;Diagnostic&gt;,
 <a href=#30 id=30 data-nosnippet>30</a>}
 <a href=#31 id=31 data-nosnippet>31</a>
-<a href=#32 id=32 data-nosnippet>32</a><span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Parser&lt;<span class="lifetime">'a</span>&gt; {
-<a href=#33 id=33 data-nosnippet>33</a>    <span class="kw">pub fn </span>parse(src: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str, file: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str) -&gt; Parsed {
+<a href=#32 id=32 data-nosnippet>32</a><span class="kw">impl</span>&lt;<span class="lifetime">'src</span>&gt; Parser&lt;<span class="lifetime">'src</span>&gt; {
+<a href=#33 id=33 data-nosnippet>33</a>    <span class="kw">pub fn </span>parse(src: <span class="kw-2">&amp;</span><span class="lifetime">'src </span>str, file: <span class="kw-2">&amp;</span><span class="lifetime">'src </span>str) -&gt; Parsed {
 <a href=#34 id=34 data-nosnippet>34</a>        <span class="kw">let </span><span class="kw-2">mut </span>p = <span class="self">Self </span>{
 <a href=#35 id=35 data-nosnippet>35</a>            src,
 <a href=#36 id=36 data-nosnippet>36</a>            file,
