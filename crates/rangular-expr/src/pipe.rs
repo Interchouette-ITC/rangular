@@ -68,21 +68,6 @@ impl PipeRegistry {
     }
 }
 
-fn display_plain(value: &Value) -> String {
-    match value {
-        Value::Str(s) => s.clone(),
-        Value::Num(n) => format_num(*n),
-        Value::Bool(b) => b.to_string(),
-        Value::List(items) => items
-            .iter()
-            .map(display_plain)
-            .collect::<Vec<_>>()
-            .join(","),
-        Value::Event(payload) => format!("{payload:?}"),
-        Value::Unit => String::new(),
-    }
-}
-
 fn format_num(n: f64) -> String {
     if n.fract() == 0.0 && n.abs() < 1e15 {
         format!("{n:.0}")
@@ -102,14 +87,29 @@ fn as_number(value: &Value) -> Result<f64, EvalError> {
     }
 }
 
-#[allow(clippy::unnecessary_wraps)] // PipeFn signature is always Result
-fn pipe_uppercase(value: &Value, _: &[Value]) -> Result<Value, EvalError> {
-    Ok(Value::Str(display_plain(value).to_uppercase()))
+const fn require_str<'a>(value: &'a Value, pipe: &'static str) -> Result<&'a str, EvalError> {
+    match value {
+        Value::Str(s) => Ok(s.as_str()),
+        _ => Err(EvalError::TypeMismatch(pipe)),
+    }
 }
 
-#[allow(clippy::unnecessary_wraps)] // PipeFn signature is always Result
-fn pipe_lowercase(value: &Value, _: &[Value]) -> Result<Value, EvalError> {
-    Ok(Value::Str(display_plain(value).to_lowercase()))
+fn pipe_uppercase(value: &Value, args: &[Value]) -> Result<Value, EvalError> {
+    if !args.is_empty() {
+        return Err(EvalError::TypeMismatch("uppercase pipe args"));
+    }
+    Ok(Value::Str(
+        require_str(value, "uppercase pipe")?.to_uppercase(),
+    ))
+}
+
+fn pipe_lowercase(value: &Value, args: &[Value]) -> Result<Value, EvalError> {
+    if !args.is_empty() {
+        return Err(EvalError::TypeMismatch("lowercase pipe args"));
+    }
+    Ok(Value::Str(
+        require_str(value, "lowercase pipe")?.to_lowercase(),
+    ))
 }
 
 fn pipe_number(value: &Value, args: &[Value]) -> Result<Value, EvalError> {
@@ -130,8 +130,10 @@ fn pipe_number(value: &Value, args: &[Value]) -> Result<Value, EvalError> {
     Ok(Value::Str(format_num(n)))
 }
 
-#[allow(clippy::unnecessary_wraps)] // PipeFn signature is always Result
-fn pipe_json(value: &Value, _: &[Value]) -> Result<Value, EvalError> {
+fn pipe_json(value: &Value, args: &[Value]) -> Result<Value, EvalError> {
+    if !args.is_empty() {
+        return Err(EvalError::TypeMismatch("json pipe args"));
+    }
     Ok(Value::Str(jsonish(value)))
 }
 
@@ -190,6 +192,22 @@ mod tests {
             reg.apply("missing", &Value::Unit, &[]),
             Err(EvalError::UnknownPipe(_))
         ));
+        assert!(matches!(
+            reg.apply("uppercase", &Value::Num(1.0), &[]),
+            Err(EvalError::TypeMismatch(_))
+        ));
+        assert!(matches!(
+            reg.apply("lowercase", &Value::Unit, &[]),
+            Err(EvalError::TypeMismatch(_))
+        ));
+        assert!(matches!(
+            reg.apply("uppercase", &Value::Str("x".into()), &[Value::Num(1.0)]),
+            Err(EvalError::TypeMismatch(_))
+        ));
+        assert!(matches!(
+            reg.apply("json", &Value::Unit, &[Value::Str("x".into())]),
+            Err(EvalError::TypeMismatch(_))
+        ));
     }
 
     #[test]
@@ -223,21 +241,8 @@ mod tests {
     }
 
     #[test]
-    fn display_and_json_cover_value_variants() {
+    fn json_covers_value_variants() {
         let reg = PipeRegistry::with_builtins();
-        assert_eq!(
-            reg.apply(
-                "uppercase",
-                &Value::List(vec![Value::Str("a".into()), Value::Bool(true)]),
-                &[]
-            )
-            .unwrap(),
-            Value::Str("A,TRUE".into())
-        );
-        assert_eq!(
-            reg.apply("lowercase", &Value::Unit, &[]).unwrap(),
-            Value::Str(String::new())
-        );
         assert_eq!(
             reg.apply(
                 "json",
@@ -255,19 +260,6 @@ mod tests {
             reg.apply("json", &Value::from(rangular_host::EventPayload::Load), &[])
                 .unwrap(),
             Value::Str("\"Load\"".into())
-        );
-        assert_eq!(
-            reg.apply("uppercase", &Value::Num(1.5), &[]).unwrap(),
-            Value::Str("1.5".into())
-        );
-        assert_eq!(
-            reg.apply(
-                "uppercase",
-                &Value::from(rangular_host::EventPayload::Error),
-                &[]
-            )
-            .unwrap(),
-            Value::Str("ERROR".into())
         );
         assert_eq!(
             reg.apply("json", &Value::Str("a\nb\rc\td\\e\"f".into()), &[])

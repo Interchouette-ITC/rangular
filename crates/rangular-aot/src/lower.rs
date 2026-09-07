@@ -138,7 +138,7 @@ impl HoistState {
         let closure = closure.clone();
         self.closure_lets.push(quote! {
             let #id = leptos::prelude::StoredValue::new(std::sync::Arc::new({
-                let host = __rangular_host.get_value().clone();
+                let host = __rangular_host.get_value();
                 #closure
             }));
         });
@@ -191,7 +191,6 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
     let has_default = has_default_projection(&template.nodes);
     let tokens = if selects.is_empty() && has_projection(&template.nodes) {
         quote! {
-            #[allow(clippy::needless_pass_by_value, clippy::redundant_clone)]
             pub fn #ident<H: rangular_host::Host + 'static>(
                 host: rangular_aot::HostCell<H>,
                 children: Children,
@@ -211,7 +210,6 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
             params.push(quote! { children: Children });
         }
         quote! {
-            #[allow(clippy::needless_pass_by_value, clippy::redundant_clone)]
             pub fn #ident<H: rangular_host::Host + 'static>(
                 host: rangular_aot::HostCell<H>,
                 #(#params),*
@@ -223,7 +221,6 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
         }
     } else {
         quote! {
-            #[allow(clippy::needless_pass_by_value, clippy::redundant_clone)]
             pub fn #ident<H: rangular_host::Host + 'static>(
                 host: rangular_aot::HostCell<H>,
             ) -> impl IntoView {
@@ -618,10 +615,9 @@ fn lower_for(
             let:row
         >
             {
-                let (__rangular_index, __rangular_count, #item_ident) = row.clone();
-                let __rangular_loop_store = leptos::prelude::StoredValue::new(std::sync::Arc::new(
-                    #item_ident.clone(),
-                ));
+                let (__rangular_index, __rangular_count, #item_ident) = row;
+                let __rangular_loop_store =
+                    leptos::prelude::StoredValue::new(std::sync::Arc::new(#item_ident));
                 #body_prelude
                 view! { #body }
             }
