@@ -12,22 +12,27 @@ pub fn demo_pipes() -> Arc<PipeRegistry> {
     }))
 }
 
-#[allow(clippy::unnecessary_wraps)]
-fn pipe_crab(value: &Value, _: &[Value]) -> Result<Value, EvalError> {
+fn pipe_crab(value: &Value, args: &[Value]) -> Result<Value, EvalError> {
+    if !args.is_empty() {
+        return Err(EvalError::TypeMismatch("crab pipe args"));
+    }
     let text = match value {
         Value::Str(s) => s.clone(),
         Value::Num(n) => n.to_string(),
         Value::Bool(b) => b.to_string(),
-        Value::List(items) => items
-            .iter()
-            .filter_map(|item| match item {
-                Value::Str(s) => Some(s.as_str()),
-                _ => None,
-            })
-            .collect::<Vec<_>>()
-            .join(", "),
-        Value::Event(payload) => format!("{payload:?}"),
-        Value::Unit => String::new(),
+        Value::List(items) => {
+            let mut parts = Vec::with_capacity(items.len());
+            for item in items {
+                match item {
+                    Value::Str(s) => parts.push(s.as_str()),
+                    _ => return Err(EvalError::TypeMismatch("crab pipe list")),
+                }
+            }
+            parts.join(", ")
+        }
+        Value::Event(_) | Value::Unit => {
+            return Err(EvalError::TypeMismatch("crab pipe"));
+        }
     };
     Ok(Value::Str(format!("{text} 🦀")))
 }
@@ -56,5 +61,14 @@ mod tests {
         let mut host = LabelHost;
         let out = eval_with_pipes(&expr, &mut host, &demo_pipes()).unwrap();
         assert_eq!(out, Value::Str("Hello 🦀".into()));
+    }
+
+    #[test]
+    fn crab_pipe_rejects_unit() {
+        let pipes = demo_pipes();
+        let err = pipes
+            .apply("crab", &Value::Unit, &[])
+            .expect_err("unit");
+        assert!(matches!(err, rangular_expr::EvalError::TypeMismatch(_)));
     }
 }

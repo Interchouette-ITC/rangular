@@ -527,11 +527,27 @@ fn pipes_runtime_snapshot() {
     use rangular_expr::{EvalError, PipeRegistry};
     use rangular_host::Value as HostValue;
 
-    #[allow(clippy::unnecessary_wraps)]
-    fn pipe_crab(value: &HostValue, _: &[HostValue]) -> Result<HostValue, EvalError> {
+    fn pipe_crab(value: &HostValue, args: &[HostValue]) -> Result<HostValue, EvalError> {
+        if !args.is_empty() {
+            return Err(EvalError::TypeMismatch("crab pipe args"));
+        }
         let text = match value {
             HostValue::Str(s) => s.clone(),
-            _ => String::new(),
+            HostValue::Num(n) => n.to_string(),
+            HostValue::Bool(b) => b.to_string(),
+            HostValue::List(items) => {
+                let mut parts = Vec::with_capacity(items.len());
+                for item in items {
+                    match item {
+                        HostValue::Str(s) => parts.push(s.as_str()),
+                        _ => return Err(EvalError::TypeMismatch("crab pipe list")),
+                    }
+                }
+                parts.join(", ")
+            }
+            HostValue::Event(_) | HostValue::Unit => {
+                return Err(EvalError::TypeMismatch("crab pipe"));
+            }
         };
         Ok(HostValue::Str(format!("{text} 🦀")))
     }

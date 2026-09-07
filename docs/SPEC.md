@@ -187,6 +187,17 @@ and property / attribute bindings.
 | `{{ a \| b \| c }}`       | Left-associative chain      |
 
 Builtins (pure transforms on eval): `uppercase`, `lowercase`, `number`, `json`.
+
+| Builtin | Input | Notes |
+| --- | --- | --- |
+| `uppercase` / `lowercase` | `Str` only | reject non-strings and colon args |
+| `number` | `Num`, parseable `Str`, or `Bool` | optional integer digits arg `0..=20` |
+| `json` | any value | reject colon args |
+
+Failed pipe eval becomes empty display in runtime / AOT (`Value::Unit`); callers that use
+[`PipeRegistry::apply`](../crates/rangular-expr/src/pipe.rs) or `eval_with_pipes` still see
+`EvalError`.
+
 Apps register custom pipes on [`Registry::register_pipe`](../crates/rangular/src/registry.rs)
 (same map for AOT `HostCell::with_pipes` and runtime `interpret_with_pipes`).
 
