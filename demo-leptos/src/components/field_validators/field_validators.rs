@@ -1,10 +1,11 @@
 use leptos::prelude::*;
 use rangular_aot::HostCell;
-use rangular_host::{
-    first_error, min_length, pattern, required, Host, HostError, Regex, Value,
-};
+use rangular_host::{Host, HostError, Regex, Value, first_error, min_length, pattern, required};
 
-include!(concat!(env!("OUT_DIR"), "/rangular/field_validators_view.rs"));
+include!(concat!(
+    env!("OUT_DIR"),
+    "/rangular/field_validators_view.rs"
+));
 
 #[component]
 pub fn FieldValidatorsPanel(applied_seed: RwSignal<String>) -> impl IntoView {

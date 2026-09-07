@@ -13,8 +13,8 @@ use kode_leptos::{CodeEditor, EditorHandle, Marker, MarkerSeverity, Position, Th
 use leptos::prelude::*;
 
 use self::sources::{
-    file_extension, file_stem, group_label_for_stem, is_io_child_html, source_for, truncate_middle,
-    ShowcaseFile, ShowcaseLang, TAB_STEM_MAX, TRINITY_LEN,
+    ShowcaseFile, ShowcaseLang, TAB_STEM_MAX, TRINITY_LEN, file_extension, file_stem,
+    group_label_for_stem, is_io_child_html, source_for, truncate_middle,
 };
 
 const CONTENT_FADE_MS: u32 = 120;

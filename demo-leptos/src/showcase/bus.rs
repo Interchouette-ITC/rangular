@@ -62,10 +62,10 @@ impl ShowcaseBus {
         } else {
             "collapsed"
         };
-        if let Some(window) = web_sys::window() {
-            if let Ok(Some(storage)) = window.local_storage() {
-                let _ = storage.set_item(STORAGE_KEY, value);
-            }
+        if let Some(window) = web_sys::window()
+            && let Ok(Some(storage)) = window.local_storage()
+        {
+            let _ = storage.set_item(STORAGE_KEY, value);
         }
     }
 
@@ -98,17 +98,17 @@ impl ShowcaseBus {
 
 fn default_expanded() -> bool {
     if let Some(window) = web_sys::window() {
-        if let Ok(Some(storage)) = window.local_storage() {
-            if let Ok(Some(value)) = storage.get_item(STORAGE_KEY) {
-                return value == "expanded";
-            }
+        if let Ok(Some(storage)) = window.local_storage()
+            && let Ok(Some(value)) = storage.get_item(STORAGE_KEY)
+        {
+            return value == "expanded";
         }
-        if let Ok(width) = window.inner_width() {
-            if let Some(w) = width.as_f64() {
-                // First visit on narrow viewports: start collapsed so the demo stays usable.
-                if w <= 1024.0 {
-                    return false;
-                }
+        if let Ok(width) = window.inner_width()
+            && let Some(w) = width.as_f64()
+        {
+            // First visit on narrow viewports: start collapsed so the demo stays usable.
+            if w <= 1024.0 {
+                return false;
             }
         }
     }
