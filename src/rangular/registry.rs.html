@@ -3,7 +3,7 @@
 <a href=#3 id=3 data-nosnippet>3</a><span class="kw">use </span>std::sync::Arc;
 <a href=#4 id=4 data-nosnippet>4</a>
 <a href=#5 id=5 data-nosnippet>5</a><span class="kw">use </span>rangular_expr::{PipeFn, PipeRegistry};
-<a href=#6 id=6 data-nosnippet>6</a><span class="kw">use </span>rangular_parser::{builtin_tag_io, TagIo};
+<a href=#6 id=6 data-nosnippet>6</a><span class="kw">use </span>rangular_parser::{TagIo, builtin_tag_io};
 <a href=#7 id=7 data-nosnippet>7</a>
 <a href=#8 id=8 data-nosnippet>8</a><span class="doccomment">/// Example component tags aligned with `tests/fixtures/components/`.
 <a href=#9 id=9 data-nosnippet>9</a></span><span class="kw">pub const </span>APP_COLOR_FIELD: <span class="kw-2">&amp;</span>str = <span class="string">"app-color-field"</span>;
@@ -157,7 +157,7 @@
 <a href=#157 id=157 data-nosnippet>157</a><span class="attr">#[cfg(test)]
 <a href=#158 id=158 data-nosnippet>158</a></span><span class="kw">mod </span>tests {
 <a href=#159 id=159 data-nosnippet>159</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
-<a href=#160 id=160 data-nosnippet>160</a>    <span class="kw">use </span>rangular_expr::{eval_with_pipes, parse, Host, Value};
+<a href=#160 id=160 data-nosnippet>160</a>    <span class="kw">use </span>rangular_expr::{Host, Value, eval_with_pipes, parse};
 <a href=#161 id=161 data-nosnippet>161</a>    <span class="kw">use </span>rangular_host::HostError;
 <a href=#162 id=162 data-nosnippet>162</a>
 <a href=#163 id=163 data-nosnippet>163</a>    <span class="kw">struct </span>LabelHost;
