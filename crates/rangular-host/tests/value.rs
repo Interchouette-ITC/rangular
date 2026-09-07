@@ -15,10 +15,12 @@ fn is_truthy_covers_variants() {
     assert!(Value::from(EventPayload::Error).is_truthy());
     assert!(Value::from(EventPayload::Load).is_truthy());
     assert!(Value::from(EventPayload::Input { value: "a".into() }).is_truthy());
-    assert!(!Value::from(EventPayload::Input {
-        value: String::new()
-    })
-    .is_truthy());
+    assert!(
+        !Value::from(EventPayload::Input {
+            value: String::new()
+        })
+        .is_truthy()
+    );
     assert!(Value::from(EventPayload::Custom(Box::new(Value::Bool(true)))).is_truthy());
     assert!(!Value::from(EventPayload::Custom(Box::new(Value::Unit))).is_truthy());
 }
@@ -87,9 +89,11 @@ fn event_payload_labels_and_from_dom() {
     );
     assert_eq!(EventPayload::Error.demo_label(), "Error");
     assert_eq!(EventPayload::Load.demo_label(), "Load");
-    assert!(EventPayload::Custom(Box::new(Value::Unit))
-        .demo_label()
-        .starts_with("Custom("));
+    assert!(
+        EventPayload::Custom(Box::new(Value::Unit))
+            .demo_label()
+            .starts_with("Custom(")
+    );
     assert_eq!(EventPayload::Click { x: 0, y: 0 }.kind_label(), "click");
     assert_eq!(
         EventPayload::Input {

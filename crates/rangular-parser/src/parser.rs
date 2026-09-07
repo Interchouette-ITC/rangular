@@ -1,9 +1,9 @@
 use crate::ast::{Attr, Element, ForBlock, IfBlock, NgTemplate, Node, Projection, Template};
 use crate::banana::{banana_event_name, banana_write_expr};
 use crate::diag::Diagnostic;
-use crate::expr::{parse_into, Expr};
+use crate::expr::{Expr, parse_into};
 use crate::projection::is_projection_tag;
-use crate::span::{pos, Span};
+use crate::span::{Span, pos};
 
 const VOID: &[&str] = &[
     "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source",

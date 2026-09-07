@@ -1,21 +1,25 @@
 use rangular_parser::{
-    banana_event_name, banana_set_target, banana_write_expr, collect_ng_templates,
-    collect_projection_selects, has_default_projection, is_outlet_container, is_projection_tag,
-    matches_select, parse, select_param_name, template_outlet_ref, Attr, Expr, Node,
+    Attr, Expr, Node, banana_event_name, banana_set_target, banana_write_expr,
+    collect_ng_templates, collect_projection_selects, has_default_projection, is_outlet_container,
+    is_projection_tag, matches_select, parse, select_param_name, template_outlet_ref,
 };
 
 #[test]
 fn unexpected_else_and_closing_tag() {
     let lone_else = parse("@else { hi }", "t.html");
-    assert!(lone_else
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("unexpected @else")));
+    assert!(
+        lone_else
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("unexpected @else"))
+    );
     let close = parse("</div>", "t.html");
-    assert!(close
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("unexpected closing tag")));
+    assert!(
+        close
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("unexpected closing tag"))
+    );
 }
 
 #[test]
@@ -28,10 +32,11 @@ fn comments_and_unclosed_comment() {
     ));
     let bad = parse("<!-- open", "t.html");
     assert!(!bad.ok());
-    assert!(bad
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("unclosed comment")));
+    assert!(
+        bad.diagnostics
+            .iter()
+            .any(|d| d.message.contains("unclosed comment"))
+    );
 }
 
 #[test]
@@ -58,10 +63,12 @@ fn projection_and_ng_template() {
 
     let missing = parse("<ng-template><p>x</p></ng-template>", "t.html");
     assert!(!missing.ok());
-    assert!(missing
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("ng-template requires")));
+    assert!(
+        missing
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("ng-template requires"))
+    );
 }
 
 #[test]
@@ -78,10 +85,12 @@ fn structural_ng_if_for_and_unknown() {
     assert!(matches!(nfor.template.nodes.first(), Some(Node::For(_))));
 
     let unknown = parse("<p *ngSwitch=\"mode\">x</p>", "t.html");
-    assert!(unknown
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("unknown structural")));
+    assert!(
+        unknown
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("unknown structural"))
+    );
 }
 
 #[test]
@@ -103,16 +112,20 @@ fn control_flow_blocks_and_errors() {
     assert!(tracked.ok(), "{:?}", tracked.diagnostics);
 
     let bad_if = parse("@if flag { x }", "t.html");
-    assert!(bad_if
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("expected '(' after @if")));
+    assert!(
+        bad_if
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("expected '(' after @if"))
+    );
 
     let bad_for = parse("@for (item items) { <span>x</span> }", "t.html");
-    assert!(bad_for
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("expected 'of'")));
+    assert!(
+        bad_for
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("expected 'of'"))
+    );
 }
 
 #[test]
@@ -172,18 +185,22 @@ fn matches_select_variants_and_outlet() {
 #[test]
 fn attribute_error_paths_and_mismatched_close() {
     let unclosed = parse("{{ label", "t.html");
-    assert!(unclosed
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("unclosed interpolation")));
+    assert!(
+        unclosed
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("unclosed interpolation"))
+    );
 
     let mismatch = parse("<div><span></div>", "t.html");
-    assert!(mismatch
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("unexpected closing tag")
-            || d.message.contains("does not match")
-            || d.message.contains("unexpected end")));
+    assert!(
+        mismatch
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("unexpected closing tag")
+                || d.message.contains("does not match")
+                || d.message.contains("unexpected end"))
+    );
 
     let flag = parse("<input disabled />", "t.html");
     assert!(flag.ok(), "{:?}", flag.diagnostics);
@@ -202,25 +219,31 @@ fn attribute_error_paths_and_mismatched_close() {
     assert!(escaped.ok(), "{:?}", escaped.diagnostics);
 
     let unquoted = parse("<div [title]=foo></div>", "t.html");
-    assert!(unquoted
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("expected quoted")));
+    assert!(
+        unquoted
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("expected quoted"))
+    );
 }
 
 #[test]
 fn for_brace_and_iterable_error_paths() {
     let no_paren = parse("@for item of items { <span>x</span> }", "t.html");
-    assert!(no_paren
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("expected '(' after @for")));
+    assert!(
+        no_paren
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("expected '(' after @for"))
+    );
 
     let empty_iter = parse("@for (let item of ) { <span>x</span> }", "t.html");
-    assert!(empty_iter
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("expected iterable")));
+    assert!(
+        empty_iter
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("expected iterable"))
+    );
 
     let no_track = parse("@for (let item of items; ) { <span>x</span> }", "t.html");
     assert!(
@@ -240,16 +263,20 @@ fn for_brace_and_iterable_error_paths() {
     }
 
     let missing_brace = parse("@if (flag) x", "t.html");
-    assert!(missing_brace
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("expected '{'")));
+    assert!(
+        missing_brace
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("expected '{'"))
+    );
 
     let for_missing_brace = parse("@for (let i of items) x", "t.html");
-    assert!(for_missing_brace
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("expected '{'")));
+    assert!(
+        for_missing_brace
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("expected '{'"))
+    );
 }
 
 #[test]
@@ -379,10 +406,12 @@ fn expr_layer_error_and_warning_via_interpolation() {
 #[test]
 fn parser_malformed_attrs_quotes_and_text_boundaries() {
     let unclosed = parse(r#"<div title="open></div>"#, "t.html");
-    assert!(unclosed
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("unclosed")));
+    assert!(
+        unclosed
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("unclosed"))
+    );
 
     let text_for = parse(
         "hello @for (let item of items) { <span>{{item}}</span> }",
@@ -406,10 +435,13 @@ fn parser_malformed_attrs_quotes_and_text_boundaries() {
     assert!(star_attr.ok() || star_attr.diagnostics.iter().any(|_| true));
 
     let mismatch = parse("<section></div>", "t.html");
-    assert!(mismatch
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("unexpected closing") || d.message.contains("does not match")));
+    assert!(
+        mismatch
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("unexpected closing")
+                || d.message.contains("does not match"))
+    );
 }
 
 #[test]
@@ -439,7 +471,7 @@ fn span_line_col_counts_newlines() {
 
 #[test]
 fn binding_ir_comment_outlet_and_handler_names() {
-    use rangular_parser::{binding_ir, binding_ir_snapshot, event_handler_name, IrNode};
+    use rangular_parser::{IrNode, binding_ir, binding_ir_snapshot, event_handler_name};
 
     let with_comment = parse("<!-- c --><p>x</p>", "t.html");
     let ir = binding_ir(&with_comment.template);
@@ -452,9 +484,11 @@ fn binding_ir_comment_outlet_and_handler_names() {
         "t.html",
     );
     let outlet_ir = binding_ir(&outlet.template);
-    assert!(outlet_ir
-        .iter()
-        .any(|n| matches!(n, IrNode::TemplateOutlet { .. })));
+    assert!(
+        outlet_ir
+            .iter()
+            .any(|n| matches!(n, IrNode::TemplateOutlet { .. }))
+    );
 
     assert_eq!(
         event_handler_name(&Expr::Call {
@@ -472,7 +506,7 @@ fn binding_ir_comment_outlet_and_handler_names() {
 
 #[test]
 fn classify_bindings_marks_registered_outputs() {
-    use rangular_parser::{classify_bindings, Attr, TagIo};
+    use rangular_parser::{Attr, TagIo, classify_bindings};
     use std::collections::HashMap;
 
     let mut parsed = parse(
@@ -488,50 +522,63 @@ fn classify_bindings_marks_registered_outputs() {
     let Some(Node::Element(el)) = parsed.template.nodes.first() else {
         panic!("expected element");
     };
-    assert!(el
-        .attrs
-        .iter()
-        .any(|a| matches!(a, Attr::Output { name, .. } if name == "muteToggle")));
+    assert!(
+        el.attrs
+            .iter()
+            .any(|a| matches!(a, Attr::Output { name, .. } if name == "muteToggle"))
+    );
 }
 
 #[test]
 fn banana_event_paren_and_for_ident_edges() {
     // Terminate bananas on `>` / `/` so the attr loop advances (no hang).
     let banana_paren = parse(r"<input [(value/>", "t.html");
-    assert!(banana_paren
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("expected ')' in two-way")));
+    assert!(
+        banana_paren
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("expected ')' in two-way"))
+    );
 
     let banana_bracket = parse(r"<input [(value)>", "t.html");
-    assert!(banana_bracket
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("expected ']' in two-way")));
+    assert!(
+        banana_bracket
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("expected ']' in two-way"))
+    );
 
     let banana_quote = parse(r"<input [(value)]=seed />", "t.html");
-    assert!(banana_quote
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("expected quoted")));
+    assert!(
+        banana_quote
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("expected quoted"))
+    );
 
     let banana_warn = parse(r#"<input [(value)]="foo()" />"#, "t.html");
-    assert!(banana_warn
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("two-way binding target")));
+    assert!(
+        banana_warn
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("two-way binding target"))
+    );
 
     let event_paren = parse(r"<button (click/>", "t.html");
-    assert!(event_paren
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("expected ')'")));
+    assert!(
+        event_paren
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("expected ')'"))
+    );
 
     let bad_ident = parse("@for (let 1 of items) { x }", "t.html");
-    assert!(bad_ident
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("expected identifier")));
+    assert!(
+        bad_ident
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("expected identifier"))
+    );
 
     let nested_paren = parse("@if ((a)) { x }", "t.html");
     assert!(nested_paren.ok(), "{:?}", nested_paren.diagnostics);
@@ -539,21 +586,25 @@ fn banana_event_paren_and_for_ident_edges() {
     assert!(call_paren.ok(), "{:?}", call_paren.diagnostics);
 
     let braced_else = parse("@if (x) { @else }", "t.html");
-    assert!(braced_else
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("unexpected @else")));
+    assert!(
+        braced_else
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("unexpected @else"))
+    );
 
     let mismatch = parse("<p>hi</div>", "t.html");
-    assert!(mismatch
-        .diagnostics
-        .iter()
-        .any(|d| d.message.contains("does not match") || d.message.contains("closing")));
+    assert!(
+        mismatch
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("does not match") || d.message.contains("closing"))
+    );
 }
 
 #[test]
 fn binding_ir_skips_non_ident_outlet_and_classify_passthrough() {
-    use rangular_parser::{binding_ir, classify_bindings, Attr, IrNode, TagIo};
+    use rangular_parser::{Attr, IrNode, TagIo, binding_ir, classify_bindings};
     use std::collections::HashMap;
 
     let outlet = parse(r#"<div [ngTemplateOutlet]="foo()"></div>"#, "t.html");
@@ -573,20 +624,24 @@ fn binding_ir_skips_non_ident_outlet_and_classify_passthrough() {
     let Some(Node::Element(el)) = parsed.template.nodes.first() else {
         panic!("expected element");
     };
-    assert!(el
-        .attrs
-        .iter()
-        .any(|a| matches!(a, Attr::Input { name, .. } if name == "label")));
-    assert!(el
-        .attrs
-        .iter()
-        .any(|a| matches!(a, Attr::Property { name, .. } if name == "extra")));
-    assert!(el
-        .attrs
-        .iter()
-        .any(|a| matches!(a, Attr::Output { name, .. } if name == "muteToggle")));
-    assert!(el
-        .attrs
-        .iter()
-        .any(|a| matches!(a, Attr::Event { name, .. } if name == "click")));
+    assert!(
+        el.attrs
+            .iter()
+            .any(|a| matches!(a, Attr::Input { name, .. } if name == "label"))
+    );
+    assert!(
+        el.attrs
+            .iter()
+            .any(|a| matches!(a, Attr::Property { name, .. } if name == "extra"))
+    );
+    assert!(
+        el.attrs
+            .iter()
+            .any(|a| matches!(a, Attr::Output { name, .. } if name == "muteToggle"))
+    );
+    assert!(
+        el.attrs
+            .iter()
+            .any(|a| matches!(a, Attr::Event { name, .. } if name == "click"))
+    );
 }

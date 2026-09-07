@@ -1,4 +1,4 @@
-use rangular_host::{for_implicit_value, Value};
+use rangular_host::{Value, for_implicit_value};
 
 #[test]
 fn for_implicit_index_and_count() {

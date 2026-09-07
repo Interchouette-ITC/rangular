@@ -16,8 +16,8 @@ pub use rangular_parser as parser;
 pub use rangular_runtime as runtime;
 
 pub use registry::{
-    ComponentEntry, Registry, APP_ASSET_ICON, APP_CHROME_HEADER, APP_COLOR_FIELD, APP_IO_CHILD,
-    APP_ITEM_LIST,
+    APP_ASSET_ICON, APP_CHROME_HEADER, APP_COLOR_FIELD, APP_IO_CHILD, APP_ITEM_LIST,
+    ComponentEntry, Registry,
 };
 
 /// Workspace package version.

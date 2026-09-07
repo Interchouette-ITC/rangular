@@ -102,11 +102,7 @@ pub fn entry_for(panel_id: &str) -> Option<&'static ShowcaseEntry> {
 
 /// Default to the child template on io-parent (I/O bindings live there).
 pub fn default_file_index(panel_id: &str) -> usize {
-    if panel_id == "io-parent" {
-        3
-    } else {
-        0
-    }
+    if panel_id == "io-parent" { 3 } else { 0 }
 }
 
 pub fn source_for(

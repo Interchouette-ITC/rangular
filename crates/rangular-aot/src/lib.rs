@@ -17,7 +17,7 @@ pub use print::tokens_to_rust_source;
 pub use rangular_expr;
 pub use rangular_host;
 pub use rangular_parser;
-pub use rangular_parser::{binding_ir, binding_ir_snapshot, IrBinding, IrNode};
+pub use rangular_parser::{IrBinding, IrNode, binding_ir, binding_ir_snapshot};
 
 /// Structural binding IR for `source` (shared with runtime parity).
 #[must_use]

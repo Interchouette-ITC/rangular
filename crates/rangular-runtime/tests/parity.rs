@@ -690,7 +690,7 @@ fn field_required_host_validation() {
 
 #[test]
 fn field_validators_multi_field_host() {
-    use rangular_host::{first_error, min_length, pattern, required, Regex};
+    use rangular_host::{Regex, first_error, min_length, pattern, required};
 
     struct FieldValidatorsHost {
         name: String,

@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use rangular_aot::HostCell;
-use rangular_expr::{parse, Expr, Host, PipeRegistry, Value};
+use rangular_expr::{Expr, Host, PipeRegistry, Value, parse};
 use rangular_host::{EventPayload, HostError, LoopScope};
 
 type ValueMap = HashMap<String, Value>;
@@ -125,10 +125,11 @@ fn host_cell_events_and_value_display_variants() {
     cell.emit_dom_event_call("onInput", &handler, "load", String::new());
     cell.emit_dom_event_call("onInput", &handler, "focus", "x".into());
 
-    assert!(cell
-        .eval_value(&Expr::Ident("$event".into()))
-        .as_event()
-        .is_some());
+    assert!(
+        cell.eval_value(&Expr::Ident("$event".into()))
+            .as_event()
+            .is_some()
+    );
 
     let host2 = MapHost::new();
     host2.values.borrow_mut().insert(
@@ -186,11 +187,13 @@ fn host_cell_scoped_bool_none_item_and_event_helpers() {
     let cell2 = HostCell::new(seed);
     let write = rangular_parser::banana_write_expr(&Expr::Ident("seed".into()));
     cell2.emit_dom_event_call("$bananaSet", &write, "click", "1,2".into());
-    assert!(values
-        .borrow()
-        .get("seed")
-        .and_then(Value::as_event)
-        .is_some());
+    assert!(
+        values
+            .borrow()
+            .get("seed")
+            .and_then(Value::as_event)
+            .is_some()
+    );
 }
 
 #[test]

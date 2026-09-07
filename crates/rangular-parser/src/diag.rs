@@ -1,4 +1,4 @@
-use crate::span::{line_col, Span};
+use crate::span::{Span, line_col};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Severity {

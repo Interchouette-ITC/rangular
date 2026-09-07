@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use rangular_expr::{eval_with_pipes, Expr, Host, PipeRegistry, Value};
-use rangular_host::{for_implicit_value, EventPayload, LoopScope};
+use rangular_expr::{Expr, Host, PipeRegistry, Value, eval_with_pipes};
+use rangular_host::{EventPayload, LoopScope, for_implicit_value};
 use send_wrapper::SendWrapper;
 
 /// Shared host handle for AOT-generated views.

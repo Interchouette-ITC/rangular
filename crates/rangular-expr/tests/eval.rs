@@ -1,4 +1,4 @@
-use rangular_expr::{eval, parse, BinOp, Expr, Host, Literal, Value};
+use rangular_expr::{BinOp, Expr, Host, Literal, Value, eval, parse};
 use rangular_host::HostError;
 
 struct Counter;
@@ -199,38 +199,46 @@ fn parse_error_and_feature_paths() {
     assert!(ternary.issues.iter().any(|i| i.message.contains("ternary")));
 
     let bad_ternary = parse("flag ? 1");
-    assert!(bad_ternary
-        .issues
-        .iter()
-        .any(|i| i.message.contains("expected ':'")));
+    assert!(
+        bad_ternary
+            .issues
+            .iter()
+            .any(|i| i.message.contains("expected ':'"))
+    );
 
     let grouped = parse("(n == 2)");
     assert!(grouped.expr.is_some());
     assert_eq!(grouped.issues.len(), 0);
 
     let unclosed_paren = parse("(n");
-    assert!(unclosed_paren
-        .issues
-        .iter()
-        .any(|i| i.message.contains("unclosed")));
+    assert!(
+        unclosed_paren
+            .issues
+            .iter()
+            .any(|i| i.message.contains("unclosed"))
+    );
 
     let call_args = parse("fn(a, b)");
     assert!(matches!(call_args.expr, Some(Expr::Call { .. })));
 
     let unclosed_call = parse("fn(a");
-    assert!(unclosed_call
-        .issues
-        .iter()
-        .any(|i| i.message.contains("unclosed")));
+    assert!(
+        unclosed_call
+            .issues
+            .iter()
+            .any(|i| i.message.contains("unclosed"))
+    );
 
     let escaped = parse(r#""a\"b""#);
     assert!(escaped.expr.is_some());
 
     let unclosed_str = parse("'abc");
-    assert!(unclosed_str
-        .issues
-        .iter()
-        .any(|i| i.message.contains("unclosed string")));
+    assert!(
+        unclosed_str
+            .issues
+            .iter()
+            .any(|i| i.message.contains("unclosed string"))
+    );
 
     let bad_ident = parse("1n");
     assert!(bad_ident.expr.is_some() || !bad_ident.issues.is_empty());

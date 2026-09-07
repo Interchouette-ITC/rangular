@@ -1,4 +1,4 @@
-use rangular_expr::{eval, parse, Expr, Host, Value};
+use rangular_expr::{Expr, Host, Value, eval, parse};
 use rangular_host::HostError;
 
 struct SeedBarHost {
@@ -87,10 +87,11 @@ fn seed_bar_handlers() {
     assert_eq!(host.last_call.as_deref(), Some("onGenerate([])"));
 
     eval(&must_parse("seedChange($event)"), &mut host).unwrap();
-    assert!(host
-        .last_call
-        .as_deref()
-        .is_some_and(|c| c.starts_with("seedChange(")));
+    assert!(
+        host.last_call
+            .as_deref()
+            .is_some_and(|c| c.starts_with("seedChange("))
+    );
 }
 
 #[test]

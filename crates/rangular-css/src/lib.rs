@@ -6,7 +6,7 @@ mod encapsulate;
 mod error;
 mod globals;
 
-pub use encapsulate::{compile_scss, encapsulate, encapsulate_css, ScopeAttrs};
+pub use encapsulate::{ScopeAttrs, compile_scss, encapsulate, encapsulate_css};
 pub use error::{CssIssue, CssResult};
 pub use globals::is_global_selector;
 

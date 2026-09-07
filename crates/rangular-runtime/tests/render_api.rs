@@ -1,8 +1,8 @@
 use rangular_expr::{Host, Value};
 use rangular_host::{EventPayload, HostError};
 use rangular_runtime::{
-    interpret, interpret_with_slot, interpret_with_slots, render, render_with_slot,
-    render_with_slots, ProjectionBag, VNode,
+    ProjectionBag, VNode, interpret, interpret_with_slot, interpret_with_slots, render,
+    render_with_slot, render_with_slots,
 };
 
 struct DemoHost;

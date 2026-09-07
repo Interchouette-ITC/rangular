@@ -11,7 +11,7 @@ pub use error::{RenderResult, RuntimeIssue};
 pub use rangular_expr;
 pub use rangular_host;
 pub use rangular_parser;
-pub use rangular_parser::{binding_ir, binding_ir_snapshot, IrBinding, IrNode};
+pub use rangular_parser::{IrBinding, IrNode, binding_ir, binding_ir_snapshot};
 pub use render::{
     interpret, interpret_with_pipes, interpret_with_slot, interpret_with_slot_and_pipes,
     interpret_with_slots, interpret_with_slots_and_pipes, render, render_with_slot,

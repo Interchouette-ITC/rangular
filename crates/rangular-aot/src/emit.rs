@@ -1,4 +1,4 @@
-use rangular_parser::{builtin_tag_io, classify_bindings, parse, Diagnostic};
+use rangular_parser::{Diagnostic, builtin_tag_io, classify_bindings, parse};
 
 use crate::error::{AotIssue, EmitResult, EmitTokens};
 use crate::lower::{emit_rust, emit_rust_tokens};

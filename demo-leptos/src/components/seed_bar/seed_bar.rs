@@ -42,10 +42,10 @@ impl Host for SeedBarHost {
     }
 
     fn set(&mut self, name: &str, value: Value) -> Result<(), HostError> {
-        if name == "seed" {
-            if let Some(s) = value.as_str() {
-                self.seed.set(s.to_owned());
-            }
+        if name == "seed"
+            && let Some(s) = value.as_str()
+        {
+            self.seed.set(s.to_owned());
         }
         Ok(())
     }

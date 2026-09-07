@@ -10,7 +10,7 @@ use std::path::PathBuf;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, LitStr};
+use syn::{LitStr, parse_macro_input};
 
 #[proc_macro]
 pub fn rangular_template(input: TokenStream) -> TokenStream {
@@ -56,7 +56,7 @@ fn default_fn_name(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{default_fn_name, TemplateInput};
+    use super::{TemplateInput, default_fn_name};
     use syn::parse_str;
 
     fn resolve_fn_name(input: &TemplateInput) -> String {
