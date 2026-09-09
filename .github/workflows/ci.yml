@@ -12,7 +12,7 @@ concurrency:
 permissions:
   contents: read
 
-# Action runtimes: Node 24+ (checkout v7, codecov-action v6).
+# Action runtimes: Node 24+ (checkout v7, codecov-action v6; FORCE_JAVASCRIPT_ACTIONS_TO_NODE24).
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings"
@@ -138,7 +138,7 @@ jobs:
           needs.changes.outputs.code == 'true'
           && github.event_name == 'push'
           && github.ref == 'refs/heads/dev'
-        uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
+        uses: JamesIves/github-pages-deploy-action@ba1486788b0490a235422264426c45848eac35c6 # v4.4.1
         with:
           folder: docs/api-rust
           branch: gh-pages
