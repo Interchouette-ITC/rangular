@@ -22,6 +22,7 @@ TAG ?= dev
 .DEFAULT_GOAL := help
 
 .PHONY: help check test lint format format-check clean ci no-panic coverage \
+	coverage-summary coverage-html tarpaulin machete outdated \
 	doc doc-open doc-clean \
 	demo demo-leptos demo-build demo-leptos-build demo-check demo-leptos-check \
 	demo-desktop demo-tauri demo-desktop-build demo-tauri-build \
@@ -41,7 +42,12 @@ help:
 	@echo "  make doc           rustdoc → docs/api-rust/ (-D warnings)"
 	@echo "  make doc-open      build docs and open docs/api-rust/index.html"
 	@echo "  make ci            lint + test + no-panic + doc + audit + deny"
-	@echo "  make coverage      cargo llvm-cov → coverage/lcov.info"
+	@echo "  make coverage         cargo llvm-cov lcov → coverage/lcov.info (CI / Codecov)"
+	@echo "  make coverage-summary cargo llvm-cov --summary-only"
+	@echo "  make coverage-html    cargo llvm-cov HTML → coverage/html/"
+	@echo "  make tarpaulin        cargo tarpaulin → coverage/tarpaulin/ (local alternate)"
+	@echo "  make machete          cargo machete (unused deps)"
+	@echo "  make outdated         cargo outdated --workspace"
 	@echo "  make audit         cargo audit"
 	@echo "  make deny          cargo deny check"
 	@echo "  make format        cargo fmt"
@@ -97,12 +103,40 @@ audit:
 deny:
 	cd $(ROOT) && $(CARGO) deny check
 
-## Requires `cargo install cargo-llvm-cov`. Writes `coverage/lcov.info`.
+## Requires `cargo install cargo-llvm-cov`. Writes `coverage/lcov.info` (CI / Codecov).
 ## demo hosts are workspace-excluded; regex keeps accidental paths out of lcov.
+COVERAGE_IGNORE := demo-leptos/|demo-tauri/
+
 coverage:
-	cd $(ROOT) && mkdir -p coverage && RUSTUP_TOOLCHAIN=stable $(CARGO) llvm-cov --workspace --lcov \
-		--ignore-filename-regex 'demo-leptos/|demo-tauri/' \
+	cd $(ROOT) && mkdir -p coverage && RUSTUP_TOOLCHAIN=stable $(CARGO) llvm-cov --workspace --locked --lcov \
+		--ignore-filename-regex '$(COVERAGE_IGNORE)' \
 		--output-path coverage/lcov.info
+
+## Terminal summary only (fast local check).
+coverage-summary:
+	cd $(ROOT) && RUSTUP_TOOLCHAIN=stable $(CARGO) llvm-cov --workspace --locked --summary-only \
+		--ignore-filename-regex '$(COVERAGE_IGNORE)'
+
+## HTML report → `coverage/html/`.
+coverage-html:
+	cd $(ROOT) && mkdir -p coverage && RUSTUP_TOOLCHAIN=stable $(CARGO) llvm-cov --workspace --locked --html \
+		--ignore-filename-regex '$(COVERAGE_IGNORE)' \
+		--output-dir coverage/html
+
+## Alternate local coverage via tarpaulin (not used by CI; Codecov stays on llvm-cov).
+## Requires `cargo install cargo-tarpaulin`.
+tarpaulin:
+	cd $(ROOT) && mkdir -p coverage/tarpaulin && $(CARGO) tarpaulin --workspace --locked \
+		--exclude-files 'demo-leptos/*' 'demo-tauri/*' \
+		--out Html --out Xml --output-dir coverage/tarpaulin
+
+## Unused workspace dependencies. Requires `cargo install cargo-machete`.
+machete:
+	cd $(ROOT) && $(CARGO) machete
+
+## Outdated crates report. Requires `cargo install cargo-outdated`.
+outdated:
+	cd $(ROOT) && $(CARGO) outdated --workspace
 
 ci: lint test no-panic doc audit deny
 
