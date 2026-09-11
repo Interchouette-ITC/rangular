@@ -59,6 +59,8 @@ Adjust the relative path to match your layout.
 
 - Prefer one concern per PR.
 - Run `make lint` and `make test` before push.
+- Local fuzz / unsafe audit: `make fuzz` (default target `parse-html`, needs nightly +
+  `cargo fuzz`) and `make geiger` (needs `cargo geiger`).
 - Conventional commits: `feat(parser): …`, `fix(aot): …`, etc.
 - PR body follows [`pull_request_template.md`](pull_request_template.md)
   (**Summary** + **Test plan** only).

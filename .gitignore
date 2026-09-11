@@ -1,5 +1,9 @@
 /target/
 coverage/
+fuzz/target/
+fuzz/corpus/
+fuzz/artifacts/
+fuzz/coverage/
 /demo-leptos/dist/
 /demo-leptos/target/
 /demo-tauri/src/target/
