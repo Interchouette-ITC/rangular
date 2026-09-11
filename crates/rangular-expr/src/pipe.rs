@@ -205,6 +205,10 @@ mod tests {
             Err(EvalError::TypeMismatch(_))
         ));
         assert!(matches!(
+            reg.apply("lowercase", &Value::Str("x".into()), &[Value::Num(1.0)]),
+            Err(EvalError::TypeMismatch(_))
+        ));
+        assert!(matches!(
             reg.apply("json", &Value::Unit, &[Value::Str("x".into())]),
             Err(EvalError::TypeMismatch(_))
         ));
