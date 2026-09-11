@@ -22,7 +22,7 @@ TAG ?= dev
 .DEFAULT_GOAL := help
 
 .PHONY: help check test lint format format-check clean ci no-panic coverage \
-	coverage-summary coverage-html tarpaulin machete outdated \
+	coverage-summary coverage-html tarpaulin machete outdated fuzz fuzz-build geiger \
 	doc doc-open doc-clean \
 	demo demo-leptos demo-build demo-leptos-build demo-check demo-leptos-check \
 	demo-desktop demo-tauri demo-desktop-build demo-tauri-build \
@@ -48,6 +48,9 @@ help:
 	@echo "  make tarpaulin        cargo tarpaulin → coverage/tarpaulin/ (local alternate)"
 	@echo "  make machete          cargo machete (unused deps)"
 	@echo "  make outdated         cargo outdated --workspace"
+	@echo "  make fuzz             cargo +nightly fuzz run $(FUZZ_TARGET) (FUZZ_TIME=$(FUZZ_TIME)s)"
+	@echo "  make fuzz-build       cargo +nightly fuzz build"
+	@echo "  make geiger           cargo geiger (unsafe dependency audit)"
 	@echo "  make audit         cargo audit"
 	@echo "  make deny          cargo deny check"
 	@echo "  make format        cargo fmt"
@@ -137,6 +140,21 @@ machete:
 ## Outdated crates report. Requires `cargo install cargo-outdated`.
 outdated:
 	cd $(ROOT) && $(CARGO) outdated --workspace
+
+## Default fuzz target: rangular_parser::parse (Angular-subset HTML).
+## Requires nightly + `cargo install cargo-fuzz`. Override: FUZZ_TARGET=… FUZZ_TIME=…
+FUZZ_TARGET ?= parse-html
+FUZZ_TIME ?= 10
+
+fuzz-build:
+	cd $(ROOT) && cargo +nightly fuzz build
+
+fuzz:
+	cd $(ROOT) && cargo +nightly fuzz run $(FUZZ_TARGET) -- -max_total_time=$(FUZZ_TIME)
+
+## Unsafe Rust surface in deps + workspace. Requires `cargo install cargo-geiger`.
+geiger:
+	cd $(ROOT) && $(CARGO) geiger --workspace
 
 ci: lint test no-panic doc audit deny
 
