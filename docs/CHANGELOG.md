@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `[checked]` / `[(checked)]` treat the property as a bool (like `[disabled]` via
+  `eval_bool`), so `false` is not a truthy `prop_str` in the DOM. Banana writeback
+  uses the `(change)` event and `el.checked` → `Host::set` with `Value::Bool`.
+  Dogfood: `two-way` fixture + demo-leptos checkbox.
+
 ## [1.0.3] - 2026-09-16
 
 ### Changed

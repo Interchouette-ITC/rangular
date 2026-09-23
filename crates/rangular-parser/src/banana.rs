@@ -8,10 +8,10 @@ pub const BANANA_SET_CALLEE: &str = "$bananaSet";
 /// DOM / Angular-like event for a two-way property.
 #[must_use]
 pub fn banana_event_name(prop: &str) -> String {
-    if prop == "value" {
-        "input".into()
-    } else {
-        format!("{prop}Change")
+    match prop {
+        "value" => "input".into(),
+        "checked" => "change".into(),
+        _ => format!("{prop}Change"),
     }
 }
 

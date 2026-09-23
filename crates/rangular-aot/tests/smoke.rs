@@ -72,6 +72,21 @@ fn two_way_emits_leptos_view() {
 }
 
 #[test]
+fn checked_prop_emits_eval_bool_and_change_banana() {
+    let out = compile(
+        r#"<input type="checkbox" [(checked)]="on" />"#,
+        "checkbox_view",
+    );
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(
+        out.code.contains("eval_bool_scoped") && out.code.contains("change"),
+        "expected bool checked prop + change banana:\n{}",
+        out.code
+    );
+    parse_file(&out.code).unwrap_or_else(|err| panic!("invalid Rust: {err}"));
+}
+
+#[test]
 fn named_slots_emits_slot_params() {
     let html = include_str!("../../../tests/fixtures/components/named-slots/named-slots.html");
     assert_emits(html, "named_slots_view", "named-slots");
@@ -136,6 +151,50 @@ fn banana_hostcell_sets_via_dom_event() {
     let write = banana_write_expr(&Expr::Ident("seed".into()));
     cell.emit_dom_event_call("$bananaSet", &write, "input", "xyz".into());
     assert_eq!(*seed.borrow(), "xyz");
+}
+
+#[test]
+fn banana_checked_hostcell_sets_bool_via_change() {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    use rangular_aot::HostCell;
+    use rangular_expr::{Expr, Host, Value};
+    use rangular_host::HostError;
+    use rangular_parser::banana_write_expr;
+
+    struct FlagHost {
+        flag: Rc<RefCell<bool>>,
+    }
+
+    impl Host for FlagHost {
+        fn get(&self, name: &str) -> Option<Value> {
+            (name == "flag").then(|| Value::Bool(*self.flag.borrow()))
+        }
+
+        fn set(&mut self, name: &str, value: Value) -> Result<(), HostError> {
+            if name == "flag" {
+                if let Some(b) = value.as_bool() {
+                    *self.flag.borrow_mut() = b;
+                }
+            }
+            Ok(())
+        }
+
+        fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+            Ok(Value::Unit)
+        }
+    }
+
+    let flag = Rc::new(RefCell::new(false));
+    let cell = HostCell::new(FlagHost {
+        flag: Rc::clone(&flag),
+    });
+    let write = banana_write_expr(&Expr::Ident("flag".into()));
+    cell.emit_dom_event_call("$bananaSet", &write, "change", "true".into());
+    assert!(*flag.borrow());
+    cell.emit_dom_event_call("$bananaSet", &write, "change", "false".into());
+    assert!(!*flag.borrow());
 }
 
 #[test]

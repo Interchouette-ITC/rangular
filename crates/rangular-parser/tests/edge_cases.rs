@@ -131,6 +131,7 @@ fn control_flow_blocks_and_errors() {
 #[test]
 fn banana_helpers_and_attrs() {
     assert_eq!(banana_event_name("value"), "input");
+    assert_eq!(banana_event_name("checked"), "change");
     assert_eq!(banana_event_name("seed"), "seedChange");
     let write = banana_write_expr(&Expr::Ident("seed".into()));
     assert_eq!(banana_set_target(&write), Some("seed"));

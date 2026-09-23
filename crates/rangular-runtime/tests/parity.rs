@@ -592,18 +592,31 @@ fn pipes_runtime_snapshot() {
 fn two_way_runtime_snapshot() {
     struct TwoWayHost {
         seed: String,
+        on: bool,
     }
 
     impl Host for TwoWayHost {
         fn get(&self, name: &str) -> Option<Value> {
-            (name == "seed").then(|| Value::Str(self.seed.clone()))
+            match name {
+                "seed" => Some(Value::Str(self.seed.clone())),
+                "on" => Some(Value::Bool(self.on)),
+                _ => None,
+            }
         }
 
         fn set(&mut self, name: &str, value: Value) -> Result<(), HostError> {
-            if name == "seed" {
-                if let Some(s) = value.as_str() {
-                    self.seed = s.to_owned();
+            match name {
+                "seed" => {
+                    if let Some(s) = value.as_str() {
+                        self.seed = s.to_owned();
+                    }
                 }
+                "on" => {
+                    if let Some(b) = value.as_bool() {
+                        self.on = b;
+                    }
+                }
+                _ => {}
             }
             Ok(())
         }
@@ -611,6 +624,7 @@ fn two_way_runtime_snapshot() {
         fn call(&mut self, name: &str, _: &[Value]) -> Result<Value, HostError> {
             if name == "pushFromHost" {
                 self.seed = "host-push".into();
+                self.on = true;
             }
             Ok(Value::Unit)
         }
@@ -618,20 +632,28 @@ fn two_way_runtime_snapshot() {
 
     let src =
         std::fs::read_to_string(fixture_root().join("components/two-way/two-way.html")).unwrap();
-    let mut host = TwoWayHost { seed: "abc".into() };
+    let mut host = TwoWayHost {
+        seed: "abc".into(),
+        on: false,
+    };
     let out = interpret(&src, "two-way.html", &mut host);
     assert!(out.ok(), "{:?}", out.issues);
     let snap = out.snapshot();
     assert!(snap.contains(r#"prop:value="abc""#), "{snap}");
     assert!(snap.contains(r#"on:input="$bananaSet""#), "{snap}");
+    assert!(snap.contains(r#"prop:checked="false""#), "{snap}");
+    assert!(snap.contains(r#"on:change="$bananaSet""#), "{snap}");
     assert!(snap.contains(r#"on:click="pushFromHost""#), "{snap}");
     assert!(snap.contains("Mirror:"), "{snap}");
+    assert!(snap.contains("Checked:"), "{snap}");
     assert!(snap.contains(">abc<") || snap.contains("abc"), "{snap}");
     assert!(compile(&src, "two_way_view").ok());
 
     let ir = binding_ir_snapshot(&binding_ir(&parse(&src, "two-way.html").template));
     assert!(ir.contains("prop:value"), "{ir}");
     assert!(ir.contains(r#"on:input="$bananaSet""#), "{ir}");
+    assert!(ir.contains("prop:checked"), "{ir}");
+    assert!(ir.contains(r#"on:change="$bananaSet""#), "{ir}");
 
     let aot_ir = rangular_aot::structural_ir(&src, "two-way.html").expect("aot ir");
     let rt_ir = rangular_runtime::structural_ir(&src, "two-way.html").expect("rt ir");
@@ -639,6 +661,53 @@ fn two_way_runtime_snapshot() {
 
     host.set("seed", Value::Str("xyz".into())).unwrap();
     assert_eq!(host.seed, "xyz");
+    host.set("on", Value::Bool(true)).unwrap();
+    assert!(host.on);
+}
+
+#[test]
+fn checkbox_checked_bool_prop_and_banana_change() {
+    struct CheckHost {
+        on: bool,
+    }
+
+    impl Host for CheckHost {
+        fn get(&self, key: &str) -> Option<Value> {
+            (key == "on").then_some(Value::Bool(self.on))
+        }
+
+        fn set(&mut self, key: &str, value: Value) -> Result<(), HostError> {
+            if key == "on" {
+                if let Some(b) = value.as_bool() {
+                    self.on = b;
+                }
+            }
+            Ok(())
+        }
+
+        fn call(&mut self, _: &str, _: &[Value]) -> Result<Value, HostError> {
+            Ok(Value::Unit)
+        }
+    }
+
+    let src = r#"<input type="checkbox" [(checked)]="on" />"#;
+    let mut host = CheckHost { on: false };
+    let out = interpret(src, "check.html", &mut host);
+    assert!(out.ok(), "{:?}", out.issues);
+    let snap = out.snapshot();
+    assert!(snap.contains(r#"prop:checked="false""#), "{snap}");
+    assert!(snap.contains(r#"on:change="$bananaSet""#), "{snap}");
+
+    host.on = true;
+    let snap_on = interpret(src, "check.html", &mut host).snapshot();
+    assert!(snap_on.contains(r#"prop:checked="true""#), "{snap_on}");
+
+    let parsed = parse(src, "check.html");
+    assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+    let ir = binding_ir_snapshot(&binding_ir(&parsed.template));
+    assert!(ir.contains("prop:checked"), "{ir}");
+    assert!(ir.contains(r#"on:change="$bananaSet""#), "{ir}");
+    assert!(compile(src, "checkbox_view").ok());
 }
 
 #[test]

@@ -20,7 +20,7 @@ Each feature panel is its own folder:
 | `io_child`        | `[label]` / `[muted]` in, `(muteToggle)` out                     |
 | `io_parent`       | AOT heading + live AOT `io_child` (nested tags are not live yet) |
 | `pipes`           | builtins + demo custom `crab`                                    |
-| `two_way`         | `[(value)]` banana                                               |
+| `two_way`         | `[(value)]` + `[(checked)]` banana                               |
 | `field_required`  | Host `required` + dirty error                                    |
 | `field_validators`| Multi-field Host helpers (`first_error`, length, pattern)        |
 | `event_payload`   | typed `$event` / `EventPayload`                                  |

@@ -16,4 +16,14 @@
       Push from Host
     </button>
   </div>
+  <div class="two-way__row two-way__row--check">
+    <label class="two-way__check" for="two-way-on">
+      <input id="two-way-on" type="checkbox" [(checked)]="on" />
+      Enabled
+    </label>
+    <p class="two-way__mirror">
+      <span class="two-way__mirror-label">Checked:</span>
+      <span class="two-way__mirror-value">{{ on }}</span>
+    </p>
+  </div>
 </section>
