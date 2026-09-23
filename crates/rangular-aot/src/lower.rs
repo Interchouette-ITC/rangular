@@ -412,7 +412,7 @@ fn lower_one_attr(attr: &Attr, scope: &Scope<'_>, hoist: &mut HoistState) -> Tok
         Attr::Static {
             name, value: None, ..
         } => html_name(name),
-        Attr::Property { name, expr, .. } if name == "disabled" => {
+        Attr::Property { name, expr, .. } if name == "disabled" || name == "checked" => {
             let ex = hoist.hoist_expr(expr);
             let handler = hoist_host_closure(
                 hoist,
@@ -468,6 +468,27 @@ fn event_value_tokens(event_name: &str) -> TokenStream {
         "click" | "dblclick" | "auxclick" => {
             quote! { format!("{},{}", ev.client_x(), ev.client_y()) }
         }
+        "change" => quote! {
+            {
+                use wasm_bindgen::JsCast;
+                ev.target()
+                    .and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok())
+                    .map(|el| {
+                        let ty = el.type_();
+                        if ty == "checkbox" || ty == "radio" {
+                            el.checked().to_string()
+                        } else {
+                            el.value()
+                        }
+                    })
+                    .or_else(|| {
+                        ev.target()
+                            .and_then(|t| t.dyn_into::<web_sys::HtmlSelectElement>().ok())
+                            .map(|el| el.value())
+                    })
+                    .unwrap_or_default()
+            }
+        },
         _ => quote! {
             {
                 use wasm_bindgen::JsCast;

@@ -16,6 +16,28 @@
   min-width: 0;
 }
 
+.two-way__row--check {
+  grid-template-columns: auto minmax(0, 1fr);
+  margin-top: 0.65rem;
+}
+
+.two-way__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.875rem;
+  color: var(--app-text, #d1d4dc);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.two-way__check input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--app-accent, #5b8def);
+  cursor: pointer;
+}
+
 .two-way__label {
   font-size: 0.875rem;
   color: var(--app-text-muted, #787b86);

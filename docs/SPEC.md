@@ -59,10 +59,14 @@ Static attributes without brackets pass through unchanged.
 
 ### Two-way banana `[(…)]`
 
-| Surface syntax     | Desugars to                                                 |
-| ------------------ | ----------------------------------------------------------- |
-| `[(value)]="seed"` | `[value]="seed"` + `(input)` writeback via `Host::set`      |
-| `[(name)]="ident"` | `[name]="ident"` + `(nameChange)` writeback via `Host::set` |
+| Surface syntax       | Desugars to                                                    |
+| -------------------- | -------------------------------------------------------------- |
+| `[(value)]="seed"`   | `[value]="seed"` + `(input)` writeback via `Host::set` (str)   |
+| `[(checked)]="flag"` | `[checked]="flag"` + `(change)` writeback via `Host::set` (bool); AOT reads `el.checked` |
+| `[(name)]="ident"`   | `[name]="ident"` + `(nameChange)` writeback via `Host::set`    |
+
+Boolean DOM properties `[disabled]` and `[checked]` evaluate with `eval_bool`
+(not `prop_str`), so `false` does not become a truthy string in the DOM.
 
 Parse expands banana into a property binding plus an event handler that calls
 internal `$bananaSet(ident, $event)`. AOT `HostCell` and the Host `set` path

@@ -180,10 +180,11 @@ impl<H: Host> HostCell<H> {
         loop_scope: LoopScope<'_>,
     ) {
         if let Some(path) = rangular_parser::banana_set_target(expr) {
-            let value = if event_name == "input" {
-                Value::Str(event_value)
-            } else {
-                Value::from(EventPayload::from_dom(event_name, event_value))
+            let value = match event_name {
+                "input" => Value::Str(event_value),
+                // `[(checked)]` → `(change)` writeback; AOT reads `el.checked`.
+                "change" => Value::Bool(event_value == "true"),
+                _ => Value::from(EventPayload::from_dom(event_name, event_value)),
             };
             let _ = self.host.borrow_mut().set(path, value);
             return;

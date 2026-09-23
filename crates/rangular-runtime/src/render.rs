@@ -267,12 +267,12 @@ fn render_attrs<H: Host>(attrs: &[Attr], ctx: &mut Ctx<'_, H>) -> Vec<(String, S
             } => out.push((name.clone(), String::new())),
             Attr::Ref { .. } => {}
             Attr::Property { name, .. } if name == "ngTemplateOutlet" => {}
-            Attr::Property { name, expr, .. } if name == "disabled" => {
-                let disabled = match eval_expr(expr, ctx) {
+            Attr::Property { name, expr, .. } if name == "disabled" || name == "checked" => {
+                let flag = match eval_expr(expr, ctx) {
                     Value::Bool(b) => b,
                     other => other.is_truthy(),
                 };
-                out.push((format!("prop:{name}"), bool_str(disabled)));
+                out.push((format!("prop:{name}"), bool_str(flag)));
             }
             Attr::Property { name, expr, .. } => {
                 out.push((format!("prop:{name}"), display_value(&eval_expr(expr, ctx))));
