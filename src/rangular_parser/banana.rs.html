@@ -8,10 +8,10 @@
 <a href=#8 id=8 data-nosnippet>8</a><span class="doccomment">/// DOM / Angular-like event for a two-way property.
 <a href=#9 id=9 data-nosnippet>9</a></span><span class="attr">#[must_use]
 <a href=#10 id=10 data-nosnippet>10</a></span><span class="kw">pub fn </span>banana_event_name(prop: <span class="kw-2">&amp;</span>str) -&gt; String {
-<a href=#11 id=11 data-nosnippet>11</a>    <span class="kw">if </span>prop == <span class="string">"value" </span>{
-<a href=#12 id=12 data-nosnippet>12</a>        <span class="string">"input"</span>.into()
-<a href=#13 id=13 data-nosnippet>13</a>    } <span class="kw">else </span>{
-<a href=#14 id=14 data-nosnippet>14</a>        <span class="macro">format!</span>(<span class="string">"{prop}Change"</span>)
+<a href=#11 id=11 data-nosnippet>11</a>    <span class="kw">match </span>prop {
+<a href=#12 id=12 data-nosnippet>12</a>        <span class="string">"value" </span>=&gt; <span class="string">"input"</span>.into(),
+<a href=#13 id=13 data-nosnippet>13</a>        <span class="string">"checked" </span>=&gt; <span class="string">"change"</span>.into(),
+<a href=#14 id=14 data-nosnippet>14</a>        <span class="kw">_ </span>=&gt; <span class="macro">format!</span>(<span class="string">"{prop}Change"</span>),
 <a href=#15 id=15 data-nosnippet>15</a>    }
 <a href=#16 id=16 data-nosnippet>16</a>}
 <a href=#17 id=17 data-nosnippet>17</a>

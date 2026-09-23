@@ -180,54 +180,55 @@
 <a href=#180 id=180 data-nosnippet>180</a>        loop_scope: LoopScope&lt;<span class="lifetime">'_</span>&gt;,
 <a href=#181 id=181 data-nosnippet>181</a>    ) {
 <a href=#182 id=182 data-nosnippet>182</a>        <span class="kw">if let </span><span class="prelude-val">Some</span>(path) = rangular_parser::banana_set_target(expr) {
-<a href=#183 id=183 data-nosnippet>183</a>            <span class="kw">let </span>value = <span class="kw">if </span>event_name == <span class="string">"input" </span>{
-<a href=#184 id=184 data-nosnippet>184</a>                Value::Str(event_value)
-<a href=#185 id=185 data-nosnippet>185</a>            } <span class="kw">else </span>{
-<a href=#186 id=186 data-nosnippet>186</a>                Value::from(EventPayload::from_dom(event_name, event_value))
-<a href=#187 id=187 data-nosnippet>187</a>            };
-<a href=#188 id=188 data-nosnippet>188</a>            <span class="kw">let _ </span>= <span class="self">self</span>.host.borrow_mut().set(path, value);
-<a href=#189 id=189 data-nosnippet>189</a>            <span class="kw">return</span>;
-<a href=#190 id=190 data-nosnippet>190</a>        }
-<a href=#191 id=191 data-nosnippet>191</a>        <span class="kw">let </span>payload = EventPayload::from_dom(event_name, event_value);
-<a href=#192 id=192 data-nosnippet>192</a>        <span class="kw">let </span>event = Value::from(payload);
-<a href=#193 id=193 data-nosnippet>193</a>        <span class="kw-2">*</span><span class="self">self</span>.event.borrow_mut() = event.clone();
-<a href=#194 id=194 data-nosnippet>194</a>        <span class="kw">let _ </span>= <span class="self">self</span>.host.borrow_mut().set(<span class="string">"$event"</span>, event);
-<a href=#195 id=195 data-nosnippet>195</a>        <span class="self">self</span>.emit_call_scoped(name, expr, loop_scope);
-<a href=#196 id=196 data-nosnippet>196</a>    }
-<a href=#197 id=197 data-nosnippet>197</a>}
-<a href=#198 id=198 data-nosnippet>198</a>
-<a href=#199 id=199 data-nosnippet>199</a><span class="kw">fn </span>call_args_scoped&lt;H: Host&gt;(
-<a href=#200 id=200 data-nosnippet>200</a>    host: <span class="kw-2">&amp;</span>HostCell&lt;H&gt;,
-<a href=#201 id=201 data-nosnippet>201</a>    expr: <span class="kw-2">&amp;</span>Expr,
-<a href=#202 id=202 data-nosnippet>202</a>    loop_scope: LoopScope&lt;<span class="lifetime">'_</span>&gt;,
-<a href=#203 id=203 data-nosnippet>203</a>) -&gt; Vec&lt;Value&gt; {
-<a href=#204 id=204 data-nosnippet>204</a>    <span class="kw">match </span>expr {
-<a href=#205 id=205 data-nosnippet>205</a>        Expr::Call { args, .. } =&gt; args
-<a href=#206 id=206 data-nosnippet>206</a>            .iter()
-<a href=#207 id=207 data-nosnippet>207</a>            .map(|arg| host.eval_scoped(arg, loop_scope))
-<a href=#208 id=208 data-nosnippet>208</a>            .collect(),
-<a href=#209 id=209 data-nosnippet>209</a>        <span class="kw">_ </span>=&gt; Vec::new(),
-<a href=#210 id=210 data-nosnippet>210</a>    }
-<a href=#211 id=211 data-nosnippet>211</a>}
-<a href=#212 id=212 data-nosnippet>212</a>
-<a href=#213 id=213 data-nosnippet>213</a><span class="kw">fn </span>value_display(value: <span class="kw-2">&amp;</span>Value) -&gt; String {
-<a href=#214 id=214 data-nosnippet>214</a>    <span class="kw">match </span>value {
-<a href=#215 id=215 data-nosnippet>215</a>        Value::Str(s) =&gt; s.clone(),
-<a href=#216 id=216 data-nosnippet>216</a>        Value::Num(n) =&gt; n.to_string(),
-<a href=#217 id=217 data-nosnippet>217</a>        Value::Bool(b) =&gt; b.to_string(),
-<a href=#218 id=218 data-nosnippet>218</a>        Value::List(items) =&gt; items
-<a href=#219 id=219 data-nosnippet>219</a>            .iter()
-<a href=#220 id=220 data-nosnippet>220</a>            .map(value_display)
-<a href=#221 id=221 data-nosnippet>221</a>            .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
-<a href=#222 id=222 data-nosnippet>222</a>            .join(<span class="string">","</span>),
-<a href=#223 id=223 data-nosnippet>223</a>        Value::Event(payload) =&gt; <span class="kw">match </span>payload {
-<a href=#224 id=224 data-nosnippet>224</a>            EventPayload::Click { x, y } =&gt; <span class="macro">format!</span>(<span class="string">"event:click:{x},{y}"</span>),
-<a href=#225 id=225 data-nosnippet>225</a>            EventPayload::Input { value } =&gt; <span class="macro">format!</span>(<span class="string">"event:input:{value}"</span>),
-<a href=#226 id=226 data-nosnippet>226</a>            EventPayload::Error =&gt; <span class="string">"event:error"</span>.into(),
-<a href=#227 id=227 data-nosnippet>227</a>            EventPayload::Load =&gt; <span class="string">"event:load"</span>.into(),
-<a href=#228 id=228 data-nosnippet>228</a>            EventPayload::Custom(inner) =&gt; <span class="macro">format!</span>(<span class="string">"event:custom:{}"</span>, value_display(inner)),
-<a href=#229 id=229 data-nosnippet>229</a>        },
-<a href=#230 id=230 data-nosnippet>230</a>        Value::Unit =&gt; String::new(),
-<a href=#231 id=231 data-nosnippet>231</a>    }
-<a href=#232 id=232 data-nosnippet>232</a>}
+<a href=#183 id=183 data-nosnippet>183</a>            <span class="kw">let </span>value = <span class="kw">match </span>event_name {
+<a href=#184 id=184 data-nosnippet>184</a>                <span class="string">"input" </span>=&gt; Value::Str(event_value),
+<a href=#185 id=185 data-nosnippet>185</a>                <span class="comment">// `[(checked)]` → `(change)` writeback; AOT reads `el.checked`.
+<a href=#186 id=186 data-nosnippet>186</a>                </span><span class="string">"change" </span>=&gt; Value::Bool(event_value == <span class="string">"true"</span>),
+<a href=#187 id=187 data-nosnippet>187</a>                <span class="kw">_ </span>=&gt; Value::from(EventPayload::from_dom(event_name, event_value)),
+<a href=#188 id=188 data-nosnippet>188</a>            };
+<a href=#189 id=189 data-nosnippet>189</a>            <span class="kw">let _ </span>= <span class="self">self</span>.host.borrow_mut().set(path, value);
+<a href=#190 id=190 data-nosnippet>190</a>            <span class="kw">return</span>;
+<a href=#191 id=191 data-nosnippet>191</a>        }
+<a href=#192 id=192 data-nosnippet>192</a>        <span class="kw">let </span>payload = EventPayload::from_dom(event_name, event_value);
+<a href=#193 id=193 data-nosnippet>193</a>        <span class="kw">let </span>event = Value::from(payload);
+<a href=#194 id=194 data-nosnippet>194</a>        <span class="kw-2">*</span><span class="self">self</span>.event.borrow_mut() = event.clone();
+<a href=#195 id=195 data-nosnippet>195</a>        <span class="kw">let _ </span>= <span class="self">self</span>.host.borrow_mut().set(<span class="string">"$event"</span>, event);
+<a href=#196 id=196 data-nosnippet>196</a>        <span class="self">self</span>.emit_call_scoped(name, expr, loop_scope);
+<a href=#197 id=197 data-nosnippet>197</a>    }
+<a href=#198 id=198 data-nosnippet>198</a>}
+<a href=#199 id=199 data-nosnippet>199</a>
+<a href=#200 id=200 data-nosnippet>200</a><span class="kw">fn </span>call_args_scoped&lt;H: Host&gt;(
+<a href=#201 id=201 data-nosnippet>201</a>    host: <span class="kw-2">&amp;</span>HostCell&lt;H&gt;,
+<a href=#202 id=202 data-nosnippet>202</a>    expr: <span class="kw-2">&amp;</span>Expr,
+<a href=#203 id=203 data-nosnippet>203</a>    loop_scope: LoopScope&lt;<span class="lifetime">'_</span>&gt;,
+<a href=#204 id=204 data-nosnippet>204</a>) -&gt; Vec&lt;Value&gt; {
+<a href=#205 id=205 data-nosnippet>205</a>    <span class="kw">match </span>expr {
+<a href=#206 id=206 data-nosnippet>206</a>        Expr::Call { args, .. } =&gt; args
+<a href=#207 id=207 data-nosnippet>207</a>            .iter()
+<a href=#208 id=208 data-nosnippet>208</a>            .map(|arg| host.eval_scoped(arg, loop_scope))
+<a href=#209 id=209 data-nosnippet>209</a>            .collect(),
+<a href=#210 id=210 data-nosnippet>210</a>        <span class="kw">_ </span>=&gt; Vec::new(),
+<a href=#211 id=211 data-nosnippet>211</a>    }
+<a href=#212 id=212 data-nosnippet>212</a>}
+<a href=#213 id=213 data-nosnippet>213</a>
+<a href=#214 id=214 data-nosnippet>214</a><span class="kw">fn </span>value_display(value: <span class="kw-2">&amp;</span>Value) -&gt; String {
+<a href=#215 id=215 data-nosnippet>215</a>    <span class="kw">match </span>value {
+<a href=#216 id=216 data-nosnippet>216</a>        Value::Str(s) =&gt; s.clone(),
+<a href=#217 id=217 data-nosnippet>217</a>        Value::Num(n) =&gt; n.to_string(),
+<a href=#218 id=218 data-nosnippet>218</a>        Value::Bool(b) =&gt; b.to_string(),
+<a href=#219 id=219 data-nosnippet>219</a>        Value::List(items) =&gt; items
+<a href=#220 id=220 data-nosnippet>220</a>            .iter()
+<a href=#221 id=221 data-nosnippet>221</a>            .map(value_display)
+<a href=#222 id=222 data-nosnippet>222</a>            .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;()
+<a href=#223 id=223 data-nosnippet>223</a>            .join(<span class="string">","</span>),
+<a href=#224 id=224 data-nosnippet>224</a>        Value::Event(payload) =&gt; <span class="kw">match </span>payload {
+<a href=#225 id=225 data-nosnippet>225</a>            EventPayload::Click { x, y } =&gt; <span class="macro">format!</span>(<span class="string">"event:click:{x},{y}"</span>),
+<a href=#226 id=226 data-nosnippet>226</a>            EventPayload::Input { value } =&gt; <span class="macro">format!</span>(<span class="string">"event:input:{value}"</span>),
+<a href=#227 id=227 data-nosnippet>227</a>            EventPayload::Error =&gt; <span class="string">"event:error"</span>.into(),
+<a href=#228 id=228 data-nosnippet>228</a>            EventPayload::Load =&gt; <span class="string">"event:load"</span>.into(),
+<a href=#229 id=229 data-nosnippet>229</a>            EventPayload::Custom(inner) =&gt; <span class="macro">format!</span>(<span class="string">"event:custom:{}"</span>, value_display(inner)),
+<a href=#230 id=230 data-nosnippet>230</a>        },
+<a href=#231 id=231 data-nosnippet>231</a>        Value::Unit =&gt; String::new(),
+<a href=#232 id=232 data-nosnippet>232</a>    }
+<a href=#233 id=233 data-nosnippet>233</a>}
 </code></pre></div></section></main></body></html>

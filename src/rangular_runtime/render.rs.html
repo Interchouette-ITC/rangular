@@ -267,12 +267,12 @@
 <a href=#267 id=267 data-nosnippet>267</a>            } =&gt; out.push((name.clone(), String::new())),
 <a href=#268 id=268 data-nosnippet>268</a>            Attr::Ref { .. } =&gt; {}
 <a href=#269 id=269 data-nosnippet>269</a>            Attr::Property { name, .. } <span class="kw">if </span>name == <span class="string">"ngTemplateOutlet" </span>=&gt; {}
-<a href=#270 id=270 data-nosnippet>270</a>            Attr::Property { name, expr, .. } <span class="kw">if </span>name == <span class="string">"disabled" </span>=&gt; {
-<a href=#271 id=271 data-nosnippet>271</a>                <span class="kw">let </span>disabled = <span class="kw">match </span>eval_expr(expr, ctx) {
+<a href=#270 id=270 data-nosnippet>270</a>            Attr::Property { name, expr, .. } <span class="kw">if </span>name == <span class="string">"disabled" </span>|| name == <span class="string">"checked" </span>=&gt; {
+<a href=#271 id=271 data-nosnippet>271</a>                <span class="kw">let </span>flag = <span class="kw">match </span>eval_expr(expr, ctx) {
 <a href=#272 id=272 data-nosnippet>272</a>                    Value::Bool(b) =&gt; b,
 <a href=#273 id=273 data-nosnippet>273</a>                    other =&gt; other.is_truthy(),
 <a href=#274 id=274 data-nosnippet>274</a>                };
-<a href=#275 id=275 data-nosnippet>275</a>                out.push((<span class="macro">format!</span>(<span class="string">"prop:{name}"</span>), bool_str(disabled)));
+<a href=#275 id=275 data-nosnippet>275</a>                out.push((<span class="macro">format!</span>(<span class="string">"prop:{name}"</span>), bool_str(flag)));
 <a href=#276 id=276 data-nosnippet>276</a>            }
 <a href=#277 id=277 data-nosnippet>277</a>            Attr::Property { name, expr, .. } =&gt; {
 <a href=#278 id=278 data-nosnippet>278</a>                out.push((<span class="macro">format!</span>(<span class="string">"prop:{name}"</span>), display_value(<span class="kw-2">&amp;</span>eval_expr(expr, ctx))));
