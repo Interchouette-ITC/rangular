@@ -2,8 +2,8 @@ use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-pub(crate) struct Component {
-    pub(crate) name: String,
+pub struct Component {
+    pub name: String,
     directory: PathBuf,
 }
 
@@ -14,7 +14,7 @@ impl Component {
     }
 }
 
-pub(crate) fn discover(root: &Path) -> Result<Vec<Component>, String> {
+pub fn discover(root: &Path) -> Result<Vec<Component>, String> {
     let entries =
         fs::read_dir(root).map_err(|error| format!("read {}: {error}", root.display()))?;
     let mut components = Vec::new();
@@ -37,7 +37,7 @@ pub(crate) fn discover(root: &Path) -> Result<Vec<Component>, String> {
     Ok(components)
 }
 
-pub(crate) fn compile_template(
+pub fn compile_template(
     component: &Component,
     manifest: &Path,
 ) -> Result<(String, String), String> {
@@ -53,7 +53,7 @@ pub(crate) fn compile_template(
     Ok((view_name, compiled.code))
 }
 
-pub(crate) fn relative_label(manifest: &Path, path: &Path) -> String {
+pub fn relative_label(manifest: &Path, path: &Path) -> String {
     path.strip_prefix(manifest)
         .unwrap_or(path)
         .to_string_lossy()
@@ -122,7 +122,7 @@ mod tests {
         fs::write(component_dir.join("card.html"), "<p>Hello</p>").unwrap();
         let (name, code) = compile_template(&component, temp.path()).unwrap();
         assert_eq!(name, "card_view");
-        assert!(!code.is_empty());
+        assert_ne!(code, "");
 
         fs::write(component_dir.join("card.html"), "{{ broken").unwrap();
         assert!(

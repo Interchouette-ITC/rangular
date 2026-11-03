@@ -1,4 +1,3 @@
-
 use super::{build, compile_components, run, run_at};
 use crate::build::{Config, discover};
 use crate::test_support::TempDir;
@@ -20,14 +19,14 @@ fn builds_component_rust_and_combined_global_and_component_css() {
     .unwrap();
 
     run_at(
-        Config::new("src/components", "style/generated/site.css").global_scss("style/global.scss"),
+        &Config::new("src/components", "style/generated/site.css").global_scss("style/global.scss"),
         manifest.path(),
         out.path(),
     )
     .unwrap();
 
     let generated = fs::read_to_string(out.path().join("rangular/card_view.rs")).unwrap();
-    assert!(!generated.is_empty());
+    assert_ne!(generated, "");
     let css = fs::read_to_string(manifest.path().join("style/generated/site.css")).unwrap();
     assert!(css.contains("body"));
     assert!(css.contains("color: black"));
@@ -41,7 +40,7 @@ fn reports_component_global_style_and_output_failures() {
     let out = TempDir::new();
     let absent_components = Config::new("missing", "site.css");
     assert!(
-        run_at(absent_components, manifest.path(), out.path())
+        run_at(&absent_components, manifest.path(), out.path())
             .unwrap_err()
             .contains("read ")
     );
@@ -53,7 +52,7 @@ fn reports_component_global_style_and_output_failures() {
     )
     .unwrap();
     let error = run_at(
-        Config::new("components", "site.css"),
+        &Config::new("components", "site.css"),
         manifest.path(),
         out.path(),
     )
@@ -67,7 +66,7 @@ fn reports_component_global_style_and_output_failures() {
     .unwrap();
     fs::write(manifest.path().join("global.scss"), "body { color: red;").unwrap();
     let error = run_at(
-        Config::new("components", "site.css").global_scss("global.scss"),
+        &Config::new("components", "site.css").global_scss("global.scss"),
         manifest.path(),
         out.path(),
     )
@@ -81,7 +80,7 @@ fn reports_component_global_style_and_output_failures() {
     )
     .unwrap();
     let error = run_at(
-        Config::new("components", "site.css").global_scss("global.scss"),
+        &Config::new("components", "site.css").global_scss("global.scss"),
         manifest.path(),
         out.path(),
     )
@@ -95,7 +94,7 @@ fn reports_component_global_style_and_output_failures() {
     .unwrap();
     fs::write(manifest.path().join("blocked"), "file").unwrap();
     let error = run_at(
-        Config::new("components", "blocked/site.css"),
+        &Config::new("components", "blocked/site.css"),
         manifest.path(),
         out.path(),
     )
@@ -105,7 +104,7 @@ fn reports_component_global_style_and_output_failures() {
     let not_a_dir = manifest.path().join("file");
     fs::write(&not_a_dir, "file").unwrap();
     let error = run_at(
-        Config::new("components", "file/site.css"),
+        &Config::new("components", "file/site.css"),
         manifest.path(),
         out.path(),
     )
@@ -113,14 +112,14 @@ fn reports_component_global_style_and_output_failures() {
     assert!(error.contains("create "));
 
     let error = run_at(
-        Config::new("components", "components/card"),
+        &Config::new("components", "components/card"),
         manifest.path(),
         out.path(),
     )
     .unwrap_err();
     assert!(error.contains("write "));
 
-    let error = run_at(Config::new("components", "/"), manifest.path(), out.path()).unwrap_err();
+    let error = run_at(&Config::new("components", "/"), manifest.path(), out.path()).unwrap_err();
     assert!(error.contains("write /:"));
 }
 
@@ -137,7 +136,7 @@ fn reports_rust_output_write_errors() {
     fs::create_dir_all(out.path().join("rangular")).unwrap();
     fs::create_dir_all(out.path().join("rangular/card_view.rs")).unwrap();
     let error = run_at(
-        Config::new("components", "site.css"),
+        &Config::new("components", "site.css"),
         manifest.path(),
         out.path(),
     )
@@ -157,7 +156,7 @@ fn reports_generated_directory_creation_errors() {
     .unwrap();
     fs::write(out.path().join("rangular"), "file blocks directory").unwrap();
     let error = run_at(
-        Config::new("components", "site.css"),
+        &Config::new("components", "site.css"),
         manifest.path(),
         out.path(),
     )
@@ -189,13 +188,13 @@ fn public_build_and_environment_resolution_cover_success_and_failures() {
     // SAFETY: same single-test environment mutation constraint as above.
     unsafe { std::env::remove_var("OUT_DIR") };
     assert!(matches!(
-        run(Config::new("components", "site.css")),
+        run(&Config::new("components", "site.css")),
         Err(error) if error.contains("OUT_DIR is not set")
     ));
     // SAFETY: same single-test environment mutation constraint as above.
     unsafe { std::env::remove_var("CARGO_MANIFEST_DIR") };
     assert!(matches!(
-        run(Config::new("components", "site.css")),
+        run(&Config::new("components", "site.css")),
         Err(error) if error.contains("CARGO_MANIFEST_DIR is not set")
     ));
 
@@ -221,5 +220,5 @@ fn handles_components_without_scss_in_the_compiler_helper() {
     let mut css = String::new();
     let output = compile_components(&components, temp.path(), &mut css).unwrap();
     assert_eq!(output.len(), 1);
-    assert!(css.is_empty());
+    assert_eq!(css, "");
 }

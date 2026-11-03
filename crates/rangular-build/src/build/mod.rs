@@ -19,13 +19,37 @@ use self::styles::append as append_styles;
 /// rerun directives for the component directory and optional global stylesheet.
 /// Panics with the offending path and compiler diagnostics on failure, as
 /// expected for a Cargo build script.
+///
+/// # Arguments
+///
+/// * `config` - Component source directory, generated CSS path, and optional
+///   global SCSS path. Paths are relative to the Cargo package root.
+///
+/// # Panics
+///
+/// Panics when `CARGO_MANIFEST_DIR` or `OUT_DIR` is missing, when no matching
+/// components are found, when a template or stylesheet fails to compile, or
+/// when an input or output file cannot be read or written.
+///
+/// # Examples
+///
+/// In a package's `build.rs`:
+///
+/// ```no_run
+/// use rangular_build::{Config, build};
+///
+/// fn main() {
+///     build(Config::new("src/components", "style/components.css"));
+/// }
+/// ```
+#[allow(clippy::needless_pass_by_value)] // Keep the build-script API ergonomic for owned configs.
 pub fn build(config: Config) {
-    if let Err(error) = run(config) {
+    if let Err(error) = run(&config) {
         panic!("rangular build failed: {error}");
     }
 }
 
-pub(crate) fn run(config: Config) -> Result<(), String> {
+fn run(config: &Config) -> Result<(), String> {
     let manifest = env::var_os("CARGO_MANIFEST_DIR")
         .map(PathBuf::from)
         .ok_or_else(|| "CARGO_MANIFEST_DIR is not set".to_owned())?;
@@ -36,7 +60,7 @@ pub(crate) fn run(config: Config) -> Result<(), String> {
 }
 
 fn run_at(
-    config: Config,
+    config: &Config,
     manifest: &std::path::Path,
     out_dir: &std::path::Path,
 ) -> Result<(), String> {
@@ -59,7 +83,7 @@ fn run_at(
     if let Some(global_scss) = &config.global_scss {
         append_styles(
             &manifest.join(global_scss),
-            global_scss.display().to_string(),
+            &global_scss.display().to_string(),
             &mut css,
         )?;
     }
@@ -90,7 +114,7 @@ fn compile_components(
             if let Some(scss_path) = component.scss_path() {
                 let label = relative_label(manifest, &scss_path);
                 let _ = writeln!(css, "\n/* {} */", component.name);
-                append_styles(&scss_path, label, css)?;
+                append_styles(&scss_path, &label, css)?;
             }
             Ok((view_name, code))
         })

@@ -4,10 +4,10 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 static NEXT_ID: AtomicUsize = AtomicUsize::new(0);
 
-pub(crate) struct TempDir(PathBuf);
+pub struct TempDir(PathBuf);
 
 impl TempDir {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
         let path = std::env::temp_dir().join(format!("rangular-build-{}-{id}", std::process::id()));
         let _ = fs::remove_dir_all(&path);
@@ -15,7 +15,7 @@ impl TempDir {
         Self(path)
     }
 
-    pub(crate) fn path(&self) -> &Path {
+    pub fn path(&self) -> &Path {
         &self.0
     }
 }
