@@ -2,6 +2,7 @@
 members = [
     "crates/rangular",
     "crates/rangular-aot",
+    "crates/rangular-build",
     "crates/rangular-css",
     "crates/rangular-expr",
     "crates/rangular-host",
@@ -22,6 +23,7 @@ rust-version = "1.87"
 
 [workspace.dependencies]
 rangular-aot = { path = "crates/rangular-aot", version = "1.0.3" }
+rangular-build = { path = "crates/rangular-build", version = "1.0.3" }
 rangular-css = { path = "crates/rangular-css", version = "1.0.3" }
 rangular-expr = { path = "crates/rangular-expr", version = "1.0.3" }
 rangular-host = { path = "crates/rangular-host", version = "1.0.3" }
