@@ -29,3 +29,23 @@ impl Config {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Config;
+    use std::path::PathBuf;
+
+    #[test]
+    fn stores_paths_and_optional_global_stylesheet() {
+        let plain = Config::new("components", "style/generated.css");
+        assert_eq!(plain.components_dir, PathBuf::from("components"));
+        assert_eq!(plain.css_output, PathBuf::from("style/generated.css"));
+        assert_eq!(plain.global_scss, None);
+
+        let configured = plain.global_scss("style/global.scss");
+        assert_eq!(
+            configured.global_scss,
+            Some(PathBuf::from("style/global.scss"))
+        );
+    }
+}

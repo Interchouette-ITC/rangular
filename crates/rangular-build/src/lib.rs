@@ -1,7 +1,10 @@
 //! Cargo build-script support for compiling rangular templates and styles.
 
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 mod build;
+
+#[cfg(test)]
+mod test_support;
 
 pub use build::{Config, build};

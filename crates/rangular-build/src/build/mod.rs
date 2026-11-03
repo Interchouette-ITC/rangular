@@ -32,6 +32,14 @@ pub(crate) fn run(config: Config) -> Result<(), String> {
     let out_dir = env::var_os("OUT_DIR")
         .map(PathBuf::from)
         .ok_or_else(|| "OUT_DIR is not set".to_owned())?;
+    run_at(config, &manifest, &out_dir)
+}
+
+fn run_at(
+    config: Config,
+    manifest: &std::path::Path,
+    out_dir: &std::path::Path,
+) -> Result<(), String> {
     let components_dir = manifest.join(&config.components_dir);
     let generated_dir = out_dir.join("rangular");
 
@@ -56,11 +64,10 @@ pub(crate) fn run(config: Config) -> Result<(), String> {
         )?;
     }
 
-    let generated = compile_components(&components, &manifest, &mut css)?;
+    let generated = compile_components(&components, manifest, &mut css)?;
     for (view_name, code) in generated {
         let output = generated_dir.join(format!("{view_name}.rs"));
-        fs::write(&output, code)
-            .map_err(|error| format!("write {}: {error}", output.display()))?;
+        fs::write(&output, code).map_err(|error| format!("write {}: {error}", output.display()))?;
     }
 
     let css_output = manifest.join(&config.css_output);
@@ -68,8 +75,7 @@ pub(crate) fn run(config: Config) -> Result<(), String> {
         fs::create_dir_all(parent)
             .map_err(|error| format!("create {}: {error}", parent.display()))?;
     }
-    fs::write(&css_output, css)
-        .map_err(|error| format!("write {}: {error}", css_output.display()))
+    fs::write(&css_output, css).map_err(|error| format!("write {}: {error}", css_output.display()))
 }
 
 fn compile_components(
@@ -90,3 +96,6 @@ fn compile_components(
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests;
