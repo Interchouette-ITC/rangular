@@ -1,0 +1,15 @@
+[package]
+name = "rangular-build"
+description = "Build support for compiling rangular HTML templates and SCSS in Cargo build scripts"
+readme = "../../docs/README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+rangular-aot = { workspace = true }
+rangular-css = { workspace = true }

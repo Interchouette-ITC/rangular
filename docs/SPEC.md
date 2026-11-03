@@ -10,13 +10,44 @@ releases may remove or rename supported constructs only with a migration note.
 
 | In scope                                                                                                                             | Out of scope (v0.1)                     |
 | ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
-| Web DOM via Leptos CSR                                                                                                               | Full Angular framework                  |
+| Web DOM via Leptos CSR, SSR, and hydration                                                                                           | Full Angular framework                  |
 | External `.html` templates                                                                                                           | Markup inside Rust controllers          |
 | Component `.scss` (compiled then encapsulated)                                                                                       | Full Angular forms / NgModel            |
 | AOT (production default)                                                                                                             | i18n, NgModule, Angular DI              |
 | Runtime interpreter (tests/tooling)                                                                                                  | Claiming runtime as the production path |
 | Fixture-driven growth                                                                                                                | Native desktop GUI toolkits             |
 | Default + named `<rg-content>` (and Angular `<ng-content>` alias), `EventPayload`, Input/Output, pipes, banana, `ng-template` outlet | Silent ignore of unknown syntax         |
+
+## Server rendering and hydration
+
+AOT templates lower to ordinary Leptos `IntoView` components. The same
+generated component can therefore be rendered to HTML by a native Leptos
+server build and hydrated by a wasm build; rangular does not maintain a second
+HTML serializer or a separate template implementation for SSR.
+
+Use Leptos's `ssr` feature to render a component with `RenderHtml::to_html()`
+(or the server integration's streaming renderer). Use the matching Leptos
+`hydrate` feature in the browser entry point and call `hydrate_body` with that
+same component. Keep controller state and host access SSR-safe: browser-only
+APIs must be isolated to browser-only code, and server and browser must produce
+the same initial component tree for hydration.
+
+```rust,ignore
+// Native renderer
+let html = generated::hello_view(host).into_view().to_html();
+
+// wasm entry point
+leptos::mount::hydrate_body(|| generated::hello_view(host));
+```
+
+Leptos remains responsible for HTML escaping, hydration markers, and DOM
+hydration. AOT-generated views are the shared source of UI; hand-authored HTML
+strings are not an SSR substitute.
+
+Rangular AOT normalizes template whitespace but does not minify final documents.
+Document minification belongs after page assembly (for static output) or around
+the completed HTTP response (for runtime SSR); it must preserve hydration
+markers and whitespace that affects rendered text.
 
 **Desktop shells with a webview** (for example Tauri) are still the web path:
 the UI is Leptos CSR / wasm inside the webview. They are **not** a separate

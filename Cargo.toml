@@ -2,6 +2,7 @@
 members = [
     "crates/rangular",
     "crates/rangular-aot",
+    "crates/rangular-build",
     "crates/rangular-css",
     "crates/rangular-expr",
     "crates/rangular-host",
