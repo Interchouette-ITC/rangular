@@ -67,7 +67,11 @@ fn run_at(
     let components_dir = manifest.join(&config.components_dir);
     let generated_dir = out_dir.join("rangular");
 
+    let css_output = manifest.join(&config.css_output);
+
     println!("cargo:rerun-if-changed={}", components_dir.display());
+    println!("cargo:rerun-if-changed={}", css_output.display());
+
     if let Some(global_scss) = &config.global_scss {
         println!(
             "cargo:rerun-if-changed={}",
@@ -94,7 +98,6 @@ fn run_at(
         fs::write(&output, code).map_err(|error| format!("write {}: {error}", output.display()))?;
     }
 
-    let css_output = manifest.join(&config.css_output);
     if let Some(parent) = css_output.parent() {
         fs::create_dir_all(parent)
             .map_err(|error| format!("create {}: {error}", parent.display()))?;
