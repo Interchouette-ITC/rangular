@@ -598,7 +598,9 @@ impl<'src> Parser<'src> {
         // successful parse_expr_from push, since the caller only calls this
         // function when the raw value contains "{{".
         let mut iter = parts.into_iter();
-        let first = iter.next().expect("at least one part after successful interpolation parse");
+        let first = iter
+            .next()
+            .expect("at least one part after successful interpolation parse");
         Some(iter.fold(first, |acc, part| Expr::Binary {
             op: crate::expr::BinOp::Add,
             left: Box::new(acc),
