@@ -914,14 +914,17 @@ mod coverage_edges {
         assert_eq!(p.diagnostics.len(), 0);
     }
 
+    fn first_element(result: &crate::Parsed) -> &Element {
+        result.template.nodes.iter().find_map(|n| {
+            if let Node::Element(el) = n { Some(el) } else { None }
+        }).expect("expected at least one Element node")
+    }
+
     #[test]
     fn static_attr_without_interpolation_unchanged() {
-        // A plain static attribute must still produce Attr::Static.
         let result = parse(r#"<a href="/plain/">x</a>"#, "t.html");
         assert!(result.ok(), "{:?}", result.diagnostics);
-        let Node::Element(el) = result.template.nodes.into_iter().next().unwrap() else {
-            unreachable!()
-        };
+        let el = first_element(&result);
         assert!(
             el.attrs.iter().any(|a| matches!(
                 a,
@@ -934,12 +937,9 @@ mod coverage_edges {
 
     #[test]
     fn interpolated_attr_value_desugars_to_attribute_binding() {
-        // href="/prefix/{{ id }}/suffix" must produce Attr::Attribute, not Static.
         let result = parse(r#"<a href="/u/{{ id }}/view">x</a>"#, "t.html");
         assert!(result.ok(), "{:?}", result.diagnostics);
-        let Node::Element(el) = result.template.nodes.into_iter().next().unwrap() else {
-            unreachable!()
-        };
+        let el = first_element(&result);
         assert!(
             el.attrs
                 .iter()
@@ -951,12 +951,9 @@ mod coverage_edges {
 
     #[test]
     fn interpolated_attr_only_braces_no_prefix() {
-        // href="{{ url }}" — no literal prefix or suffix.
         let result = parse(r#"<a href="{{ url }}">x</a>"#, "t.html");
         assert!(result.ok(), "{:?}", result.diagnostics);
-        let Node::Element(el) = result.template.nodes.into_iter().next().unwrap() else {
-            unreachable!()
-        };
+        let el = first_element(&result);
         assert!(
             el.attrs
                 .iter()
@@ -980,12 +977,9 @@ mod coverage_edges {
 
     #[test]
     fn interpolated_attr_with_trailing_literal_suffix() {
-        // "/prefix/{{ id }}/suffix" — covers the trailing-literal branch (line after last }}).
         let result = parse(r#"<a href="/u/{{ id }}/view">x</a>"#, "t.html");
         assert!(result.ok(), "{:?}", result.diagnostics);
-        let Some(Node::Element(el)) = result.template.nodes.first() else {
-            panic!("expected element");
-        };
+        let el = first_element(&result);
         assert!(
             el.attrs
                 .iter()
@@ -996,12 +990,9 @@ mod coverage_edges {
 
     #[test]
     fn interpolated_attr_bad_expr_propagates_none() {
-        // "{{ ? }}" — the inner expression is invalid; parse_expr_from returns None,
-        // so parse_interpolated_attr_value returns None, and we fall back to Attr::Static.
-        // This covers the `self.parse_expr_from(inner)?` early-return path.
+        // Inner expression is invalid — parse_expr_from returns None, which propagates
+        // via ? and falls back gracefully. Must not panic.
         let result = parse(r#"<a href="{{ ? }}">x</a>"#, "t.html");
-        // Either a diagnostic is emitted (bad expr) or it falls back gracefully.
-        // The key is it must not panic.
         let _ = result;
     }
 }
