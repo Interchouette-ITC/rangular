@@ -915,9 +915,18 @@ mod coverage_edges {
     }
 
     fn first_element(result: &crate::Parsed) -> &Element {
-        result.template.nodes.iter().find_map(|n| {
-            if let Node::Element(el) = n { Some(el) } else { None }
-        }).expect("expected at least one Element node")
+        let node = result
+            .template
+            .nodes
+            .first()
+            .expect("expected at least one node");
+        assert!(matches!(node, Node::Element(_)), "expected Element node");
+        // SAFETY: asserted above — the arm is always taken for our test inputs.
+        #[allow(irrefutable_let_patterns)]
+        let Node::Element(el) = node else {
+            unreachable!()
+        };
+        el
     }
 
     #[test]
