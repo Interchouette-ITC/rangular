@@ -539,11 +539,70 @@ impl<'src> Parser<'src> {
         } else {
             None
         };
-        Some(Attr::Static {
-            name,
-            value,
-            span: Span::new(pos(start), pos(self.pos)),
-        })
+        let span = Span::new(pos(start), pos(self.pos));
+        // If the value contains `{{ … }}` interpolations, desugar to an
+        // attribute binding that evaluates the expressions at runtime.
+        // e.g. `href="/user/{{ id }}"` → `Attr::Attribute` with
+        // `Expr::Binary(Add, Lit("/user/"), Ident("id"))`.
+        if let Some(raw) = &value {
+            if raw.contains("{{") {
+                if let Some(expr) = self.parse_interpolated_attr_value(raw, span) {
+                    return Some(Attr::Attribute { name, expr, span });
+                }
+            }
+        }
+        Some(Attr::Static { name, value, span })
+    }
+
+    /// Parse a static attribute value that contains `{{ expr }}` segments into
+    /// a single `Expr` that concatenates literal strings with evaluated
+    /// expressions using `BinOp::Add`. Returns `None` only when the
+    /// interpolation syntax is malformed (diagnostic already emitted).
+    fn parse_interpolated_attr_value(&mut self, raw: &str, span: Span) -> Option<Expr> {
+        let mut parts: Vec<Expr> = Vec::new();
+        let mut rest = raw;
+        loop {
+            match rest.find("{{") {
+                None => {
+                    // Remaining literal suffix (may be empty — skip it).
+                    if !rest.is_empty() {
+                        parts.push(Expr::Lit(crate::expr::Literal::Str(rest.to_owned())));
+                    }
+                    break;
+                }
+                Some(brace_start) => {
+                    // Literal prefix before the `{{`.
+                    if brace_start > 0 {
+                        parts.push(Expr::Lit(crate::expr::Literal::Str(
+                            rest[..brace_start].to_owned(),
+                        )));
+                    }
+                    let after_open = &rest[brace_start + 2..];
+                    match after_open.find("}}") {
+                        None => {
+                            self.error(span, "unclosed '{{' in attribute interpolation");
+                            return None;
+                        }
+                        Some(close) => {
+                            let inner = after_open[..close].trim();
+                            let expr = self.parse_expr_from(inner)?;
+                            parts.push(expr);
+                            rest = &after_open[close + 2..];
+                        }
+                    }
+                }
+            }
+        }
+        // Fold the parts into a left-associative Add chain.
+        // If somehow no parts were produced (empty value like `"{{ }}"`
+        // after trimming), fall back to an empty string literal.
+        let mut iter = parts.into_iter();
+        let first = iter.next().unwrap_or(Expr::Lit(crate::expr::Literal::Str(String::new())));
+        Some(iter.fold(first, |acc, part| Expr::Binary {
+            op: crate::expr::BinOp::Add,
+            left: Box::new(acc),
+            right: Box::new(part),
+        }))
     }
 
     fn parse_structural(&mut self, start: usize) -> Option<Structural> {
@@ -850,5 +909,69 @@ mod coverage_edges {
         p.consume_close_tag("span");
         assert_eq!(p.pos, 0);
         assert_eq!(p.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn static_attr_without_interpolation_unchanged() {
+        // A plain static attribute must still produce Attr::Static.
+        let result = parse(r#"<a href="/plain/">x</a>"#, "t.html");
+        assert!(result.ok(), "{:?}", result.diagnostics);
+        let Some(Node::Element(el)) = result.template.nodes.first() else {
+            panic!("expected element");
+        };
+        assert!(
+            el.attrs.iter().any(|a| matches!(
+                a,
+                Attr::Static { name, value: Some(v), .. }
+                if name == "href" && v == "/plain/"
+            )),
+            "plain href must remain Attr::Static"
+        );
+    }
+
+    #[test]
+    fn interpolated_attr_value_desugars_to_attribute_binding() {
+        // href="/prefix/{{ id }}/suffix" must produce Attr::Attribute, not Static.
+        let result = parse(r#"<a href="/u/{{ id }}/view">x</a>"#, "t.html");
+        assert!(result.ok(), "{:?}", result.diagnostics);
+        let Some(Node::Element(el)) = result.template.nodes.first() else {
+            panic!("expected element");
+        };
+        assert!(
+            el.attrs
+                .iter()
+                .any(|a| matches!(a, Attr::Attribute { name, .. } if name == "href")),
+            "interpolated href must become Attr::Attribute; got: {:?}",
+            el.attrs
+        );
+    }
+
+    #[test]
+    fn interpolated_attr_only_braces_no_prefix() {
+        // href="{{ url }}" — no literal prefix or suffix.
+        let result = parse(r#"<a href="{{ url }}">x</a>"#, "t.html");
+        assert!(result.ok(), "{:?}", result.diagnostics);
+        let Some(Node::Element(el)) = result.template.nodes.first() else {
+            panic!("expected element");
+        };
+        assert!(
+            el.attrs
+                .iter()
+                .any(|a| matches!(a, Attr::Attribute { name, .. } if name == "href")),
+            "pure interpolated href must become Attr::Attribute"
+        );
+    }
+
+    #[test]
+    fn interpolated_attr_unclosed_brace_emits_diagnostic() {
+        let result = parse(r#"<a href="{{ unclosed">x</a>"#, "t.html");
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|d| d.message.contains("unclosed") && d.message.contains("interpolation")),
+            "must emit diagnostic for unclosed '{{'; got: {:?}",
+            result.diagnostics
+        );
     }
 }
