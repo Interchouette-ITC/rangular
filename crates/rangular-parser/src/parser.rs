@@ -597,7 +597,9 @@ impl<'src> Parser<'src> {
         // If somehow no parts were produced (empty value like `"{{ }}"`
         // after trimming), fall back to an empty string literal.
         let mut iter = parts.into_iter();
-        let first = iter.next().unwrap_or(Expr::Lit(crate::expr::Literal::Str(String::new())));
+        let first = iter
+            .next()
+            .unwrap_or(Expr::Lit(crate::expr::Literal::Str(String::new())));
         Some(iter.fold(first, |acc, part| Expr::Binary {
             op: crate::expr::BinOp::Add,
             left: Box::new(acc),
