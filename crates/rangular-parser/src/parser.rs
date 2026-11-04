@@ -914,61 +914,42 @@ mod coverage_edges {
         assert_eq!(p.diagnostics.len(), 0);
     }
 
-    fn first_element(result: &crate::Parsed) -> &Element {
-        let node = result
-            .template
-            .nodes
-            .first()
-            .expect("expected at least one node");
-        assert!(matches!(node, Node::Element(_)), "expected Element node");
-        // SAFETY: asserted above — the arm is always taken for our test inputs.
-        #[allow(irrefutable_let_patterns)]
-        let Node::Element(el) = node else {
-            unreachable!()
-        };
-        el
-    }
-
     #[test]
     fn static_attr_without_interpolation_unchanged() {
         let result = parse(r#"<a href="/plain/">x</a>"#, "t.html");
         assert!(result.ok(), "{:?}", result.diagnostics);
-        let el = first_element(&result);
-        assert!(
-            el.attrs.iter().any(|a| matches!(
+        assert!(result.template.nodes.iter().any(|n| matches!(
+            n,
+            Node::Element(el) if el.attrs.iter().any(|a| matches!(
                 a,
                 Attr::Static { name, value: Some(v), .. }
                 if name == "href" && v == "/plain/"
-            )),
-            "plain href must remain Attr::Static"
-        );
+            ))
+        )));
     }
 
     #[test]
     fn interpolated_attr_value_desugars_to_attribute_binding() {
         let result = parse(r#"<a href="/u/{{ id }}/view">x</a>"#, "t.html");
         assert!(result.ok(), "{:?}", result.diagnostics);
-        let el = first_element(&result);
-        assert!(
-            el.attrs
-                .iter()
-                .any(|a| matches!(a, Attr::Attribute { name, .. } if name == "href")),
-            "interpolated href must become Attr::Attribute; got: {:?}",
-            el.attrs
-        );
+        assert!(result.template.nodes.iter().any(|n| matches!(
+            n,
+            Node::Element(el) if el.attrs.iter().any(|a| matches!(
+                a, Attr::Attribute { name, .. } if name == "href"
+            ))
+        )));
     }
 
     #[test]
     fn interpolated_attr_only_braces_no_prefix() {
         let result = parse(r#"<a href="{{ url }}">x</a>"#, "t.html");
         assert!(result.ok(), "{:?}", result.diagnostics);
-        let el = first_element(&result);
-        assert!(
-            el.attrs
-                .iter()
-                .any(|a| matches!(a, Attr::Attribute { name, .. } if name == "href")),
-            "pure interpolated href must become Attr::Attribute"
-        );
+        assert!(result.template.nodes.iter().any(|n| matches!(
+            n,
+            Node::Element(el) if el.attrs.iter().any(|a| matches!(
+                a, Attr::Attribute { name, .. } if name == "href"
+            ))
+        )));
     }
 
     #[test]
@@ -986,21 +967,21 @@ mod coverage_edges {
 
     #[test]
     fn interpolated_attr_with_trailing_literal_suffix() {
+        // Covers the None arm of rest.find("{{") after consuming the first interpolation.
         let result = parse(r#"<a href="/u/{{ id }}/view">x</a>"#, "t.html");
         assert!(result.ok(), "{:?}", result.diagnostics);
-        let el = first_element(&result);
-        assert!(
-            el.attrs
-                .iter()
-                .any(|a| matches!(a, Attr::Attribute { name, .. } if name == "href")),
-            "must be Attr::Attribute"
-        );
+        assert!(result.template.nodes.iter().any(|n| matches!(
+            n,
+            Node::Element(el) if el.attrs.iter().any(|a| matches!(
+                a, Attr::Attribute { name, .. } if name == "href"
+            ))
+        )));
     }
 
     #[test]
     fn interpolated_attr_bad_expr_propagates_none() {
-        // Inner expression is invalid — parse_expr_from returns None, which propagates
-        // via ? and falls back gracefully. Must not panic.
+        // Inner expression is invalid: parse_expr_from returns None, propagated via ?,
+        // so parse_interpolated_attr_value returns None and falls back gracefully.
         let result = parse(r#"<a href="{{ ? }}">x</a>"#, "t.html");
         let _ = result;
     }
