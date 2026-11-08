@@ -6,8 +6,8 @@
 #   docker build -f docker/Dockerfile -t interchouette/rangular-demo .
 #   make docker-run
 
-ARG RUST_IMAGE=rust:1.98-bookworm
-ARG NGINX_IMAGE=nginxinc/nginx-unprivileged:1.27-alpine
+ARG RUST_IMAGE=rust:1.99.1-bookworm
+ARG NGINX_IMAGE=nginxinc/nginx-unprivileged:1.31.7-alpine3.24
 
 FROM ${RUST_IMAGE} AS builder
 
@@ -19,7 +19,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 RUN rustup target add wasm32-unknown-unknown \
-  && cargo install --locked trunk --version 0.21.14
+  && cargo install --locked trunk --version 0.22.1
 
 WORKDIR /app
 
