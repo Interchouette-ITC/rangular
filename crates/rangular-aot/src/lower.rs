@@ -669,7 +669,7 @@ fn html_name(name: &str) -> TokenStream {
 
 fn static_attr(name: &str, value: &str) -> TokenStream {
     if name == "property" {
-        return prefix_attr("attr", name, &quote! { #value });
+        return custom_attr(name, &quote! { #value });
     }
     let mut out = html_name(name);
     let eq = Punct::new('=', Spacing::Joint);
@@ -697,7 +697,19 @@ fn prop_attr(name: &str, value: &TokenStream) -> TokenStream {
 
 fn attr_binding(name: &str, value: &TokenStream) -> TokenStream {
     let handler = quote! { move || #value.get_value()() };
-    prefix_attr("attr", name, &handler)
+    if name == "property" {
+        return custom_attr(name, &handler);
+    }
+    let mut out = html_name(name);
+    out.extend([TokenTree::Punct(Punct::new('=', Spacing::Joint))]);
+    out.extend(handler);
+    out
+}
+
+fn custom_attr(name: &str, value: &TokenStream) -> TokenStream {
+    quote! {
+        {..leptos::tachys::html::attribute::custom::custom_attribute(#name, #value)}
+    }
 }
 
 fn class_attr(name: &str, value: &TokenStream) -> TokenStream {

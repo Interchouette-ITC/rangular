@@ -96,13 +96,13 @@ fn open_graph_property_attributes_emit_explicit_html_attributes() {
         let out = compile(template, "seo_meta_view");
         assert!(out.ok(), "{:?}", out.issues);
         assert!(
-            out.code.contains("attr:property="),
-            "expected explicit HTML property attribute:\n{}",
+            out.code.contains("custom_attribute (\"property\","),
+            "expected custom HTML property attribute:\n{}",
             out.code
         );
         assert!(
-            out.code.contains("attr:content="),
-            "expected explicit HTML content attribute:\n{}",
+            out.code.contains("content=move||"),
+            "expected dynamic HTML content attribute:\n{}",
             out.code
         );
         parse_file(&out.code).unwrap_or_else(|err| panic!("invalid Rust: {err}"));
@@ -116,13 +116,26 @@ fn explicit_attribute_bindings_remain_distinct_from_dom_properties() {
         "input_attributes_view",
     );
     assert!(out.ok(), "{:?}", out.issues);
-    for expected in ["attr:value=", "prop:value=", "attr:aria-label="] {
+    for expected in ["value=move||", "prop:value=", "aria-label=move||"] {
         assert!(
             out.code.contains(expected),
             "missing {expected}:\n{}",
             out.code
         );
     }
+    assert!(!out.code.contains("attr:"), "{}", out.code);
+    parse_file(&out.code).unwrap_or_else(|err| panic!("invalid Rust: {err}"));
+}
+
+#[test]
+fn title_attribute_binding_does_not_emit_unsupported_attr_namespace() {
+    let out = compile(
+        r#"<span [attr.title]="label | uppercase">ok</span>"#,
+        "title_attribute_view",
+    );
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.code.contains("title=move||"), "{}", out.code);
+    assert!(!out.code.contains("attr:title"), "{}", out.code);
     parse_file(&out.code).unwrap_or_else(|err| panic!("invalid Rust: {err}"));
 }
 
