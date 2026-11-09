@@ -88,6 +88,11 @@ encapsulation must not mangle global selectors the app loads separately.
 
 Static attributes without brackets pass through unchanged.
 
+AOT emits `[attr.name]` and interpolated attribute values as explicit Leptos
+`attr:name` bindings, distinct from `[prop]` DOM property bindings. Open Graph
+markup such as `<meta property="og:title" content="{{ title }}" />` is supported;
+the static `property` attribute also uses `attr:property` in generated Leptos code.
+
 ### Two-way banana `[(…)]`
 
 | Surface syntax       | Desugars to                                                    |
