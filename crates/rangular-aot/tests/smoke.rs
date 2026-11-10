@@ -38,6 +38,17 @@ fn head_mode_emits_direct_elements_and_safe_json_ld() {
 }
 
 #[test]
+fn dynamic_link_rel_is_not_treated_as_canonical() {
+    let out = rangular_aot::compile_head(
+        r#"<link [rel]="link_relation" href="/feed" />"#,
+        "dynamic_link_view",
+    );
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.code.contains("link_relation"), "{}", out.code);
+    parse_file(&out.code).unwrap_or_else(|err| panic!("invalid head-mode Rust: {err}"));
+}
+
+#[test]
 fn head_token_apis_emit_valid_rust() {
     let direct = rangular_aot::compile_head_tokens("<title>Direct</title>", "direct_head");
     assert!(direct.ok(), "{:?}", direct.issues);

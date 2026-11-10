@@ -984,6 +984,13 @@ mod coverage_arms {
         );
     }
 
+    fn input_attr_from_property(attr: Attr) -> Attr {
+        match attr {
+            Attr::Property { name, expr, span } => Attr::Input { name, expr, span },
+            other => panic!("expected property binding, got {other:?}"),
+        }
+    }
+
     #[test]
     fn lower_one_attr_ref_emits_empty() {
         let mut hoist = HoistState::new(false);
@@ -1000,6 +1007,23 @@ mod coverage_arms {
     fn sanitize_tag_empty_becomes_div() {
         assert_eq!(sanitize_tag(""), "div");
         assert_eq!(sanitize_tag("span"), "span");
+    }
+
+    #[test]
+    #[should_panic(expected = "expected one element")]
+    fn parse_element_rejects_non_element_nodes() {
+        let _ = parse_element("<!-- comment only -->");
+    }
+
+    #[test]
+    #[should_panic(expected = "expected property binding")]
+    fn input_attr_conversion_rejects_other_attributes() {
+        let attr = Attr::Static {
+            name: "type".into(),
+            value: Some("application/ld+json".into()),
+            span: Span::new(0, 1),
+        };
+        let _ = input_attr_from_property(attr);
     }
 
     #[test]
@@ -1048,10 +1072,7 @@ mod coverage_arms {
             .into_iter()
             .next()
             .expect("attribute binding");
-        let input_attr = match property_attr.clone() {
-            Attr::Property { name, expr, span } => Attr::Input { name, expr, span },
-            other => panic!("expected property binding, got {other:?}"),
-        };
+        let input_attr = input_attr_from_property(property_attr.clone());
         for attr in [property_attr, attribute_attr, input_attr] {
             let mut element = valid.clone();
             element.attrs.push(attr);
