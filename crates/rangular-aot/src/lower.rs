@@ -171,7 +171,7 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
     emit_rust_tokens_with_head_mode(template, fn_name, false)
 }
 
-pub(crate) fn emit_rust_tokens_head(template: &Template, fn_name: &str) -> EmitTokens {
+pub fn emit_rust_tokens_head(template: &Template, fn_name: &str) -> EmitTokens {
     emit_rust_tokens_with_head_mode(template, fn_name, true)
 }
 
