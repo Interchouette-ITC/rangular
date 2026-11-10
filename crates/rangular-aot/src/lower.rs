@@ -954,8 +954,35 @@ const fn sanitize_tag(tag: &str) -> &str {
 
 #[cfg(test)]
 mod coverage_arms {
-    use super::{HoistState, Scope, lower_one_attr, sanitize_tag};
-    use rangular_parser::{Attr, Span};
+    use super::{
+        HoistState, Scope, lower_head_canonical_link, lower_head_json_ld, lower_head_meta,
+        lower_one_attr, sanitize_tag,
+    };
+    use rangular_parser::{Attr, Element, Node, Span};
+
+    fn parse_element(source: &str) -> Element {
+        let parsed = rangular_parser::parse(source, "head.html");
+        assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+        match parsed.template.nodes.into_iter().next() {
+            Some(Node::Element(element)) => element,
+            other => panic!("expected one element, got {other:?}"),
+        }
+    }
+
+    fn assert_json_ld_rejected(element: &Element) {
+        let mut issues = Vec::new();
+        let result = lower_head_json_ld(
+            element,
+            &mut issues,
+            &Scope::root(),
+            &mut HoistState::new(true),
+        );
+        assert!(result.is_none());
+        assert!(
+            issues.iter().any(|issue| issue.code == "RANG403"),
+            "expected a JSON-LD diagnostic, got {issues:?}"
+        );
+    }
 
     #[test]
     fn lower_one_attr_ref_emits_empty() {
@@ -973,5 +1000,62 @@ mod coverage_arms {
     fn sanitize_tag_empty_becomes_div() {
         assert_eq!(sanitize_tag(""), "div");
         assert_eq!(sanitize_tag("span"), "span");
+    }
+
+    #[test]
+    fn head_void_elements_reject_children() {
+        let child = Node::Element(parse_element("<span>child</span>"));
+        let scope = Scope::root();
+        let mut hoist = HoistState::new(true);
+
+        let mut meta = parse_element("<meta name=\"description\" />");
+        meta.children.push(child.clone());
+        let mut issues = Vec::new();
+        assert!(lower_head_meta(&meta, &mut issues, &scope, &mut hoist).is_none());
+        assert_eq!(issues[0].code, "RANG403");
+
+        let mut canonical = parse_element("<link rel=\"canonical\" href=\"/\" />");
+        canonical.children.push(child);
+        issues.clear();
+        assert!(lower_head_canonical_link(&canonical, &mut issues, &scope, &mut hoist).is_none());
+        assert_eq!(issues[0].code, "RANG403");
+    }
+
+    #[test]
+    fn json_ld_rejects_invalid_type_bindings() {
+        let valid = parse_element(r#"<script type="application/ld+json">{}</script>"#);
+
+        let wrong_value = parse_element(r#"<script type="text/plain">{}</script>"#);
+        assert_json_ld_rejected(&wrong_value);
+
+        let mut duplicate_type = valid.clone();
+        let type_attr = duplicate_type
+            .attrs
+            .iter()
+            .find(|attr| matches!(attr, Attr::Static { name, .. } if name == "type"))
+            .expect("static type attribute")
+            .clone();
+        duplicate_type.attrs.push(type_attr);
+        assert_json_ld_rejected(&duplicate_type);
+
+        let property_attr = parse_element(r#"<script [type]="script_type"></script>"#)
+            .attrs
+            .into_iter()
+            .next()
+            .expect("property binding");
+        let attribute_attr = parse_element(r#"<script [attr.type]="script_type"></script>"#)
+            .attrs
+            .into_iter()
+            .next()
+            .expect("attribute binding");
+        let input_attr = match property_attr.clone() {
+            Attr::Property { name, expr, span } => Attr::Input { name, expr, span },
+            other => panic!("expected property binding, got {other:?}"),
+        };
+        for attr in [property_attr, attribute_attr, input_attr] {
+            let mut element = valid.clone();
+            element.attrs.push(attr);
+            assert_json_ld_rejected(&element);
+        }
     }
 }

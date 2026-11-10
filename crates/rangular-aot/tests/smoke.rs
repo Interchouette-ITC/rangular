@@ -11,12 +11,12 @@ fn assert_emits(html: &str, fn_name: &str, label: &str) {
 #[test]
 fn head_mode_emits_direct_elements_and_safe_json_ld() {
     let template = r#"
-        <title>Product: {{ title }}</title>
+        <title>Product: <!-- dynamic title -->{{ title }}</title>
         <meta name="description" content="{{ description }}" />
         <meta property="og:image" content="{{ first_image }}" />
         <meta property="og:image" content="{{ second_image }}" />
         <link rel="canonical" href="{{ canonical_url }}" />
-        <script type="application/ld+json">{{ ld_json }}</script>
+        <script type="application/ld+json" [class.safe]="is_safe">{{ ld_json }}</script>
         <script type="application/ld+json">{"@context":"https://schema.org","name":"Static {Product}"}</script>
         <link rel="stylesheet" href="/assets/site.css" />
     "#;
@@ -35,6 +35,18 @@ fn head_mode_emits_direct_elements_and_safe_json_ld() {
         out.code
     );
     parse_file(&out.code).unwrap_or_else(|err| panic!("invalid head-mode Rust: {err}"));
+}
+
+#[test]
+fn head_token_apis_emit_valid_rust() {
+    let direct = rangular_aot::compile_head_tokens("<title>Direct</title>", "direct_head");
+    assert!(direct.ok(), "{:?}", direct.issues);
+    syn::parse2::<syn::File>(direct.tokens).expect("direct head tokens should parse as Rust");
+
+    let named =
+        rangular_aot::compile_head_tokens_named("<title>Named</title>", "head.html", "named_head");
+    assert!(named.ok(), "{:?}", named.issues);
+    syn::parse2::<syn::File>(named.tokens).expect("named head tokens should parse as Rust");
 }
 
 #[test]
