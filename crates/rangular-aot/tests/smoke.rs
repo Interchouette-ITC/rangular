@@ -76,7 +76,7 @@ fn head_mode_rejects_unsupported_constructs_explicitly() {
         r#"<script [type]="script_type">{"name":"value"}</script>"#,
         r#"<script type="application/ld+json">{"name":"{{ title }}"}</script>"#,
         r#"<script type="application/ld+json">{{ first }}{{ second }}</script>"#,
-        r#"<title><strong>Product</strong></title>"#,
+        r"<title><strong>Product</strong></title>",
     ] {
         let out = rangular_aot::compile_head(template, "invalid_head");
         assert!(
