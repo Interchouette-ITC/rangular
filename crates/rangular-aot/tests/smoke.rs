@@ -9,6 +9,67 @@ fn assert_emits(html: &str, fn_name: &str, label: &str) {
 }
 
 #[test]
+fn head_mode_emits_direct_elements_and_safe_json_ld() {
+    let template = r#"
+        <title>Product: {{ title }}</title>
+        <meta name="description" content="{{ description }}" />
+        <meta property="og:image" content="{{ first_image }}" />
+        <meta property="og:image" content="{{ second_image }}" />
+        <link rel="canonical" href="{{ canonical_url }}" />
+        <script type="application/ld+json">{{ ld_json }}</script>
+        <script type="application/ld+json">{"@context":"https://schema.org","name":"Static {Product}"}</script>
+        <link rel="stylesheet" href="/assets/site.css" />
+    "#;
+    let out = rangular_aot::compile_head_named(template, "head.html", "head_view");
+
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.code.contains("<title"), "{}", out.code);
+    assert!(out.code.contains("<meta"), "{}", out.code);
+    assert!(out.code.contains("<link"), "{}", out.code);
+    assert!(out.code.contains("<script"), "{}", out.code);
+    assert!(out.code.contains("og:image"), "{}", out.code);
+    assert!(out.code.contains("canonical_url"), "{}", out.code);
+    assert!(
+        out.code.contains("rangular_aot::escape_json_ld"),
+        "{}",
+        out.code
+    );
+    parse_file(&out.code).unwrap_or_else(|err| panic!("invalid head-mode Rust: {err}"));
+}
+
+#[test]
+fn ordinary_mode_keeps_metadata_as_regular_leptos_elements() {
+    let out = compile(
+        r#"<title>{{ title }}</title><meta name="description" content="{{ description }}" />"#,
+        "page_view",
+    );
+    assert!(out.ok(), "{:?}", out.issues);
+    parse_file(&out.code).unwrap_or_else(|err| panic!("invalid ordinary Rust: {err}"));
+}
+
+#[test]
+fn head_mode_rejects_unsupported_constructs_explicitly() {
+    for template in [
+        r#"<script [type]="script_type">{"name":"value"}</script>"#,
+        r#"<script type="application/ld+json">{"name":"{{ title }}"}</script>"#,
+        r#"<script type="application/ld+json">{{ first }}{{ second }}</script>"#,
+        r#"<title><strong>Product</strong></title>"#,
+    ] {
+        let out = rangular_aot::compile_head(template, "invalid_head");
+        assert!(
+            !out.ok(),
+            "expected diagnostic for {template}: {}",
+            out.code
+        );
+        assert!(
+            out.issues.iter().any(|issue| issue.code == "RANG403"),
+            "expected a head-mode diagnostic for {template}: {:?}",
+            out.issues
+        );
+    }
+}
+
+#[test]
 fn seed_bar_emits_leptos_view() {
     let html = include_str!("../../../tests/fixtures/components/seed-bar/seed-bar.html");
     assert_emits(html, "seed_bar_view", "seed-bar");

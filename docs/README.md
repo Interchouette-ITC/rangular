@@ -206,6 +206,33 @@ let css = rangular_css::compile_scss(&scss); // flat CSS for Leptos CSR
 // append css.css into your app stylesheet
 ```
 
+### Compile a document head template
+
+Use the opt-in head compiler for document head templates; ordinary
+`compile_named` continues to lower `<title>`, `<meta>`, and `<link>` as regular
+Leptos elements.
+
+```rust
+let head = rangular_aot::compile_head_named(
+    &html,
+    "src/document/head.html",
+    "head_view",
+);
+std::fs::write(out_dir.join("head_view.rs"), &head.code)?;
+```
+
+The generated view uses direct `<title>`, `<meta>`, `<link>`, and `<script>`
+elements, just like other Rangular templates. Include it in the document's
+`<head>`. The head compiler reports unsupported head content as `RANG403`
+instead of dropping it.
+
+JSON-LD uses a static `type="application/ld+json"` and either static JSON text
+or one interpolation containing the complete JSON value. The value must
+already be valid, serialized JSON; Rangular replaces `<` with `\u003c` so the
+HTML parser cannot treat `</script>` inside the JSON as the end of the element.
+Interpolating data into fragments of JSON is rejected; serialize the whole JSON
+value in the application instead.
+
 Language details: [`SPEC.md`](SPEC.md). Fixture layout:
 [`../tests/fixtures/README.md`](../tests/fixtures/README.md).
 
