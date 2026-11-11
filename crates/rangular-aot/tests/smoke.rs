@@ -34,7 +34,25 @@ fn head_mode_emits_direct_elements_and_safe_json_ld() {
         "{}",
         out.code
     );
+    assert!(out.code.contains("Product: {}"), "{}", out.code);
     parse_file(&out.code).unwrap_or_else(|err| panic!("invalid head-mode Rust: {err}"));
+}
+
+#[test]
+fn head_script_preserves_raw_content() {
+    let body = "// first statement\nconst fake = \"</scripture>\";\nif (left < right) {\n  const value = \"{{ dynamic_value }}\";\n}\n";
+    let template = format!("<script type=\"module\">{body}</script>");
+    let out = rangular_aot::compile_head(&template, "script_view");
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(
+        out.code.contains("// first statement\\nconst fake ="),
+        "{}",
+        out.code
+    );
+    assert!(out.code.contains("if (left < right)"), "{}", out.code);
+    assert!(out.code.contains("</scripture>"), "{}", out.code);
+    assert!(out.code.contains("{{ dynamic_value }}"), "{}", out.code);
+    assert!(!out.issues.iter().any(|issue| issue.code == "RANG403"));
 }
 
 #[test]
@@ -50,7 +68,10 @@ fn dynamic_link_rel_is_not_treated_as_canonical() {
 
 #[test]
 fn head_token_apis_emit_valid_rust() {
-    let direct = rangular_aot::compile_head_tokens("<title>Direct</title>", "direct_head");
+    let direct = rangular_aot::compile_head_tokens(
+        "<title>Direct</title><script>if (left < right) {{ literal }}</script>",
+        "direct_head",
+    );
     assert!(direct.ok(), "{:?}", direct.issues);
     syn::parse2::<syn::File>(direct.tokens).expect("direct head tokens should parse as Rust");
 
@@ -63,17 +84,17 @@ fn head_token_apis_emit_valid_rust() {
 #[test]
 fn ordinary_mode_keeps_metadata_as_regular_leptos_elements() {
     let out = compile(
-        r#"<title>{{ title }}</title><meta name="description" content="{{ description }}" />"#,
+        r#"<title>{{ title }}</title><meta name="description" content="{{ description }}" /><script>{{ script_value }}</script>"#,
         "page_view",
     );
     assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.code.contains("script_value"), "{}", out.code);
     parse_file(&out.code).unwrap_or_else(|err| panic!("invalid ordinary Rust: {err}"));
 }
 
 #[test]
 fn head_mode_rejects_unsupported_constructs_explicitly() {
     for template in [
-        r#"<script [type]="script_type">{"name":"value"}</script>"#,
         r#"<script type="application/ld+json">{"name":"{{ title }}"}</script>"#,
         r#"<script type="application/ld+json">{{ first }}{{ second }}</script>"#,
         r"<title><strong>Product</strong></title>",
@@ -90,6 +111,40 @@ fn head_mode_rejects_unsupported_constructs_explicitly() {
             out.issues
         );
     }
+}
+
+#[test]
+fn head_attribute_name_matching_is_case_insensitive() {
+    let json_ld = rangular_aot::compile_head(
+        r#"<SCRIPT TYPE="application/ld+json">{{ ld_json }}</SCRIPT>"#,
+        "upper_type_view",
+    );
+    assert!(json_ld.ok(), "{:?}", json_ld.issues);
+    assert!(json_ld.code.contains("escape_json_ld"), "{}", json_ld.code);
+
+    let dynamic_type = rangular_aot::compile_head(
+        r#"<script [TYPE]="script_type">{{ ld_json }}</script>"#,
+        "dynamic_type_view",
+    );
+    assert!(
+        dynamic_type.ok(),
+        "dynamic script types should remain user-controlled raw scripts: {:?}",
+        dynamic_type.issues
+    );
+    assert!(
+        dynamic_type.code.contains("script_type"),
+        "{}",
+        dynamic_type.code
+    );
+    assert!(
+        dynamic_type.code.contains("{{ ld_json }}"),
+        "{}",
+        dynamic_type.code
+    );
+
+    let canonical =
+        rangular_aot::compile_head(r#"<link REL="canonical" href="/page" />"#, "upper_rel_view");
+    assert!(canonical.ok(), "{:?}", canonical.issues);
 }
 
 #[test]

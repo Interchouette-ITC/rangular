@@ -348,7 +348,8 @@ fn lower_element(
         return lower_nodes(&el.children, issues, scope, templates, hoist);
     }
     if hoist.head_mode {
-        match el.tag.as_str() {
+        let head_tag = el.tag.to_ascii_lowercase();
+        match head_tag.as_str() {
             "title" => return lower_head_title(el, issues, scope, hoist),
             "meta" => return lower_head_meta(el, issues, scope, hoist),
             "link"
@@ -359,19 +360,10 @@ fn lower_element(
             {
                 return lower_head_canonical_link(el, issues, scope, hoist);
             }
-            "script" if has_dynamic_attr(&el.attrs, "type") => {
-                issues.push(AotIssue::error(
-                    "RANG403",
-                    "head script type must be static so JSON-LD can be handled safely",
-                ));
-                return None;
-            }
-            "script"
-                if static_attr_value(&el.attrs, "type")
-                    .is_some_and(|value| value.eq_ignore_ascii_case("application/ld+json")) =>
-            {
+            "script" if has_static_attr_value(&el.attrs, "type", "application/ld+json") => {
                 return lower_head_json_ld(el, issues, scope, hoist);
             }
+            "script" => return Some(lower_head_script(el, scope, hoist)),
             _ => {}
         }
     }
@@ -464,7 +456,7 @@ fn lower_head_json_ld(
             Attr::Static { name, .. }
             | Attr::Property { name, .. }
             | Attr::Attribute { name, .. }
-            | Attr::Input { name, .. } => name == "type",
+            | Attr::Input { name, .. } => name.eq_ignore_ascii_case("type"),
             Attr::Class { .. } | Attr::Event { .. } | Attr::Output { .. } | Attr::Ref { .. } => {
                 false
             }
@@ -509,6 +501,20 @@ fn lower_head_json_ld(
     })
 }
 
+fn lower_head_script(el: &Element, scope: &Scope<'_>, hoist: &mut HoistState) -> TokenStream {
+    let raw_text = el
+        .children
+        .iter()
+        .filter_map(|node| match node {
+            Node::Text(text, _) => Some(text.as_str()),
+            _ => None,
+        })
+        .collect::<String>();
+    let attrs = lower_attrs(&el.attrs, scope, hoist);
+    let children = quote! { #raw_text };
+    quote! { <script #attrs>#children</script> }
+}
+
 fn lower_head_text_content(
     nodes: &[Node],
     issues: &mut Vec<AotIssue>,
@@ -524,7 +530,7 @@ fn lower_head_text_content(
     for node in nodes {
         match node {
             Node::Text(text, _) => {
-                let text = if normalize_whitespace {
+                let text = if normalize_whitespace && !has_expression {
                     text.split_whitespace().collect::<Vec<_>>().join(" ")
                 } else {
                     text.clone()
@@ -573,8 +579,22 @@ fn static_attr_value<'a>(attrs: &'a [Attr], name: &str) -> Option<&'a str> {
             name: attr_name,
             value: Some(value),
             ..
-        } if attr_name == name => Some(value.as_str()),
+        } if attr_name.eq_ignore_ascii_case(name) => Some(value.as_str()),
         _ => None,
+    })
+}
+
+fn has_static_attr_value(attrs: &[Attr], name: &str, value: &str) -> bool {
+    attrs.iter().any(|attr| {
+        matches!(
+            attr,
+            Attr::Static {
+                name: attr_name,
+                value: Some(attr_value),
+                ..
+            } if attr_name.eq_ignore_ascii_case(name)
+                && attr_value.eq_ignore_ascii_case(value)
+        )
     })
 }
 
@@ -583,7 +603,7 @@ fn has_dynamic_attr(attrs: &[Attr], name: &str) -> bool {
         matches!(
             attr,
             Attr::Property { name: attr_name, .. } | Attr::Attribute { name: attr_name, .. }
-                if attr_name == name
+                if attr_name.eq_ignore_ascii_case(name)
         )
     })
 }

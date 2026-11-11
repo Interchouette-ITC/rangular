@@ -17,7 +17,7 @@ pub use ir::{
     IrBinding, IrNode, event_handler_name, from_template as binding_ir,
     snapshot as binding_ir_snapshot,
 };
-pub use parser::{Parsed, parse};
+pub use parser::{Parsed, parse, parse_head_template};
 pub use projection::{
     collect_ng_templates, collect_projection_selects, has_default_projection, is_outlet_container,
     is_projection_tag, matches_select, select_param_name, template_outlet_ref,

@@ -10,6 +10,20 @@ const VOID: &[&str] = &[
     "track", "wbr",
 ];
 
+fn has_json_ld_type(attrs: &[Attr]) -> bool {
+    attrs.iter().any(|attr| {
+        matches!(
+            attr,
+            Attr::Static {
+                name,
+                value: Some(value),
+                ..
+            } if name.eq_ignore_ascii_case("type")
+                && value.eq_ignore_ascii_case("application/ld+json")
+        )
+    })
+}
+
 #[derive(Clone, Debug)]
 pub struct Parsed {
     pub template: Template,
@@ -27,15 +41,25 @@ struct Parser<'src> {
     file: &'src str,
     pos: usize,
     diagnostics: Vec<Diagnostic>,
+    parse_head_scripts_raw: bool,
 }
 
 impl<'src> Parser<'src> {
     pub fn parse(src: &'src str, file: &'src str) -> Parsed {
+        Self::parse_with_head_scripts_raw(src, file, false)
+    }
+
+    fn parse_with_head_scripts_raw(
+        src: &'src str,
+        file: &'src str,
+        parse_head_scripts_raw: bool,
+    ) -> Parsed {
         let mut p = Self {
             src,
             file,
             pos: 0,
             diagnostics: Vec::new(),
+            parse_head_scripts_raw,
         };
         let nodes = p.parse_nodes(&Stop::Eof);
         Parsed {
@@ -113,7 +137,14 @@ impl<'src> Parser<'src> {
         let void = self_closing || VOID.contains(&tag.as_str());
         let mut children = Vec::new();
         if !void {
-            children = self.parse_nodes(&Stop::Close);
+            if self.parse_head_scripts_raw
+                && tag.eq_ignore_ascii_case("script")
+                && !has_json_ld_type(&attrs)
+            {
+                children = self.parse_raw_script_body();
+            } else {
+                children = self.parse_nodes(&Stop::Close);
+            }
             self.skip_ws();
             self.consume_close_tag(&tag);
         }
@@ -355,6 +386,48 @@ impl<'src> Parser<'src> {
             self.src[start..self.pos].to_owned(),
             Span::new(pos(start), pos(self.pos)),
         ))
+    }
+
+    fn parse_raw_script_body(&mut self) -> Vec<Node> {
+        let start = self.pos;
+        let end = self
+            .raw_script_close_offset()
+            .map_or(self.src.len(), |offset| start + offset);
+        self.pos = end;
+
+        if start == end {
+            if end == self.src.len() {
+                self.error(self.span_here(), "unexpected end of template");
+            }
+            return Vec::new();
+        }
+
+        let body = Node::Text(
+            self.src[start..end].to_owned(),
+            Span::new(pos(start), pos(end)),
+        );
+        if end == self.src.len() {
+            self.error(self.span_here(), "unexpected end of template");
+        }
+        vec![body]
+    }
+
+    fn raw_script_close_offset(&self) -> Option<usize> {
+        let remaining = &self.src[self.pos..];
+        let lower = remaining.to_ascii_lowercase();
+        let mut search_from = 0;
+        while let Some(relative_start) = lower[search_from..].find("</script") {
+            let start = search_from + relative_start;
+            let end = start + "</script".len();
+            if matches!(
+                remaining.as_bytes().get(end).copied(),
+                Some(b'>' | b' ' | b'\t' | b'\r' | b'\n')
+            ) {
+                return Some(start);
+            }
+            search_from = end;
+        }
+        None
     }
 
     fn parse_attrs(&mut self) -> (Vec<Attr>, Option<(Expr, Span)>, Option<NgForAttr>) {
@@ -873,6 +946,12 @@ pub fn parse(src: &str, file: &str) -> Parsed {
     Parser::parse(src, file)
 }
 
+/// Parses a head template while preserving non-JSON-LD script bodies as raw text.
+#[must_use]
+pub fn parse_head_template(src: &str, file: &str) -> Parsed {
+    Parser::parse_with_head_scripts_raw(src, file, true)
+}
+
 #[cfg(test)]
 mod coverage_edges {
     use super::*;
@@ -884,6 +963,7 @@ mod coverage_edges {
             file: "t.html",
             pos: 0,
             diagnostics: Vec::new(),
+            parse_head_scripts_raw: false,
         };
         assert!(p.parse_text().is_none());
     }
@@ -895,6 +975,7 @@ mod coverage_edges {
             file: "t.html",
             pos: 0,
             diagnostics: Vec::new(),
+            parse_head_scripts_raw: false,
         };
         p.consume_close_tag("div");
         assert_eq!(p.pos, 0);
@@ -908,10 +989,72 @@ mod coverage_edges {
             file: "t.html",
             pos: 0,
             diagnostics: Vec::new(),
+            parse_head_scripts_raw: false,
         };
         p.consume_close_tag("span");
         assert_eq!(p.pos, 0);
         assert_eq!(p.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn head_parse_preserves_non_json_ld_script_body() {
+        let body = "\n// first statement\nconst fake = \"</scripture>\";\nif (left < right) {{ literal }}\n";
+        let parsed = parse_head_template(
+            &format!("<SCRIPT type=\"module\">{body}</SCRIPT>"),
+            "head.html",
+        );
+        assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+        let Node::Element(script) = &parsed.template.nodes[0] else {
+            panic!("expected script element");
+        };
+        assert!(matches!(
+            script.children.as_slice(),
+            [Node::Text(text, _)] if text == body
+        ));
+
+        let ordinary = parse(
+            "<script type=\"module\">{{ value }}</script>",
+            "ordinary.html",
+        );
+        let Node::Element(script) = &ordinary.template.nodes[0] else {
+            panic!("expected script element");
+        };
+        assert!(matches!(
+            script.children.as_slice(),
+            [Node::Interpolation(_, _)]
+        ));
+    }
+
+    #[test]
+    fn head_parse_reports_unclosed_raw_scripts() {
+        for source in ["<script>", "<script>body"] {
+            let parsed = parse_head_template(source, "head.html");
+            assert!(!parsed.ok(), "expected an error for {source}");
+            assert!(
+                parsed
+                    .diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.message.starts_with("unexpected end of template")),
+                "{:?}",
+                parsed.diagnostics
+            );
+        }
+    }
+
+    #[test]
+    fn head_parse_still_parses_json_ld_interpolations() {
+        let parsed = parse_head_template(
+            r#"<script TYPE="application/ld+json">{{ value }}</script>"#,
+            "head.html",
+        );
+        assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+        let Node::Element(script) = &parsed.template.nodes[0] else {
+            panic!("expected script element");
+        };
+        assert!(matches!(
+            script.children.as_slice(),
+            [Node::Interpolation(_, _)]
+        ));
     }
 
     #[test]

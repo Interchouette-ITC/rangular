@@ -231,7 +231,10 @@ or one interpolation containing the complete JSON value. The value must
 already be valid, serialized JSON; Rangular replaces `<` with `\u003c` so the
 HTML parser cannot treat `</script>` inside the JSON as the end of the element.
 Interpolating data into fragments of JSON is rejected; serialize the whole JSON
-value in the application instead.
+value in the application instead. Non-JSON-LD head script bodies (including
+scripts with a dynamic `type`) are emitted as raw text, preserving whitespace,
+markup-like characters, and `{{...}}` verbatim; Rangular interpolation is not
+evaluated inside those scripts.
 
 Language details: [`SPEC.md`](SPEC.md). Fixture layout:
 [`../tests/fixtures/README.md`](../tests/fixtures/README.md).

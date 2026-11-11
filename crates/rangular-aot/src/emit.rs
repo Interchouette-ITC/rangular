@@ -1,4 +1,4 @@
-use rangular_parser::{Diagnostic, builtin_tag_io, classify_bindings, parse};
+use rangular_parser::{Diagnostic, builtin_tag_io, classify_bindings, parse, parse_head_template};
 
 use crate::error::{AotIssue, EmitResult, EmitTokens};
 use crate::lower::{emit_rust_tokens, emit_rust_tokens_head};
@@ -26,7 +26,11 @@ pub fn compile_head_named(source: &str, file: &str, fn_name: &str) -> EmitResult
 }
 
 fn compile_named_with_mode(source: &str, file: &str, fn_name: &str, head_mode: bool) -> EmitResult {
-    let mut parsed = parse(source, file);
+    let mut parsed = if head_mode {
+        parse_head_template(source, file)
+    } else {
+        parse(source, file)
+    };
     let mut issues: Vec<AotIssue> = parsed
         .diagnostics
         .iter()
@@ -77,7 +81,11 @@ fn compile_tokens_named_with_mode(
     fn_name: &str,
     head_mode: bool,
 ) -> EmitTokens {
-    let mut parsed = parse(source, file);
+    let mut parsed = if head_mode {
+        parse_head_template(source, file)
+    } else {
+        parse(source, file)
+    };
     let issues: Vec<AotIssue> = parsed
         .diagnostics
         .iter()
