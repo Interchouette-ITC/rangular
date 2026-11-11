@@ -134,7 +134,10 @@ impl<'src> Parser<'src> {
             self.bump();
         }
         let span_open = Span::new(pos(start), pos(self.pos));
-        let void = self_closing || VOID.contains(&tag.as_str());
+        let void = self_closing
+            || VOID
+                .iter()
+                .any(|void_tag| tag.eq_ignore_ascii_case(void_tag));
         let mut children = Vec::new();
         if !void {
             if self.parse_head_scripts_raw && tag.eq_ignore_ascii_case("script") {
@@ -1154,6 +1157,30 @@ mod coverage_edges {
             ordinary.template.nodes.as_slice(),
             [Node::Element(script)]
                 if matches!(script.children.as_slice(), [Node::Interpolation(_, _)])
+        ));
+    }
+
+    #[test]
+    fn head_parse_treats_uppercase_void_elements_as_siblings() {
+        let parsed = parse_head_template(
+            r#"<META name="description"><TITLE>Page</TITLE><LINK rel="icon" href="/favicon.ico"><SCRIPT type="application/ld+json">{}</SCRIPT>"#,
+            "head.html",
+        );
+
+        assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+        assert!(matches!(
+            parsed.template.nodes.as_slice(),
+            [
+                Node::Element(meta),
+                Node::Element(title),
+                Node::Element(link),
+                Node::Element(script),
+            ] if meta.tag == "META"
+                && meta.children.is_empty()
+                && title.tag == "TITLE"
+                && link.tag == "LINK"
+                && link.children.is_empty()
+                && script.tag == "SCRIPT"
         ));
     }
 
