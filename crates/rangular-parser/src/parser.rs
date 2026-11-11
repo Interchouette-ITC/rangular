@@ -433,7 +433,7 @@ impl<'src> Parser<'src> {
         let mut nodes = Vec::new();
         while self.pos < end {
             let start = self.pos;
-            let Some(interpolation_start) = self.src[self.pos..end].find("{{") else {
+            let Some(interpolation_start) = self.json_ld_interpolation_offset(start, end) else {
                 self.pos = end;
                 nodes.push(Node::Text(
                     self.src[start..end].to_owned(),
@@ -441,9 +441,10 @@ impl<'src> Parser<'src> {
                 ));
                 break;
             };
-            let expr_start = start + interpolation_start + 2;
-            if interpolation_start > 0 {
-                self.pos = start + interpolation_start;
+            let interpolation_start = start + interpolation_start;
+            let expr_start = interpolation_start + 2;
+            if interpolation_start > start {
+                self.pos = interpolation_start;
                 nodes.push(Node::Text(
                     self.src[start..self.pos].to_owned(),
                     Span::new(pos(start), pos(self.pos)),
@@ -460,11 +461,44 @@ impl<'src> Parser<'src> {
             if let Some(expr) = self.parse_expr_from(expr) {
                 nodes.push(Node::Interpolation(
                     expr,
-                    Span::new(pos(start + interpolation_start), pos(self.pos)),
+                    Span::new(pos(interpolation_start), pos(self.pos)),
                 ));
             }
         }
         nodes
+    }
+
+    fn json_ld_interpolation_offset(&self, start: usize, end: usize) -> Option<usize> {
+        let body = &self.src[start..end];
+        let mut offset = 0;
+        let mut in_string = false;
+
+        while offset < body.len() {
+            let remaining = &body[offset..];
+            let next_marker = if in_string {
+                [remaining.find('\\'), remaining.find('"')]
+                    .into_iter()
+                    .flatten()
+                    .min()
+            } else {
+                [remaining.find('"'), remaining.find("{{")]
+                    .into_iter()
+                    .flatten()
+                    .min()
+            }?;
+            offset += next_marker;
+            let candidate = &body[offset..];
+            if in_string && candidate.starts_with('\\') {
+                let escaped_char = candidate[1..].chars().next()?;
+                offset += 1 + escaped_char.len_utf8();
+            } else if candidate.starts_with('"') {
+                in_string = !in_string;
+                offset += 1;
+            } else {
+                return Some(offset);
+            }
+        }
+        None
     }
 
     fn json_ld_script_close_offset(&self) -> Option<usize> {
@@ -484,14 +518,10 @@ impl<'src> Parser<'src> {
                 continue;
             }
             let next_marker = if in_string {
-                [
-                    remaining.find('\\'),
-                    remaining.find('"'),
-                    remaining.find("{{"),
-                ]
-                .into_iter()
-                .flatten()
-                .min()
+                [remaining.find('\\'), remaining.find('"')]
+                    .into_iter()
+                    .flatten()
+                    .min()
             } else {
                 [
                     remaining.find('"'),
@@ -1231,25 +1261,6 @@ mod coverage_edges {
     }
 
     #[test]
-    fn head_parse_keeps_script_close_inside_json_string_interpolation() {
-        let parsed = parse_head_template(
-            r#"<script type="application/ld+json">{"name":"{{ "</script>" }}"}</script>"#,
-            "head.html",
-        );
-
-        assert!(parsed.ok(), "{:?}", parsed.diagnostics);
-        assert!(matches!(
-            parsed.template.nodes.as_slice(),
-            [Node::Element(script)]
-                if matches!(
-                    script.children.as_slice(),
-                    [Node::Text(prefix, _), Node::Interpolation(_, _), Node::Text(suffix, _)]
-                    if prefix == r#"{"name":""# && suffix == r#""}"#
-                )
-        ));
-    }
-
-    #[test]
     fn head_parse_reports_invalid_json_ld_interpolation() {
         let parsed = parse_head_template(
             r#"<script type="application/ld+json">{{ ? }}</script>"#,
@@ -1286,6 +1297,20 @@ mod coverage_edges {
     #[test]
     fn head_parse_preserves_json_ld_text_without_markup_interpretation() {
         let body = "<scripture>not a script close</scripture>";
+        let source = format!("<script type=\"application/ld+json\">{body}</script>");
+        let parsed = parse_head_template(&source, "head.html");
+
+        assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+        assert!(matches!(
+            parsed.template.nodes.as_slice(),
+            [Node::Element(script)]
+                if matches!(script.children.as_slice(), [Node::Text(text, _)] if text == body)
+        ));
+    }
+
+    #[test]
+    fn head_parse_keeps_interpolation_markers_inside_json_strings_as_text() {
+        let body = r#"{"description":"{{literal}} </script>","unmatched":"{{","escaped":"quote: \" {{also-literal}}"}"#;
         let source = format!("<script type=\"application/ld+json\">{body}</script>");
         let parsed = parse_head_template(&source, "head.html");
 

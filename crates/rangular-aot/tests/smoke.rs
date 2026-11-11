@@ -96,8 +96,7 @@ fn ordinary_mode_keeps_metadata_as_regular_leptos_elements() {
 #[test]
 fn head_mode_rejects_unsupported_constructs_explicitly() {
     for template in [
-        r#"<script type="application/ld+json">{"name":"{{ title }}"}</script>"#,
-        r#"<script type="application/ld+json">{"name":"{{ "</script>" }}"}</script>"#,
+        r#"<script type="application/ld+json">{"name":{{ title }}}</script>"#,
         r#"<script type="application/ld+json">{{ first }}{{ second }}</script>"#,
         r"<title><strong>Product</strong></title>",
         r"<div>body</div>",
@@ -131,6 +130,40 @@ fn head_mode_rejects_unsupported_constructs_explicitly() {
             .any(|issue| issue.message.contains("unknown ngTemplateOutlet ref")),
         "unsupported element should not be lowered as an outlet: {:?}",
         outlet.issues
+    );
+}
+
+#[test]
+fn head_mode_rejects_text_interpolation_and_projection_nodes() {
+    for template in [
+        "body text",
+        "{{ body }}",
+        "<ng-content></ng-content>",
+        "@if (show) { body text }",
+        "<ng-container>body text</ng-container>",
+    ] {
+        let out = rangular_aot::compile_head(template, "invalid_head_node");
+        assert!(!out.ok(), "expected rejection for {template}: {}", out.code);
+        assert!(
+            out.issues.iter().any(|issue| issue.code == "RANG403"),
+            "expected RANG403 for {template}: {:?}",
+            out.issues
+        );
+    }
+}
+
+#[test]
+fn head_mode_keeps_json_ld_interpolation_markers_inside_static_strings() {
+    let template = r#"<script type="application/ld+json">{"description":"{{literal}}","unmatched":"{{"}</script>"#;
+    let out = rangular_aot::compile_head(template, "static_braces");
+
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.code.contains("{{literal}}"), "{}", out.code);
+    assert!(out.code.contains("unmatched"), "{}", out.code);
+    assert!(
+        !out.code.contains("host.prop_str_scoped"),
+        "static JSON string braces must not become bindings: {}",
+        out.code
     );
 }
 

@@ -298,6 +298,19 @@ fn lower_node(
     templates: &HashMap<String, Vec<Node>>,
     hoist: &mut HoistState,
 ) -> Option<TokenStream> {
+    if hoist.head_mode
+        && matches!(
+            node,
+            Node::Text(_, _) | Node::Interpolation(_, _) | Node::Projection(_)
+        )
+    {
+        issues.push(AotIssue::error(
+            "RANG403",
+            "text, interpolation, and projected content are not supported outside head elements",
+        ));
+        return None;
+    }
+
     match node {
         Node::Element(el) => lower_element(el, issues, scope, templates, hoist),
         Node::Text(text, _) => {
