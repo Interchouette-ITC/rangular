@@ -1004,24 +1004,20 @@ mod coverage_edges {
             "head.html",
         );
         assert!(parsed.ok(), "{:?}", parsed.diagnostics);
-        let Node::Element(script) = &parsed.template.nodes[0] else {
-            panic!("expected script element");
-        };
         assert!(matches!(
-            script.children.as_slice(),
-            [Node::Text(text, _)] if text == body
+            parsed.template.nodes.as_slice(),
+            [Node::Element(script)]
+                if matches!(script.children.as_slice(), [Node::Text(text, _)] if text == body)
         ));
 
         let ordinary = parse(
             "<script type=\"module\">{{ value }}</script>",
             "ordinary.html",
         );
-        let Node::Element(script) = &ordinary.template.nodes[0] else {
-            panic!("expected script element");
-        };
         assert!(matches!(
-            script.children.as_slice(),
-            [Node::Interpolation(_, _)]
+            ordinary.template.nodes.as_slice(),
+            [Node::Element(script)]
+                if matches!(script.children.as_slice(), [Node::Interpolation(_, _)])
         ));
     }
 
@@ -1048,12 +1044,10 @@ mod coverage_edges {
             "head.html",
         );
         assert!(parsed.ok(), "{:?}", parsed.diagnostics);
-        let Node::Element(script) = &parsed.template.nodes[0] else {
-            panic!("expected script element");
-        };
         assert!(matches!(
-            script.children.as_slice(),
-            [Node::Interpolation(_, _)]
+            parsed.template.nodes.as_slice(),
+            [Node::Element(script)]
+                if matches!(script.children.as_slice(), [Node::Interpolation(_, _)])
         ));
     }
 

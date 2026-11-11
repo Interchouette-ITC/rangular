@@ -505,14 +505,18 @@ fn lower_head_script(el: &Element, scope: &Scope<'_>, hoist: &mut HoistState) ->
     let raw_text = el
         .children
         .iter()
-        .filter_map(|node| match node {
-            Node::Text(text, _) => Some(text.as_str()),
-            _ => None,
-        })
+        .filter_map(raw_script_text)
         .collect::<String>();
     let attrs = lower_attrs(&el.attrs, scope, hoist);
     let children = quote! { #raw_text };
     quote! { <script #attrs>#children</script> }
+}
+
+const fn raw_script_text(node: &Node) -> Option<&str> {
+    match node {
+        Node::Text(text, _) => Some(text.as_str()),
+        _ => None,
+    }
 }
 
 fn lower_head_text_content(
@@ -975,8 +979,8 @@ const fn sanitize_tag(tag: &str) -> &str {
 #[cfg(test)]
 mod coverage_arms {
     use super::{
-        HoistState, Scope, lower_head_canonical_link, lower_head_json_ld, lower_head_meta,
-        lower_one_attr, sanitize_tag,
+        HoistState, Scope, emit_rust, has_dynamic_attr, lower_head_canonical_link,
+        lower_head_json_ld, lower_head_meta, lower_head_script, lower_one_attr, sanitize_tag,
     };
     use rangular_parser::{Attr, Element, Node, Span};
 
@@ -1027,6 +1031,38 @@ mod coverage_arms {
     fn sanitize_tag_empty_becomes_div() {
         assert_eq!(sanitize_tag(""), "div");
         assert_eq!(sanitize_tag("span"), "span");
+    }
+
+    #[test]
+    fn emit_rust_wrapper_uses_default_lowering() {
+        let parsed = rangular_parser::parse("<span>text</span>", "coverage.html");
+        let out = emit_rust(&parsed.template, "coverage_view");
+        assert!(out.ok(), "{:?}", out.issues);
+        assert!(out.code.contains("coverage_view"), "{}", out.code);
+        assert!(out.code.contains("\"text\""), "{}", out.code);
+    }
+
+    #[test]
+    fn has_dynamic_attr_matches_property_and_attribute_bindings() {
+        let property_attrs = parse_element(r#"<script [TYPE]="script_type"></script>"#).attrs;
+        let attribute_attrs = parse_element(r#"<script [attr.TYPE]="script_type"></script>"#).attrs;
+        let static_attrs = parse_element(r#"<script TYPE="module"></script>"#).attrs;
+
+        assert!(has_dynamic_attr(&property_attrs, "type"));
+        assert!(has_dynamic_attr(&attribute_attrs, "type"));
+        assert!(!has_dynamic_attr(&property_attrs, "src"));
+        assert!(!has_dynamic_attr(&static_attrs, "type"));
+    }
+
+    #[test]
+    fn lower_head_script_keeps_text_around_non_text_ast_nodes() {
+        let element = parse_element("<script>before{{ value }}after</script>");
+        let tokens = lower_head_script(&element, &Scope::root(), &mut HoistState::new(true));
+        let generated = tokens.to_string();
+
+        assert!(generated.contains("beforeafter"), "{generated}");
+        assert!(generated.contains("script"), "{generated}");
+        assert!(!generated.contains("value"), "{generated}");
     }
 
     #[test]
