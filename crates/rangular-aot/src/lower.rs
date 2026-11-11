@@ -334,6 +334,19 @@ fn lower_element(
     templates: &HashMap<String, Vec<Node>>,
     hoist: &mut HoistState,
 ) -> Option<TokenStream> {
+    let head_tag = hoist.head_mode.then(|| el.tag.to_ascii_lowercase());
+    if let Some(tag) = &head_tag {
+        if !matches!(
+            tag.as_str(),
+            "ng-container" | "title" | "meta" | "link" | "script"
+        ) {
+            issues.push(AotIssue::error(
+                "RANG403",
+                format!("unsupported element `<{}>` in head template", el.tag),
+            ));
+            return None;
+        }
+    }
     if let Some(name) = template_outlet_ref(&el.attrs) {
         let Some(body) = templates.get(name) else {
             issues.push(AotIssue::error(
@@ -344,27 +357,29 @@ fn lower_element(
         };
         return lower_nodes(body, issues, scope, templates, hoist);
     }
-    if el.tag == "ng-container" {
+    if el.tag == "ng-container" || head_tag.as_deref() == Some("ng-container") {
         return lower_nodes(&el.children, issues, scope, templates, hoist);
     }
-    if hoist.head_mode {
-        let head_tag = el.tag.to_ascii_lowercase();
-        match head_tag.as_str() {
-            "title" => return lower_head_title(el, issues, scope, hoist),
-            "meta" => return lower_head_meta(el, issues, scope, hoist),
-            "link"
-                if static_attr_value(&el.attrs, "rel").is_some_and(|rel| {
-                    rel.split_ascii_whitespace()
-                        .any(|token| token.eq_ignore_ascii_case("canonical"))
-                }) =>
-            {
-                return lower_head_canonical_link(el, issues, scope, hoist);
-            }
-            "script" if has_static_attr_value(&el.attrs, "type", "application/ld+json") => {
+    if let Some(head_tag) = head_tag.as_deref() {
+        if head_tag == "title" {
+            return lower_head_title(el, issues, scope, hoist);
+        }
+        if head_tag == "meta" {
+            return lower_head_meta(el, issues, scope, hoist);
+        }
+        if head_tag == "link"
+            && static_attr_value(&el.attrs, "rel").is_some_and(|rel| {
+                rel.split_ascii_whitespace()
+                    .any(|token| token.eq_ignore_ascii_case("canonical"))
+            })
+        {
+            return lower_head_canonical_link(el, issues, scope, hoist);
+        }
+        if head_tag == "script" {
+            if has_static_attr_value(&el.attrs, "type", "application/ld+json") {
                 return lower_head_json_ld(el, issues, scope, hoist);
             }
-            "script" => return Some(lower_head_script(el, scope, hoist)),
-            _ => {}
+            return Some(lower_head_script(el, scope, hoist));
         }
     }
     let attrs = lower_attrs(&el.attrs, scope, hoist);
@@ -1105,6 +1120,9 @@ mod coverage_arms {
     fn json_ld_rejects_invalid_type_bindings() {
         let valid = parse_element(r#"<script type="application/ld+json">{}</script>"#);
 
+        let missing_type = parse_element("<script>{}</script>");
+        assert_json_ld_rejected(&missing_type);
+
         let wrong_value = parse_element(r#"<script type="text/plain">{}</script>"#);
         assert_json_ld_rejected(&wrong_value);
 
@@ -1134,5 +1152,37 @@ mod coverage_arms {
             element.attrs.push(attr);
             assert_json_ld_rejected(&element);
         }
+    }
+
+    #[test]
+    fn json_ld_type_count_ignores_non_type_attribute_variants() {
+        let mut element = parse_element(r#"<script type="application/ld+json">{}</script>"#);
+        let extras = parse_element(
+            r#"<script [class.ready]="ready" (click)="clicked" #script_ref></script>"#,
+        );
+        let output_expr = extras
+            .attrs
+            .iter()
+            .find_map(|attr| match attr {
+                Attr::Event { expr, .. } => Some(expr.clone()),
+                _ => None,
+            })
+            .expect("event expression");
+        element.attrs.extend(extras.attrs);
+        element.attrs.push(Attr::Output {
+            name: "changed".into(),
+            expr: output_expr,
+            span: Span::new(0, 1),
+        });
+
+        let mut issues = Vec::new();
+        let result = lower_head_json_ld(
+            &element,
+            &mut issues,
+            &Scope::root(),
+            &mut HoistState::new(true),
+        );
+        assert!(result.is_some(), "{issues:?}");
+        assert!(issues.is_empty(), "{issues:?}");
     }
 }

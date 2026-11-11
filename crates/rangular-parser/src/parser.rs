@@ -137,11 +137,12 @@ impl<'src> Parser<'src> {
         let void = self_closing || VOID.contains(&tag.as_str());
         let mut children = Vec::new();
         if !void {
-            if self.parse_head_scripts_raw
-                && tag.eq_ignore_ascii_case("script")
-                && !has_json_ld_type(&attrs)
-            {
-                children = self.parse_raw_script_body();
+            if self.parse_head_scripts_raw && tag.eq_ignore_ascii_case("script") {
+                children = if has_json_ld_type(&attrs) {
+                    self.parse_json_ld_script_body()
+                } else {
+                    self.parse_raw_script_body()
+                };
             } else {
                 children = self.parse_nodes(&Stop::Close);
             }
@@ -412,6 +413,133 @@ impl<'src> Parser<'src> {
         vec![body]
     }
 
+    fn parse_json_ld_script_body(&mut self) -> Vec<Node> {
+        let start = self.pos;
+        let end = self
+            .json_ld_script_close_offset()
+            .map_or(self.src.len(), |offset| start + offset);
+        let children = self.parse_json_ld_body_until(end);
+        self.pos = end;
+        if end == self.src.len() {
+            self.error(self.span_here(), "unexpected end of template");
+        }
+        children
+    }
+
+    fn parse_json_ld_body_until(&mut self, end: usize) -> Vec<Node> {
+        let mut nodes = Vec::new();
+        while self.pos < end {
+            let start = self.pos;
+            let Some(interpolation_start) = self.src[self.pos..end].find("{{") else {
+                self.pos = end;
+                nodes.push(Node::Text(
+                    self.src[start..end].to_owned(),
+                    Span::new(pos(start), pos(end)),
+                ));
+                break;
+            };
+            let expr_start = start + interpolation_start + 2;
+            if interpolation_start > 0 {
+                self.pos = start + interpolation_start;
+                nodes.push(Node::Text(
+                    self.src[start..self.pos].to_owned(),
+                    Span::new(pos(start), pos(self.pos)),
+                ));
+            }
+            let Some(relative_end) = self.src[expr_start..end].find("}}") else {
+                self.error(Span::new(pos(self.pos), pos(end)), "unclosed interpolation");
+                self.pos = end;
+                break;
+            };
+            let expr_end = expr_start + relative_end;
+            let expr = self.src[expr_start..expr_end].trim();
+            self.pos = expr_end + 2;
+            if let Some(expr) = self.parse_expr_from(expr) {
+                nodes.push(Node::Interpolation(
+                    expr,
+                    Span::new(pos(start + interpolation_start), pos(self.pos)),
+                ));
+            }
+        }
+        nodes
+    }
+
+    fn json_ld_script_close_offset(&self) -> Option<usize> {
+        let body = &self.src[self.pos..];
+        let mut offset = 0;
+        let mut in_string = false;
+        let mut in_interpolation = false;
+
+        while offset < body.len() {
+            let remaining = &body[offset..];
+            if in_interpolation {
+                let Some(end) = remaining.find("}}") else {
+                    break;
+                };
+                in_interpolation = false;
+                offset += end + 2;
+                continue;
+            }
+            let next_marker = if in_string {
+                [
+                    remaining.find('\\'),
+                    remaining.find('"'),
+                    remaining.find("{{"),
+                ]
+                .into_iter()
+                .flatten()
+                .min()
+            } else {
+                [
+                    remaining.find('"'),
+                    remaining.find("{{"),
+                    remaining.find('<'),
+                ]
+                .into_iter()
+                .flatten()
+                .min()
+            };
+            let Some(next_marker) = next_marker else {
+                break;
+            };
+            offset += next_marker;
+            let candidate = &body[offset..];
+            if candidate.starts_with("{{") {
+                in_interpolation = true;
+                offset += 2;
+            } else if in_string && candidate.starts_with('\\') {
+                let Some(escaped_char) = candidate[1..].chars().next() else {
+                    break;
+                };
+                offset += 1 + escaped_char.len_utf8();
+            } else if in_string {
+                in_string = false;
+                offset += 1;
+            } else if candidate.starts_with('"') {
+                in_string = true;
+                offset += 1;
+            } else {
+                if self.is_script_close_at(self.pos + offset) {
+                    return Some(offset);
+                }
+                offset += 1;
+            }
+        }
+        None
+    }
+
+    fn is_script_close_at(&self, start: usize) -> bool {
+        let remaining = &self.src[start..];
+        let tag_end = "</script".len();
+        remaining
+            .get(..tag_end)
+            .is_some_and(|tag| tag.eq_ignore_ascii_case("</script"))
+            && matches!(
+                remaining.as_bytes().get(tag_end).copied(),
+                Some(b'>' | b' ' | b'\t' | b'\r' | b'\n' | b'\x0c')
+            )
+    }
+
     fn raw_script_close_offset(&self) -> Option<usize> {
         let remaining = &self.src[self.pos..];
         let lower = remaining.to_ascii_lowercase();
@@ -421,7 +549,7 @@ impl<'src> Parser<'src> {
             let end = start + "</script".len();
             if matches!(
                 remaining.as_bytes().get(end).copied(),
-                Some(b'>' | b' ' | b'\t' | b'\r' | b'\n')
+                Some(b'>' | b' ' | b'\t' | b'\r' | b'\n' | b'\x0c')
             ) {
                 return Some(start);
             }
@@ -856,7 +984,7 @@ impl<'src> Parser<'src> {
     }
 
     fn skip_ws(&mut self) {
-        while matches!(self.peek(), Some(' ' | '\t' | '\r' | '\n')) {
+        while matches!(self.peek(), Some(' ' | '\t' | '\r' | '\n' | '\u{000c}')) {
             self.bump();
         }
     }
@@ -1010,6 +1138,14 @@ mod coverage_edges {
                 if matches!(script.children.as_slice(), [Node::Text(text, _)] if text == body)
         ));
 
+        let form_feed_close = parse_head_template("<script>raw body</script\u{000c}>", "head.html");
+        assert!(form_feed_close.ok(), "{:?}", form_feed_close.diagnostics);
+        assert!(matches!(
+            form_feed_close.template.nodes.as_slice(),
+            [Node::Element(script)]
+                if matches!(script.children.as_slice(), [Node::Text(text, _)] if text == "raw body")
+        ));
+
         let ordinary = parse(
             "<script type=\"module\">{{ value }}</script>",
             "ordinary.html",
@@ -1049,6 +1185,133 @@ mod coverage_edges {
             [Node::Element(script)]
                 if matches!(script.children.as_slice(), [Node::Interpolation(_, _)])
         ));
+    }
+
+    #[test]
+    fn head_parse_preserves_json_ld_close_tags_across_escapes_and_delimiters() {
+        let body = r#"{"escaped":"quote: \" slash: \\ </script> stays data"}"#;
+        for delimiter in ["", " ", "\t", "\r", "\n", "\u{000c}"] {
+            let source = format!("<script type=\"application/ld+json\">{body}</SCRIPT{delimiter}>");
+            let parsed = parse_head_template(&source, "head.html");
+
+            assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+            assert!(matches!(
+                parsed.template.nodes.as_slice(),
+                [Node::Element(script)]
+                    if matches!(script.children.as_slice(), [Node::Text(text, _)] if text == body)
+            ));
+        }
+    }
+
+    #[test]
+    fn head_parse_keeps_script_close_inside_json_string_interpolation() {
+        let parsed = parse_head_template(
+            r#"<script type="application/ld+json">{"name":"{{ "</script>" }}"}</script>"#,
+            "head.html",
+        );
+
+        assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+        assert!(matches!(
+            parsed.template.nodes.as_slice(),
+            [Node::Element(script)]
+                if matches!(
+                    script.children.as_slice(),
+                    [Node::Text(prefix, _), Node::Interpolation(_, _), Node::Text(suffix, _)]
+                    if prefix == r#"{"name":""# && suffix == r#""}"#
+                )
+        ));
+    }
+
+    #[test]
+    fn head_parse_reports_invalid_json_ld_interpolation() {
+        let parsed = parse_head_template(
+            r#"<script type="application/ld+json">{{ ? }}</script>"#,
+            "head.html",
+        );
+        assert!(
+            !parsed.ok(),
+            "invalid expression should produce a diagnostic"
+        );
+        assert_ne!(parsed.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn head_parse_reports_unclosed_json_ld_content() {
+        for source in [
+            r#"<script type="application/ld+json">plain"#,
+            r#"<script type="application/ld+json">{"name":"unterminated</script>"#,
+            r#"<script type="application/ld+json">{"name":"dangling\"#,
+            r#"<script type="application/ld+json">{{ value </script>"#,
+        ] {
+            let parsed = parse_head_template(source, "head.html");
+            assert!(!parsed.ok(), "expected an error for {source}");
+            assert!(
+                parsed
+                    .diagnostics
+                    .iter()
+                    .any(|diagnostic| diagnostic.message.starts_with("unexpected end of template")),
+                "{:?}",
+                parsed.diagnostics
+            );
+        }
+    }
+
+    #[test]
+    fn head_parse_preserves_json_ld_text_without_markup_interpretation() {
+        let body = "<scripture>not a script close</scripture>";
+        let source = format!("<script type=\"application/ld+json\">{body}</script>");
+        let parsed = parse_head_template(&source, "head.html");
+
+        assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+        assert!(matches!(
+            parsed.template.nodes.as_slice(),
+            [Node::Element(script)]
+                if matches!(script.children.as_slice(), [Node::Text(text, _)] if text == body)
+        ));
+    }
+
+    #[test]
+    fn head_parse_accepts_empty_json_ld_body() {
+        let parsed = parse_head_template(
+            r#"<script type="application/ld+json"></script>"#,
+            "head.html",
+        );
+        assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+        assert!(matches!(
+            parsed.template.nodes.as_slice(),
+            [Node::Element(script)] if script.children.is_empty()
+        ));
+    }
+
+    #[test]
+    fn head_parse_keeps_json_ld_markup_and_script_close_as_text() {
+        let body = r#"{"description":"<b>text</b>","closing":"</script>"}"#;
+        let source = format!(r#"<script type="application/ld+json">{body}</script>"#);
+        let parsed = parse_head_template(&source, "head.html");
+
+        assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+        assert!(matches!(
+            parsed.template.nodes.as_slice(),
+            [Node::Element(script)]
+                if matches!(script.children.as_slice(), [Node::Text(text, _)] if text == body)
+        ));
+    }
+
+    #[test]
+    fn script_close_detection_requires_a_complete_name_and_delimiter() {
+        for source in ["<", "</scrip", "</scripture>", "</script="] {
+            let parser = Parser {
+                src: source,
+                file: "head.html",
+                pos: 0,
+                diagnostics: Vec::new(),
+                parse_head_scripts_raw: true,
+            };
+            assert!(
+                !parser.is_script_close_at(0),
+                "unexpected script close in {source}"
+            );
+        }
     }
 
     #[test]

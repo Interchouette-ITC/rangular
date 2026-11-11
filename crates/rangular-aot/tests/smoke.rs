@@ -17,7 +17,7 @@ fn head_mode_emits_direct_elements_and_safe_json_ld() {
         <meta property="og:image" content="{{ second_image }}" />
         <link rel="canonical" href="{{ canonical_url }}" />
         <script type="application/ld+json" [class.safe]="is_safe">{{ ld_json }}</script>
-        <script type="application/ld+json">{"@context":"https://schema.org","name":"Static {Product}"}</script>
+        <script type="application/ld+json">{"@context":"https://schema.org","name":"Static {Product}","description":"<b>Product</b>","closing":"</script>"}</script>
         <link rel="stylesheet" href="/assets/site.css" />
     "#;
     let out = rangular_aot::compile_head_named(template, "head.html", "head_view");
@@ -29,6 +29,7 @@ fn head_mode_emits_direct_elements_and_safe_json_ld() {
     assert!(out.code.contains("<script"), "{}", out.code);
     assert!(out.code.contains("og:image"), "{}", out.code);
     assert!(out.code.contains("canonical_url"), "{}", out.code);
+    assert!(out.code.contains("<b>Product</b>"), "{}", out.code);
     assert!(
         out.code.contains("rangular_aot::escape_json_ld"),
         "{}",
@@ -96,8 +97,10 @@ fn ordinary_mode_keeps_metadata_as_regular_leptos_elements() {
 fn head_mode_rejects_unsupported_constructs_explicitly() {
     for template in [
         r#"<script type="application/ld+json">{"name":"{{ title }}"}</script>"#,
+        r#"<script type="application/ld+json">{"name":"{{ "</script>" }}"}</script>"#,
         r#"<script type="application/ld+json">{{ first }}{{ second }}</script>"#,
         r"<title><strong>Product</strong></title>",
+        r"<div>body</div>",
     ] {
         let out = rangular_aot::compile_head(template, "invalid_head");
         assert!(
@@ -111,6 +114,24 @@ fn head_mode_rejects_unsupported_constructs_explicitly() {
             out.issues
         );
     }
+
+    let outlet = rangular_aot::compile_head(
+        r#"<div [ngTemplateOutlet]="missing"></div>"#,
+        "unsupported_outlet",
+    );
+    assert!(
+        outlet.issues.iter().any(|issue| issue.code == "RANG403"),
+        "unsupported outlet hosts must be rejected before outlet resolution: {:?}",
+        outlet.issues
+    );
+    assert!(
+        !outlet
+            .issues
+            .iter()
+            .any(|issue| issue.message.contains("unknown ngTemplateOutlet ref")),
+        "unsupported element should not be lowered as an outlet: {:?}",
+        outlet.issues
+    );
 }
 
 #[test]
