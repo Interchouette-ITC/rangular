@@ -9,6 +9,199 @@ fn assert_emits(html: &str, fn_name: &str, label: &str) {
 }
 
 #[test]
+fn head_mode_emits_direct_elements_and_safe_json_ld() {
+    let template = r#"
+        <title>Product: <!-- dynamic title -->{{ title }}</title>
+        <meta name="description" content="{{ description }}" />
+        <meta property="og:image" content="{{ first_image }}" />
+        <meta property="og:image" content="{{ second_image }}" />
+        <link rel="canonical" href="{{ canonical_url }}" />
+        <script type="application/ld+json" [class.safe]="is_safe">{{ ld_json }}</script>
+        <script type="application/ld+json">{"@context":"https://schema.org","name":"Static {Product}","description":"<b>Product</b>","closing":"</script>"}</script>
+        <link rel="stylesheet" href="/assets/site.css" />
+    "#;
+    let out = rangular_aot::compile_head_named(template, "head.html", "head_view");
+
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.code.contains("<title"), "{}", out.code);
+    assert!(out.code.contains("<meta"), "{}", out.code);
+    assert!(out.code.contains("<link"), "{}", out.code);
+    assert!(out.code.contains("<script"), "{}", out.code);
+    assert!(out.code.contains("og:image"), "{}", out.code);
+    assert!(out.code.contains("canonical_url"), "{}", out.code);
+    assert!(out.code.contains("<b>Product</b>"), "{}", out.code);
+    assert!(
+        out.code.contains("rangular_aot::escape_json_ld"),
+        "{}",
+        out.code
+    );
+    assert!(out.code.contains("Product: {}"), "{}", out.code);
+    parse_file(&out.code).unwrap_or_else(|err| panic!("invalid head-mode Rust: {err}"));
+}
+
+#[test]
+fn head_script_preserves_raw_content() {
+    let body = "// first statement\nconst fake = \"</scripture>\";\nif (left < right) {\n  const value = \"{{ dynamic_value }}\";\n}\n";
+    let template = format!("<script type=\"module\">{body}</script>");
+    let out = rangular_aot::compile_head(&template, "script_view");
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(
+        out.code.contains("// first statement\\nconst fake ="),
+        "{}",
+        out.code
+    );
+    assert!(out.code.contains("if (left < right)"), "{}", out.code);
+    assert!(out.code.contains("</scripture>"), "{}", out.code);
+    assert!(out.code.contains("{{ dynamic_value }}"), "{}", out.code);
+    assert!(!out.issues.iter().any(|issue| issue.code == "RANG403"));
+}
+
+#[test]
+fn dynamic_link_rel_is_not_treated_as_canonical() {
+    let out = rangular_aot::compile_head(
+        r#"<link [rel]="link_relation" href="/feed" />"#,
+        "dynamic_link_view",
+    );
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.code.contains("link_relation"), "{}", out.code);
+    parse_file(&out.code).unwrap_or_else(|err| panic!("invalid head-mode Rust: {err}"));
+}
+
+#[test]
+fn head_token_apis_emit_valid_rust() {
+    let direct = rangular_aot::compile_head_tokens(
+        "<title>Direct</title><script>if (left < right) {{ literal }}</script>",
+        "direct_head",
+    );
+    assert!(direct.ok(), "{:?}", direct.issues);
+    syn::parse2::<syn::File>(direct.tokens).expect("direct head tokens should parse as Rust");
+
+    let named =
+        rangular_aot::compile_head_tokens_named("<title>Named</title>", "head.html", "named_head");
+    assert!(named.ok(), "{:?}", named.issues);
+    syn::parse2::<syn::File>(named.tokens).expect("named head tokens should parse as Rust");
+}
+
+#[test]
+fn ordinary_mode_keeps_metadata_as_regular_leptos_elements() {
+    let out = compile(
+        r#"<title>{{ title }}</title><meta name="description" content="{{ description }}" /><script>{{ script_value }}</script>"#,
+        "page_view",
+    );
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.code.contains("script_value"), "{}", out.code);
+    parse_file(&out.code).unwrap_or_else(|err| panic!("invalid ordinary Rust: {err}"));
+}
+
+#[test]
+fn head_mode_rejects_unsupported_constructs_explicitly() {
+    for template in [
+        r#"<script type="application/ld+json">{"name":{{ title }}}</script>"#,
+        r#"<script type="application/ld+json">{{ first }}{{ second }}</script>"#,
+        r"<title><strong>Product</strong></title>",
+        r"<div>body</div>",
+    ] {
+        let out = rangular_aot::compile_head(template, "invalid_head");
+        assert!(
+            !out.ok(),
+            "expected diagnostic for {template}: {}",
+            out.code
+        );
+        assert!(
+            out.issues.iter().any(|issue| issue.code == "RANG403"),
+            "expected a head-mode diagnostic for {template}: {:?}",
+            out.issues
+        );
+    }
+
+    let outlet = rangular_aot::compile_head(
+        r#"<div [ngTemplateOutlet]="missing"></div>"#,
+        "unsupported_outlet",
+    );
+    assert!(
+        outlet.issues.iter().any(|issue| issue.code == "RANG403"),
+        "unsupported outlet hosts must be rejected before outlet resolution: {:?}",
+        outlet.issues
+    );
+    assert!(
+        !outlet
+            .issues
+            .iter()
+            .any(|issue| issue.message.contains("unknown ngTemplateOutlet ref")),
+        "unsupported element should not be lowered as an outlet: {:?}",
+        outlet.issues
+    );
+}
+
+#[test]
+fn head_mode_rejects_text_interpolation_and_projection_nodes() {
+    for template in [
+        "body text",
+        "{{ body }}",
+        "<ng-content></ng-content>",
+        "@if (show) { body text }",
+        "<ng-container>body text</ng-container>",
+    ] {
+        let out = rangular_aot::compile_head(template, "invalid_head_node");
+        assert!(!out.ok(), "expected rejection for {template}: {}", out.code);
+        assert!(
+            out.issues.iter().any(|issue| issue.code == "RANG403"),
+            "expected RANG403 for {template}: {:?}",
+            out.issues
+        );
+    }
+}
+
+#[test]
+fn head_mode_keeps_json_ld_interpolation_markers_inside_static_strings() {
+    let template = r#"<script type="application/ld+json">{"description":"{{literal}}","unmatched":"{{"}</script>"#;
+    let out = rangular_aot::compile_head(template, "static_braces");
+
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.code.contains("{{literal}}"), "{}", out.code);
+    assert!(out.code.contains("unmatched"), "{}", out.code);
+    assert!(
+        !out.code.contains("host.prop_str_scoped"),
+        "static JSON string braces must not become bindings: {}",
+        out.code
+    );
+}
+
+#[test]
+fn head_attribute_name_matching_is_case_insensitive() {
+    let json_ld = rangular_aot::compile_head(
+        r#"<SCRIPT TYPE="application/ld+json">{{ ld_json }}</SCRIPT>"#,
+        "upper_type_view",
+    );
+    assert!(json_ld.ok(), "{:?}", json_ld.issues);
+    assert!(json_ld.code.contains("escape_json_ld"), "{}", json_ld.code);
+
+    let dynamic_type = rangular_aot::compile_head(
+        r#"<script [TYPE]="script_type">{{ ld_json }}</script>"#,
+        "dynamic_type_view",
+    );
+    assert!(
+        dynamic_type.ok(),
+        "dynamic script types should remain user-controlled raw scripts: {:?}",
+        dynamic_type.issues
+    );
+    assert!(
+        dynamic_type.code.contains("script_type"),
+        "{}",
+        dynamic_type.code
+    );
+    assert!(
+        dynamic_type.code.contains("{{ ld_json }}"),
+        "{}",
+        dynamic_type.code
+    );
+
+    let canonical =
+        rangular_aot::compile_head(r#"<link REL="canonical" href="/page" />"#, "upper_rel_view");
+    assert!(canonical.ok(), "{:?}", canonical.issues);
+}
+
+#[test]
 fn seed_bar_emits_leptos_view() {
     let html = include_str!("../../../tests/fixtures/components/seed-bar/seed-bar.html");
     assert_emits(html, "seed_bar_view", "seed-bar");

@@ -103,13 +103,15 @@ fn hoist_event_closure(
 struct HoistState {
     expr_lets: Vec<TokenStream>,
     closure_lets: Vec<TokenStream>,
+    head_mode: bool,
 }
 
 impl HoistState {
-    const fn new() -> Self {
+    const fn new(head_mode: bool) -> Self {
         Self {
             expr_lets: Vec::new(),
             closure_lets: Vec::new(),
+            head_mode,
         }
     }
 
@@ -166,6 +168,18 @@ pub fn emit_rust(template: &Template, fn_name: &str) -> EmitResult {
 
 #[must_use]
 pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
+    emit_rust_tokens_with_head_mode(template, fn_name, false)
+}
+
+pub fn emit_rust_tokens_head(template: &Template, fn_name: &str) -> EmitTokens {
+    emit_rust_tokens_with_head_mode(template, fn_name, true)
+}
+
+fn emit_rust_tokens_with_head_mode(
+    template: &Template,
+    fn_name: &str,
+    head_mode: bool,
+) -> EmitTokens {
     let mut issues = Vec::new();
     if template.nodes.is_empty() {
         issues.push(AotIssue::error("RANG401", "empty template"));
@@ -177,7 +191,7 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
     let templates: HashMap<String, Vec<Node>> =
         collect_ng_templates(&template.nodes).into_iter().collect();
     let scope = Scope::root();
-    let mut hoist = HoistState::new();
+    let mut hoist = HoistState::new(head_mode);
     let Some(body) = lower_nodes(&template.nodes, &mut issues, &scope, &templates, &mut hoist)
     else {
         return EmitTokens {
@@ -284,6 +298,19 @@ fn lower_node(
     templates: &HashMap<String, Vec<Node>>,
     hoist: &mut HoistState,
 ) -> Option<TokenStream> {
+    if hoist.head_mode
+        && matches!(
+            node,
+            Node::Text(_, _) | Node::Interpolation(_, _) | Node::Projection(_)
+        )
+    {
+        issues.push(AotIssue::error(
+            "RANG403",
+            "text, interpolation, and projected content are not supported outside head elements",
+        ));
+        return None;
+    }
+
     match node {
         Node::Element(el) => lower_element(el, issues, scope, templates, hoist),
         Node::Text(text, _) => {
@@ -320,6 +347,19 @@ fn lower_element(
     templates: &HashMap<String, Vec<Node>>,
     hoist: &mut HoistState,
 ) -> Option<TokenStream> {
+    let head_tag = hoist.head_mode.then(|| el.tag.to_ascii_lowercase());
+    if let Some(tag) = &head_tag {
+        if !matches!(
+            tag.as_str(),
+            "ng-container" | "title" | "meta" | "link" | "script"
+        ) {
+            issues.push(AotIssue::error(
+                "RANG403",
+                format!("unsupported element `<{}>` in head template", el.tag),
+            ));
+            return None;
+        }
+    }
     if let Some(name) = template_outlet_ref(&el.attrs) {
         let Some(body) = templates.get(name) else {
             issues.push(AotIssue::error(
@@ -330,8 +370,30 @@ fn lower_element(
         };
         return lower_nodes(body, issues, scope, templates, hoist);
     }
-    if el.tag == "ng-container" {
+    if el.tag == "ng-container" || head_tag.as_deref() == Some("ng-container") {
         return lower_nodes(&el.children, issues, scope, templates, hoist);
+    }
+    if let Some(head_tag) = head_tag.as_deref() {
+        if head_tag == "title" {
+            return lower_head_title(el, issues, scope, hoist);
+        }
+        if head_tag == "meta" {
+            return lower_head_meta(el, issues, scope, hoist);
+        }
+        if head_tag == "link"
+            && static_attr_value(&el.attrs, "rel").is_some_and(|rel| {
+                rel.split_ascii_whitespace()
+                    .any(|token| token.eq_ignore_ascii_case("canonical"))
+            })
+        {
+            return lower_head_canonical_link(el, issues, scope, hoist);
+        }
+        if head_tag == "script" {
+            if has_static_attr_value(&el.attrs, "type", "application/ld+json") {
+                return lower_head_json_ld(el, issues, scope, hoist);
+            }
+            return Some(lower_head_script(el, scope, hoist));
+        }
     }
     let attrs = lower_attrs(&el.attrs, scope, hoist);
     let children = lower_children(
@@ -361,6 +423,221 @@ fn lower_element(
             Some(quote! { <#tag #attrs>#children</#tag> })
         }
     }
+}
+
+fn lower_head_title(
+    el: &Element,
+    issues: &mut Vec<AotIssue>,
+    scope: &Scope<'_>,
+    hoist: &mut HoistState,
+) -> Option<TokenStream> {
+    let attrs = lower_attrs(&el.attrs, scope, hoist);
+    let text = lower_head_text_content(&el.children, issues, scope, hoist, true)?;
+    Some(quote! { <title #attrs>{#text}</title> })
+}
+
+fn lower_head_meta(
+    el: &Element,
+    issues: &mut Vec<AotIssue>,
+    scope: &Scope<'_>,
+    hoist: &mut HoistState,
+) -> Option<TokenStream> {
+    if !el.children.is_empty() {
+        issues.push(AotIssue::error(
+            "RANG403",
+            "head meta elements cannot contain child nodes",
+        ));
+        return None;
+    }
+
+    let attrs = lower_attrs(&el.attrs, scope, hoist);
+    Some(quote! { <meta #attrs /> })
+}
+
+fn lower_head_canonical_link(
+    el: &Element,
+    issues: &mut Vec<AotIssue>,
+    scope: &Scope<'_>,
+    hoist: &mut HoistState,
+) -> Option<TokenStream> {
+    if !el.children.is_empty() {
+        issues.push(AotIssue::error(
+            "RANG403",
+            "head link elements cannot contain child nodes",
+        ));
+        return None;
+    }
+    let attrs = lower_attrs(&el.attrs, scope, hoist);
+    Some(quote! { <link #attrs /> })
+}
+
+fn lower_head_json_ld(
+    el: &Element,
+    issues: &mut Vec<AotIssue>,
+    scope: &Scope<'_>,
+    hoist: &mut HoistState,
+) -> Option<TokenStream> {
+    let type_attribute_count = el
+        .attrs
+        .iter()
+        .filter(|attr| match attr {
+            Attr::Static { name, .. }
+            | Attr::Property { name, .. }
+            | Attr::Attribute { name, .. }
+            | Attr::Input { name, .. } => name.eq_ignore_ascii_case("type"),
+            Attr::Class { .. } | Attr::Event { .. } | Attr::Output { .. } | Attr::Ref { .. } => {
+                false
+            }
+        })
+        .count();
+    if type_attribute_count != 1
+        || has_dynamic_attr(&el.attrs, "type")
+        || !static_attr_value(&el.attrs, "type")
+            .is_some_and(|value| value.eq_ignore_ascii_case("application/ld+json"))
+    {
+        issues.push(AotIssue::error(
+            "RANG403",
+            "JSON-LD script elements support only the static type attribute",
+        ));
+        return None;
+    }
+    let dynamic_values = el
+        .children
+        .iter()
+        .filter(|node| matches!(node, Node::Interpolation(_, _)))
+        .count();
+    let has_non_whitespace_text = el
+        .children
+        .iter()
+        .any(|node| matches!(node, Node::Text(text, _) if !text.trim().is_empty()));
+    if dynamic_values > 1 || (dynamic_values == 1 && has_non_whitespace_text) {
+        issues.push(AotIssue::error(
+            "RANG403",
+            "dynamic JSON-LD must be supplied as one complete JSON interpolation",
+        ));
+        return None;
+    }
+    let json = lower_head_text_content(&el.children, issues, scope, hoist, false)?;
+    let attrs = lower_attrs(&el.attrs, scope, hoist);
+    Some(quote! {
+        <script #attrs>
+            {move || {
+                let __rangular_json = (#json)();
+                rangular_aot::escape_json_ld(&__rangular_json)
+            }}
+        </script>
+    })
+}
+
+fn lower_head_script(el: &Element, scope: &Scope<'_>, hoist: &mut HoistState) -> TokenStream {
+    let raw_text = el
+        .children
+        .iter()
+        .filter_map(raw_script_text)
+        .collect::<String>();
+    let attrs = lower_attrs(&el.attrs, scope, hoist);
+    let children = quote! { #raw_text };
+    quote! { <script #attrs>#children</script> }
+}
+
+const fn raw_script_text(node: &Node) -> Option<&str> {
+    match node {
+        Node::Text(text, _) => Some(text.as_str()),
+        _ => None,
+    }
+}
+
+fn lower_head_text_content(
+    nodes: &[Node],
+    issues: &mut Vec<AotIssue>,
+    scope: &Scope<'_>,
+    hoist: &mut HoistState,
+    normalize_whitespace: bool,
+) -> Option<TokenStream> {
+    let mut format = String::new();
+    let mut values = Vec::new();
+    let has_expression = nodes
+        .iter()
+        .any(|node| matches!(node, Node::Interpolation(_, _)));
+    for node in nodes {
+        match node {
+            Node::Text(text, _) => {
+                let text = if normalize_whitespace && !has_expression {
+                    text.split_whitespace().collect::<Vec<_>>().join(" ")
+                } else {
+                    text.clone()
+                };
+                if has_expression {
+                    format.push_str(&text.replace('{', "{{").replace('}', "}}"));
+                } else {
+                    format.push_str(&text);
+                }
+            }
+            Node::Interpolation(expr, _) => {
+                format.push_str("{}");
+                let value = lower_head_binding(expr, scope, hoist);
+                values.push(quote! { (#value)() });
+            }
+            Node::Comment(_, _) => {}
+            _ => {
+                issues.push(AotIssue::error(
+                    "RANG403",
+                    "head title and JSON-LD content support only text and interpolations",
+                ));
+                return None;
+            }
+        }
+    }
+    if !has_expression {
+        return Some(quote! { move || String::from(#format) });
+    }
+    Some(quote! { move || format!(#format, #(#values),*) })
+}
+
+fn lower_head_binding(expr: &Expr, scope: &Scope<'_>, hoist: &mut HoistState) -> TokenStream {
+    let expr = hoist.hoist_expr(expr);
+    let loop_scope = scope_loop(scope);
+    let value = hoist_host_closure(
+        hoist,
+        scope,
+        &quote! { host.prop_str_scoped(#expr, #loop_scope) },
+    );
+    quote! { move || #value.get_value()() }
+}
+
+fn static_attr_value<'a>(attrs: &'a [Attr], name: &str) -> Option<&'a str> {
+    attrs.iter().find_map(|attr| match attr {
+        Attr::Static {
+            name: attr_name,
+            value: Some(value),
+            ..
+        } if attr_name.eq_ignore_ascii_case(name) => Some(value.as_str()),
+        _ => None,
+    })
+}
+
+fn has_static_attr_value(attrs: &[Attr], name: &str, value: &str) -> bool {
+    attrs.iter().any(|attr| {
+        matches!(
+            attr,
+            Attr::Static {
+                name: attr_name,
+                value: Some(attr_value),
+                ..
+            } if attr_name.eq_ignore_ascii_case(name)
+                && attr_value.eq_ignore_ascii_case(value)
+        )
+    })
+}
+
+fn has_dynamic_attr(attrs: &[Attr], name: &str) -> bool {
+    attrs.iter().any(|attr| {
+        matches!(
+            attr,
+            Attr::Property { name: attr_name, .. } | Attr::Attribute { name: attr_name, .. }
+                if attr_name.eq_ignore_ascii_case(name)
+        )
+    })
 }
 
 fn lower_children(
@@ -583,7 +860,7 @@ fn lower_for(
     let item_name = block.item.as_str();
     let item_ident = format_ident!("{}", item_name);
     let scope = Scope::with_loop_item(item_name);
-    let mut body_hoist = HoistState::new();
+    let mut body_hoist = HoistState::new(hoist.head_mode);
     let body = lower_nodes(&block.body, issues, &scope, templates, &mut body_hoist)?;
     let body_prelude = body_hoist.prelude();
     let each = hoist.hoist_closure(&quote! {
@@ -729,12 +1006,46 @@ const fn sanitize_tag(tag: &str) -> &str {
 
 #[cfg(test)]
 mod coverage_arms {
-    use super::{HoistState, Scope, lower_one_attr, sanitize_tag};
-    use rangular_parser::{Attr, Span};
+    use super::{
+        HoistState, Scope, emit_rust, has_dynamic_attr, lower_head_canonical_link,
+        lower_head_json_ld, lower_head_meta, lower_head_script, lower_one_attr, sanitize_tag,
+    };
+    use rangular_parser::{Attr, Element, Node, Span};
+
+    fn parse_element(source: &str) -> Element {
+        let parsed = rangular_parser::parse(source, "head.html");
+        assert!(parsed.diagnostics.is_empty(), "{:?}", parsed.diagnostics);
+        match parsed.template.nodes.into_iter().next() {
+            Some(Node::Element(element)) => element,
+            other => panic!("expected one element, got {other:?}"),
+        }
+    }
+
+    fn assert_json_ld_rejected(element: &Element) {
+        let mut issues = Vec::new();
+        let result = lower_head_json_ld(
+            element,
+            &mut issues,
+            &Scope::root(),
+            &mut HoistState::new(true),
+        );
+        assert!(result.is_none());
+        assert!(
+            issues.iter().any(|issue| issue.code == "RANG403"),
+            "expected a JSON-LD diagnostic, got {issues:?}"
+        );
+    }
+
+    fn input_attr_from_property(attr: Attr) -> Attr {
+        match attr {
+            Attr::Property { name, expr, span } => Attr::Input { name, expr, span },
+            other => panic!("expected property binding, got {other:?}"),
+        }
+    }
 
     #[test]
     fn lower_one_attr_ref_emits_empty() {
-        let mut hoist = HoistState::new();
+        let mut hoist = HoistState::new(false);
         let scope = Scope::root();
         let attr = Attr::Ref {
             name: "r".into(),
@@ -748,5 +1059,143 @@ mod coverage_arms {
     fn sanitize_tag_empty_becomes_div() {
         assert_eq!(sanitize_tag(""), "div");
         assert_eq!(sanitize_tag("span"), "span");
+    }
+
+    #[test]
+    fn emit_rust_wrapper_uses_default_lowering() {
+        let parsed = rangular_parser::parse("<span>text</span>", "coverage.html");
+        let out = emit_rust(&parsed.template, "coverage_view");
+        assert!(out.ok(), "{:?}", out.issues);
+        assert!(out.code.contains("coverage_view"), "{}", out.code);
+        assert!(out.code.contains("\"text\""), "{}", out.code);
+    }
+
+    #[test]
+    fn has_dynamic_attr_matches_property_and_attribute_bindings() {
+        let property_attrs = parse_element(r#"<script [TYPE]="script_type"></script>"#).attrs;
+        let attribute_attrs = parse_element(r#"<script [attr.TYPE]="script_type"></script>"#).attrs;
+        let static_attrs = parse_element(r#"<script TYPE="module"></script>"#).attrs;
+
+        assert!(has_dynamic_attr(&property_attrs, "type"));
+        assert!(has_dynamic_attr(&attribute_attrs, "type"));
+        assert!(!has_dynamic_attr(&property_attrs, "src"));
+        assert!(!has_dynamic_attr(&static_attrs, "type"));
+    }
+
+    #[test]
+    fn lower_head_script_keeps_text_around_non_text_ast_nodes() {
+        let element = parse_element("<script>before{{ value }}after</script>");
+        let tokens = lower_head_script(&element, &Scope::root(), &mut HoistState::new(true));
+        let generated = tokens.to_string();
+
+        assert!(generated.contains("beforeafter"), "{generated}");
+        assert!(generated.contains("script"), "{generated}");
+        assert!(!generated.contains("value"), "{generated}");
+    }
+
+    #[test]
+    #[should_panic(expected = "expected one element")]
+    fn parse_element_rejects_non_element_nodes() {
+        let _ = parse_element("<!-- comment only -->");
+    }
+
+    #[test]
+    #[should_panic(expected = "expected property binding")]
+    fn input_attr_conversion_rejects_other_attributes() {
+        let attr = Attr::Static {
+            name: "type".into(),
+            value: Some("application/ld+json".into()),
+            span: Span::new(0, 1),
+        };
+        let _ = input_attr_from_property(attr);
+    }
+
+    #[test]
+    fn head_void_elements_reject_children() {
+        let child = Node::Element(parse_element("<span>child</span>"));
+        let scope = Scope::root();
+        let mut hoist = HoistState::new(true);
+
+        let mut meta = parse_element("<meta name=\"description\" />");
+        meta.children.push(child.clone());
+        let mut issues = Vec::new();
+        assert!(lower_head_meta(&meta, &mut issues, &scope, &mut hoist).is_none());
+        assert_eq!(issues[0].code, "RANG403");
+
+        let mut canonical = parse_element("<link rel=\"canonical\" href=\"/\" />");
+        canonical.children.push(child);
+        issues.clear();
+        assert!(lower_head_canonical_link(&canonical, &mut issues, &scope, &mut hoist).is_none());
+        assert_eq!(issues[0].code, "RANG403");
+    }
+
+    #[test]
+    fn json_ld_rejects_invalid_type_bindings() {
+        let valid = parse_element(r#"<script type="application/ld+json">{}</script>"#);
+
+        let missing_type = parse_element("<script>{}</script>");
+        assert_json_ld_rejected(&missing_type);
+
+        let wrong_value = parse_element(r#"<script type="text/plain">{}</script>"#);
+        assert_json_ld_rejected(&wrong_value);
+
+        let mut duplicate_type = valid.clone();
+        let type_attr = duplicate_type
+            .attrs
+            .iter()
+            .find(|attr| matches!(attr, Attr::Static { name, .. } if name == "type"))
+            .expect("static type attribute")
+            .clone();
+        duplicate_type.attrs.push(type_attr);
+        assert_json_ld_rejected(&duplicate_type);
+
+        let property_attr = parse_element(r#"<script [type]="script_type"></script>"#)
+            .attrs
+            .into_iter()
+            .next()
+            .expect("property binding");
+        let attribute_attr = parse_element(r#"<script [attr.type]="script_type"></script>"#)
+            .attrs
+            .into_iter()
+            .next()
+            .expect("attribute binding");
+        let input_attr = input_attr_from_property(property_attr.clone());
+        for attr in [property_attr, attribute_attr, input_attr] {
+            let mut element = valid.clone();
+            element.attrs.push(attr);
+            assert_json_ld_rejected(&element);
+        }
+    }
+
+    #[test]
+    fn json_ld_type_count_ignores_non_type_attribute_variants() {
+        let mut element = parse_element(r#"<script type="application/ld+json">{}</script>"#);
+        let extras = parse_element(
+            r#"<script [class.ready]="ready" (click)="clicked" #script_ref></script>"#,
+        );
+        let output_expr = extras
+            .attrs
+            .iter()
+            .find_map(|attr| match attr {
+                Attr::Event { expr, .. } => Some(expr.clone()),
+                _ => None,
+            })
+            .expect("event expression");
+        element.attrs.extend(extras.attrs);
+        element.attrs.push(Attr::Output {
+            name: "changed".into(),
+            expr: output_expr,
+            span: Span::new(0, 1),
+        });
+
+        let mut issues = Vec::new();
+        let result = lower_head_json_ld(
+            &element,
+            &mut issues,
+            &Scope::root(),
+            &mut HoistState::new(true),
+        );
+        assert!(result.is_some(), "{issues:?}");
+        assert!(issues.is_empty(), "{issues:?}");
     }
 }
