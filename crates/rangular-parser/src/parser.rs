@@ -1323,6 +1323,20 @@ mod coverage_edges {
     }
 
     #[test]
+    fn json_ld_interpolation_offset_returns_none_without_template_markers() {
+        let source = r#""static JSON""#;
+        let parser = Parser {
+            src: source,
+            file: "head.html",
+            pos: 0,
+            diagnostics: Vec::new(),
+            parse_head_scripts_raw: true,
+        };
+
+        assert_eq!(parser.json_ld_interpolation_offset(0, source.len()), None);
+    }
+
+    #[test]
     fn head_parse_accepts_empty_json_ld_body() {
         let parsed = parse_head_template(
             r#"<script type="application/ld+json"></script>"#,
