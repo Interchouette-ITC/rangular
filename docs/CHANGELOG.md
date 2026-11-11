@@ -7,12 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-11-11
+
+### Added
+
+- `rangular-build` Cargo helper for component discovery, HTML-to-Rust view
+  compilation, and SCSS compilation; generated CSS paths participate in rebuild
+  tracking. ([#88](https://github.com/Interchouette-ITC/rangular/pull/88),
+  [#89](https://github.com/Interchouette-ITC/rangular/pull/89))
+- Opt-in AOT document-head compiler for title, metadata, links, scripts, and
+  safely escaped JSON-LD. ([#95](https://github.com/Interchouette-ITC/rangular/pull/95))
+
 ### Fixed
 
-- `[checked]` / `[(checked)]` treat the property as a bool (like `[disabled]` via
-  `eval_bool`), so `false` is not a truthy `prop_str` in the DOM. Banana writeback
-  uses the `(change)` event and `el.checked` → `Host::set` with `Value::Bool`.
-  Dogfood: `two-way` fixture + demo-leptos checkbox.
+- `[checked]` / `[(checked)]` use boolean evaluation and `change`-event writeback,
+  so `false` is preserved when updating checkbox state.
+  ([#87](https://github.com/Interchouette-ITC/rangular/pull/87))
+- Parse interpolated attribute values as bindings and emit explicit HTML
+  attributes correctly, including Open Graph metadata.
+  ([#90](https://github.com/Interchouette-ITC/rangular/pull/90),
+  [#93](https://github.com/Interchouette-ITC/rangular/pull/93))
+- Reject unsupported content in head templates, preserve raw non-JSON-LD script
+  bodies, and handle case-insensitive HTML tag names and JSON-LD string content.
+  ([#95](https://github.com/Interchouette-ITC/rangular/pull/95))
+
+### Changed
+
+- Update the Docker demo build and exclude unnecessary files from its build
+  context. ([#91](https://github.com/Interchouette-ITC/rangular/pull/91),
+  [#92](https://github.com/Interchouette-ITC/rangular/pull/92))
 
 ## [1.0.3] - 2026-09-16
 
