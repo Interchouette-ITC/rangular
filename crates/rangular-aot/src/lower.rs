@@ -101,7 +101,7 @@ fn hoist_event_closure(
 }
 
 #[derive(Clone)]
-pub(crate) struct HeadComponentPaths {
+pub struct HeadComponentPaths {
     pub(crate) title: TokenStream,
     pub(crate) meta: TokenStream,
     pub(crate) link: TokenStream,
@@ -115,7 +115,7 @@ struct HoistState {
 }
 
 impl HoistState {
-    fn new(head_mode: bool, head_adapter: Option<HeadComponentPaths>) -> Self {
+    const fn new(head_mode: bool, head_adapter: Option<HeadComponentPaths>) -> Self {
         Self {
             expr_lets: Vec::new(),
             closure_lets: Vec::new(),
@@ -184,7 +184,7 @@ pub fn emit_rust_tokens_head(template: &Template, fn_name: &str) -> EmitTokens {
     emit_rust_tokens_with_head_mode(template, fn_name, true, None)
 }
 
-pub(crate) fn emit_rust_tokens_head_with_adapter(
+pub fn emit_rust_tokens_head_with_adapter(
     template: &Template,
     fn_name: &str,
     adapter: HeadComponentPaths,
@@ -620,11 +620,10 @@ fn lower_head_component_attrs(
 }
 
 fn head_component_prop_name(attr: &Attr, tag: &str) -> Option<String> {
-    let name = match attr {
-        Attr::Static { name, .. } | Attr::Property { name, .. } | Attr::Attribute { name, .. } => {
-            name
-        }
-        _ => return None,
+    let (Attr::Static { name, .. } | Attr::Property { name, .. } | Attr::Attribute { name, .. }) =
+        attr
+    else {
+        return None;
     };
     let name = name.to_ascii_lowercase();
     let supported = match tag {
