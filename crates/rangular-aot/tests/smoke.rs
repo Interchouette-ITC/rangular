@@ -1,4 +1,4 @@
-use rangular_aot::compile;
+use rangular_aot::{HeadComponentAdapter, compile, compile_head_named_with_adapter};
 use syn::parse_file;
 
 fn assert_emits(html: &str, fn_name: &str, label: &str) {
@@ -37,6 +37,67 @@ fn head_mode_emits_direct_elements_and_safe_json_ld() {
     );
     assert!(out.code.contains("Product: {}"), "{}", out.code);
     parse_file(&out.code).unwrap_or_else(|err| panic!("invalid head-mode Rust: {err}"));
+}
+
+#[test]
+fn head_component_adapter_emits_managed_components_and_consumes_keys() {
+    let adapter = HeadComponentAdapter::new(
+        "fixture::ManagedTitle",
+        "fixture::ManagedMeta",
+        "fixture::ManagedLink",
+    );
+    let out = compile_head_named_with_adapter(
+        r#"
+            <title head-key="title">{{ title }}</title>
+            <meta head-key="description" name="description" [content]="description" />
+            <meta property="og:image" content="/images/one.jpg" />
+            <link head-key="canonical" rel="canonical" [href]="canonical" />
+        "#,
+        "head.html",
+        "managed_head",
+        &adapter,
+    );
+
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.code.contains("fixture::ManagedTitle"), "{}", out.code);
+    assert!(out.code.contains("fixture::ManagedMeta"), "{}", out.code);
+    assert!(out.code.contains("fixture::ManagedLink"), "{}", out.code);
+    assert!(out.code.contains("head_key"), "{}", out.code);
+    assert!(!out.code.contains("head-key"), "{}", out.code);
+    parse_file(&out.code).expect("adapter output should parse as Rust");
+
+    let tokens = rangular_aot::compile_head_tokens_named_with_adapter(
+        r#"<meta head-key="description" name="description" />"#,
+        "head.html",
+        "managed_head",
+        &adapter,
+    );
+    assert!(tokens.ok(), "{:?}", tokens.issues);
+    syn::parse2::<syn::File>(tokens.tokens).expect("adapter tokens should parse as Rust");
+}
+
+#[test]
+fn head_component_adapter_rejects_dynamic_keys() {
+    let adapter = HeadComponentAdapter::new(
+        "fixture::ManagedTitle",
+        "fixture::ManagedMeta",
+        "fixture::ManagedLink",
+    );
+    let out = compile_head_named_with_adapter(
+        r#"<meta [head-key]="key" name="description" />"#,
+        "head.html",
+        "managed_head",
+        &adapter,
+    );
+
+    assert!(!out.ok());
+    assert!(
+        out.issues
+            .iter()
+            .any(|issue| issue.code == "RANG404" && issue.message.contains("static")),
+        "{:?}",
+        out.issues
+    );
 }
 
 #[test]

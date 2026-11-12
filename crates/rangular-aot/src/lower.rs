@@ -100,18 +100,27 @@ fn hoist_event_closure(
     hoist.hoist_closure(&closure)
 }
 
+#[derive(Clone)]
+pub(crate) struct HeadComponentPaths {
+    pub(crate) title: TokenStream,
+    pub(crate) meta: TokenStream,
+    pub(crate) link: TokenStream,
+}
+
 struct HoistState {
     expr_lets: Vec<TokenStream>,
     closure_lets: Vec<TokenStream>,
     head_mode: bool,
+    head_adapter: Option<HeadComponentPaths>,
 }
 
 impl HoistState {
-    const fn new(head_mode: bool) -> Self {
+    fn new(head_mode: bool, head_adapter: Option<HeadComponentPaths>) -> Self {
         Self {
             expr_lets: Vec::new(),
             closure_lets: Vec::new(),
             head_mode,
+            head_adapter,
         }
     }
 
@@ -168,17 +177,26 @@ pub fn emit_rust(template: &Template, fn_name: &str) -> EmitResult {
 
 #[must_use]
 pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
-    emit_rust_tokens_with_head_mode(template, fn_name, false)
+    emit_rust_tokens_with_head_mode(template, fn_name, false, None)
 }
 
 pub fn emit_rust_tokens_head(template: &Template, fn_name: &str) -> EmitTokens {
-    emit_rust_tokens_with_head_mode(template, fn_name, true)
+    emit_rust_tokens_with_head_mode(template, fn_name, true, None)
+}
+
+pub(crate) fn emit_rust_tokens_head_with_adapter(
+    template: &Template,
+    fn_name: &str,
+    adapter: HeadComponentPaths,
+) -> EmitTokens {
+    emit_rust_tokens_with_head_mode(template, fn_name, true, Some(adapter))
 }
 
 fn emit_rust_tokens_with_head_mode(
     template: &Template,
     fn_name: &str,
     head_mode: bool,
+    head_adapter: Option<HeadComponentPaths>,
 ) -> EmitTokens {
     let mut issues = Vec::new();
     if template.nodes.is_empty() {
@@ -191,7 +209,7 @@ fn emit_rust_tokens_with_head_mode(
     let templates: HashMap<String, Vec<Node>> =
         collect_ng_templates(&template.nodes).into_iter().collect();
     let scope = Scope::root();
-    let mut hoist = HoistState::new(head_mode);
+    let mut hoist = HoistState::new(head_mode, head_adapter);
     let Some(body) = lower_nodes(&template.nodes, &mut issues, &scope, &templates, &mut hoist)
     else {
         return EmitTokens {
@@ -375,10 +393,33 @@ fn lower_element(
     }
     if let Some(head_tag) = head_tag.as_deref() {
         if head_tag == "title" {
+            if let Some(component) = hoist
+                .head_adapter
+                .as_ref()
+                .map(|adapter| adapter.title.clone())
+            {
+                return lower_head_adapter_title(el, issues, scope, hoist, &component);
+            }
             return lower_head_title(el, issues, scope, hoist);
         }
         if head_tag == "meta" {
+            if let Some(component) = hoist
+                .head_adapter
+                .as_ref()
+                .map(|adapter| adapter.meta.clone())
+            {
+                return lower_head_adapter_element(el, issues, scope, hoist, &component, "meta");
+            }
             return lower_head_meta(el, issues, scope, hoist);
+        }
+        if head_tag == "link" {
+            if let Some(component) = hoist
+                .head_adapter
+                .as_ref()
+                .map(|adapter| adapter.link.clone())
+            {
+                return lower_head_adapter_element(el, issues, scope, hoist, &component, "link");
+            }
         }
         if head_tag == "link"
             && static_attr_value(&el.attrs, "rel").is_some_and(|rel| {
@@ -434,6 +475,194 @@ fn lower_head_title(
     let attrs = lower_attrs(&el.attrs, scope, hoist);
     let text = lower_head_text_content(&el.children, issues, scope, hoist, true)?;
     Some(quote! { <title #attrs>{#text}</title> })
+}
+
+fn lower_head_adapter_title(
+    el: &Element,
+    issues: &mut Vec<AotIssue>,
+    scope: &Scope<'_>,
+    hoist: &mut HoistState,
+    component: &TokenStream,
+) -> Option<TokenStream> {
+    let key = head_adapter_key(&el.attrs, issues).ok()?;
+    if el.attrs.iter().any(|attr| {
+        !matches!(attr, Attr::Ref { .. })
+            && !matches!(
+                attr,
+                Attr::Static { name, .. } if name.eq_ignore_ascii_case("head-key")
+            )
+    }) {
+        issues.push(AotIssue::error(
+            "RANG404",
+            "head title attributes other than `head-key` are not supported by the component adapter",
+        ));
+        return None;
+    }
+
+    let text = lower_head_text_content(&el.children, issues, scope, hoist, true)?;
+    let key_prop = key.map_or_else(TokenStream::new, |key| quote! { head_key=#key });
+    Some(quote! {
+        <#component text=#text #key_prop />
+    })
+}
+
+fn lower_head_adapter_element(
+    el: &Element,
+    issues: &mut Vec<AotIssue>,
+    scope: &Scope<'_>,
+    hoist: &mut HoistState,
+    component: &TokenStream,
+    tag: &str,
+) -> Option<TokenStream> {
+    if !el.children.is_empty() {
+        issues.push(AotIssue::error(
+            "RANG403",
+            format!("head {tag} elements cannot contain child nodes"),
+        ));
+        return None;
+    }
+
+    let key = head_adapter_key(&el.attrs, issues).ok()?;
+    let attrs = lower_head_component_attrs(&el.attrs, issues, scope, hoist, tag)?;
+    let key_prop = key.map_or_else(TokenStream::new, |key| quote! { head_key=#key });
+    Some(quote! {
+        <#component #key_prop #attrs />
+    })
+}
+
+fn head_adapter_key(attrs: &[Attr], issues: &mut Vec<AotIssue>) -> Result<Option<String>, ()> {
+    let keys = attrs
+        .iter()
+        .filter(|attr| match attr {
+            Attr::Static { name, .. }
+            | Attr::Property { name, .. }
+            | Attr::Attribute { name, .. } => name.eq_ignore_ascii_case("head-key"),
+            _ => false,
+        })
+        .collect::<Vec<_>>();
+    if keys.len() > 1 {
+        issues.push(AotIssue::error(
+            "RANG404",
+            "a head element can have only one `head-key`",
+        ));
+        return Err(());
+    }
+    let Some(key) = keys.first() else {
+        return Ok(None);
+    };
+    match key {
+        Attr::Static {
+            value: Some(value), ..
+        } if !value.trim().is_empty() => Ok(Some(value.clone())),
+        _ => {
+            issues.push(AotIssue::error(
+                "RANG404",
+                "`head-key` must be a non-empty static attribute",
+            ));
+            Err(())
+        }
+    }
+}
+
+fn lower_head_component_attrs(
+    attrs: &[Attr],
+    issues: &mut Vec<AotIssue>,
+    scope: &Scope<'_>,
+    hoist: &mut HoistState,
+    tag: &str,
+) -> Option<TokenStream> {
+    let mut tokens = Vec::new();
+    for attr in attrs {
+        if matches!(attr, Attr::Ref { .. })
+            || matches!(
+                attr,
+                Attr::Static { name, .. }
+                    | Attr::Property { name, .. }
+                    | Attr::Attribute { name, .. }
+                    if name.eq_ignore_ascii_case("head-key")
+            )
+        {
+            continue;
+        }
+        let Some(name) = head_component_prop_name(attr, tag) else {
+            issues.push(AotIssue::error(
+                "RANG404",
+                format!("unsupported `{tag}` attribute in head component adapter"),
+            ));
+            return None;
+        };
+        let prop = format_ident!("{name}");
+        let value = match attr {
+            Attr::Static {
+                value: Some(value), ..
+            } => quote! { #prop=#value },
+            Attr::Property { expr, .. } | Attr::Attribute { expr, .. } => {
+                let expr = hoist.hoist_expr(expr);
+                let loop_scope = scope_loop(scope);
+                let handler = hoist_host_closure(
+                    hoist,
+                    scope,
+                    &quote! { host.prop_str_scoped(#expr, #loop_scope) },
+                );
+                quote! { #prop={move || #handler.get_value()()} }
+            }
+            _ => {
+                issues.push(AotIssue::error(
+                    "RANG404",
+                    format!("unsupported `{tag}` attribute in head component adapter"),
+                ));
+                return None;
+            }
+        };
+        tokens.push(value);
+    }
+    Some(quote! { #(#tokens)* })
+}
+
+fn head_component_prop_name(attr: &Attr, tag: &str) -> Option<String> {
+    let name = match attr {
+        Attr::Static { name, .. } | Attr::Property { name, .. } | Attr::Attribute { name, .. } => {
+            name
+        }
+        _ => return None,
+    };
+    let name = name.to_ascii_lowercase();
+    let supported = match tag {
+        "meta" => matches!(
+            name.as_str(),
+            "charset" | "name" | "property" | "http-equiv" | "http_equiv" | "itemprop" | "content"
+        ),
+        "link" => matches!(
+            name.as_str(),
+            "id" | "as"
+                | "as_"
+                | "crossorigin"
+                | "fetchpriority"
+                | "href"
+                | "hreflang"
+                | "imagesizes"
+                | "imagesrcset"
+                | "integrity"
+                | "media"
+                | "referrerpolicy"
+                | "rel"
+                | "sizes"
+                | "title"
+                | "type"
+                | "type_"
+                | "blocking"
+        ),
+        _ => false,
+    };
+    if !supported {
+        return None;
+    }
+    Some(match name.as_str() {
+        "as" => "as_".to_owned(),
+        "type" => "type_".to_owned(),
+        "http-equiv" => "http_equiv".to_owned(),
+        other => other.replace('-', "_"),
+    })
 }
 
 fn lower_head_meta(
@@ -860,7 +1089,7 @@ fn lower_for(
     let item_name = block.item.as_str();
     let item_ident = format_ident!("{}", item_name);
     let scope = Scope::with_loop_item(item_name);
-    let mut body_hoist = HoistState::new(hoist.head_mode);
+    let mut body_hoist = HoistState::new(hoist.head_mode, hoist.head_adapter.clone());
     let body = lower_nodes(&block.body, issues, &scope, templates, &mut body_hoist)?;
     let body_prelude = body_hoist.prelude();
     let each = hoist.hoist_closure(&quote! {
@@ -1027,7 +1256,7 @@ mod coverage_arms {
             element,
             &mut issues,
             &Scope::root(),
-            &mut HoistState::new(true),
+            &mut HoistState::new(true, None),
         );
         assert!(result.is_none());
         assert!(
@@ -1045,7 +1274,7 @@ mod coverage_arms {
 
     #[test]
     fn lower_one_attr_ref_emits_empty() {
-        let mut hoist = HoistState::new(false);
+        let mut hoist = HoistState::new(false, None);
         let scope = Scope::root();
         let attr = Attr::Ref {
             name: "r".into(),
@@ -1085,7 +1314,7 @@ mod coverage_arms {
     #[test]
     fn lower_head_script_keeps_text_around_non_text_ast_nodes() {
         let element = parse_element("<script>before{{ value }}after</script>");
-        let tokens = lower_head_script(&element, &Scope::root(), &mut HoistState::new(true));
+        let tokens = lower_head_script(&element, &Scope::root(), &mut HoistState::new(true, None));
         let generated = tokens.to_string();
 
         assert!(generated.contains("beforeafter"), "{generated}");
@@ -1114,7 +1343,7 @@ mod coverage_arms {
     fn head_void_elements_reject_children() {
         let child = Node::Element(parse_element("<span>child</span>"));
         let scope = Scope::root();
-        let mut hoist = HoistState::new(true);
+        let mut hoist = HoistState::new(true, None);
 
         let mut meta = parse_element("<meta name=\"description\" />");
         meta.children.push(child.clone());
@@ -1193,7 +1422,7 @@ mod coverage_arms {
             &element,
             &mut issues,
             &Scope::root(),
-            &mut HoistState::new(true),
+            &mut HoistState::new(true, None),
         );
         assert!(result.is_some(), "{issues:?}");
         assert!(issues.is_empty(), "{issues:?}");
