@@ -234,19 +234,20 @@ fn compile_tokens_named_with_options(
 }
 
 fn parse_component_path(kind: &str, path: &str) -> Result<proc_macro2::TokenStream, AotIssue> {
-    let tokens = path.parse::<proc_macro2::TokenStream>().map_err(|error| {
-        AotIssue::error(
-            "RANG404",
-            format!("invalid {kind} head component path `{path}`: {error}"),
-        )
-    })?;
-    if tokens.is_empty() {
+    if path.trim().is_empty() {
         return Err(AotIssue::error(
             "RANG404",
             format!("the {kind} head component path cannot be empty"),
         ));
     }
-    Ok(tokens)
+
+    let path = syn::parse_str::<syn::Path>(path).map_err(|error| {
+        AotIssue::error(
+            "RANG404",
+            format!("invalid {kind} head component path `{path}`: {error}"),
+        )
+    })?;
+    Ok(quote::quote! { #path })
 }
 
 fn diag_issue(d: &Diagnostic) -> AotIssue {

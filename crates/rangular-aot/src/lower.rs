@@ -1,4 +1,6 @@
-use std::collections::HashMap;
+use std::cell::RefCell;
+use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
 use proc_macro2::{Literal, Punct, Spacing, TokenStream, TokenTree};
 use quote::{format_ident, quote};
@@ -112,15 +114,17 @@ struct HoistState {
     closure_lets: Vec<TokenStream>,
     head_mode: bool,
     head_adapter: Option<HeadComponentPaths>,
+    seen_head_keys: Rc<RefCell<HashSet<String>>>,
 }
 
 impl HoistState {
-    const fn new(head_mode: bool, head_adapter: Option<HeadComponentPaths>) -> Self {
+    fn new(head_mode: bool, head_adapter: Option<HeadComponentPaths>) -> Self {
         Self {
             expr_lets: Vec::new(),
             closure_lets: Vec::new(),
             head_mode,
             head_adapter,
+            seen_head_keys: Rc::new(RefCell::new(HashSet::new())),
         }
     }
 
@@ -484,7 +488,7 @@ fn lower_head_adapter_title(
     hoist: &mut HoistState,
     component: &TokenStream,
 ) -> Option<TokenStream> {
-    let key = head_adapter_key(&el.attrs, issues).ok()?;
+    let key = head_adapter_key(&el.attrs, issues, &hoist.seen_head_keys).ok()?;
     if el.attrs.iter().any(|attr| {
         !matches!(attr, Attr::Ref { .. })
             && !matches!(
@@ -522,7 +526,7 @@ fn lower_head_adapter_element(
         return None;
     }
 
-    let key = head_adapter_key(&el.attrs, issues).ok()?;
+    let key = head_adapter_key(&el.attrs, issues, &hoist.seen_head_keys).ok()?;
     let attrs = lower_head_component_attrs(&el.attrs, issues, scope, hoist, tag)?;
     let key_prop = key.map_or_else(TokenStream::new, |key| quote! { head_key=#key });
     Some(quote! {
@@ -530,7 +534,11 @@ fn lower_head_adapter_element(
     })
 }
 
-fn head_adapter_key(attrs: &[Attr], issues: &mut Vec<AotIssue>) -> Result<Option<String>, ()> {
+fn head_adapter_key(
+    attrs: &[Attr],
+    issues: &mut Vec<AotIssue>,
+    seen_keys: &RefCell<HashSet<String>>,
+) -> Result<Option<String>, ()> {
     let keys = attrs
         .iter()
         .filter(|attr| match attr {
@@ -553,7 +561,16 @@ fn head_adapter_key(attrs: &[Attr], issues: &mut Vec<AotIssue>) -> Result<Option
     match key {
         Attr::Static {
             value: Some(value), ..
-        } if !value.trim().is_empty() => Ok(Some(value.clone())),
+        } if !value.trim().is_empty() => {
+            if !seen_keys.borrow_mut().insert(value.clone()) {
+                issues.push(AotIssue::error(
+                    "RANG404",
+                    format!("duplicate `head-key` value `{value}` across head elements"),
+                ));
+                return Err(());
+            }
+            Ok(Some(value.clone()))
+        }
         _ => {
             issues.push(AotIssue::error(
                 "RANG404",
@@ -1089,6 +1106,7 @@ fn lower_for(
     let item_ident = format_ident!("{}", item_name);
     let scope = Scope::with_loop_item(item_name);
     let mut body_hoist = HoistState::new(hoist.head_mode, hoist.head_adapter.clone());
+    body_hoist.seen_head_keys = Rc::clone(&hoist.seen_head_keys);
     let body = lower_nodes(&block.body, issues, &scope, templates, &mut body_hoist)?;
     let body_prelude = body_hoist.prelude();
     let each = hoist.hoist_closure(&quote! {

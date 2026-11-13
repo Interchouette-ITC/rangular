@@ -137,7 +137,11 @@ fn head_component_adapter_maps_attributes_and_convenience_apis() {
 
 #[test]
 fn head_component_adapter_rejects_invalid_paths() {
-    let invalid = HeadComponentAdapter::new("(", "fixture::ManagedMeta", "fixture::ManagedLink");
+    let invalid = HeadComponentAdapter::new(
+        "fixture::ManagedTitle + fixture::ManagedMeta",
+        "fixture::ManagedMeta",
+        "fixture::ManagedLink",
+    );
     let out =
         compile_head_named_with_adapter("<title>Invalid</title>", "head.html", "head", &invalid);
     assert_eq!(out.code, "");
@@ -159,6 +163,30 @@ fn head_component_adapter_rejects_invalid_paths() {
     assert_eq!(out.issues[0].code, "RANG404");
     assert!(out.issues[0].message.contains("meta"));
     assert!(out.issues[0].message.contains("cannot be empty"));
+}
+
+#[test]
+fn head_component_adapter_rejects_duplicate_keys_across_elements() {
+    let adapter = HeadComponentAdapter::new(
+        "fixture::ManagedTitle",
+        "fixture::ManagedMeta",
+        "fixture::ManagedLink",
+    );
+    let out = compile_head_named_with_adapter(
+        r#"<meta head-key="description" name="description" /><meta head-key="description" property="og:description" />"#,
+        "head.html",
+        "managed_head",
+        &adapter,
+    );
+
+    assert!(!out.ok());
+    assert!(
+        out.issues.iter().any(|issue| {
+            issue.code == "RANG404" && issue.message.contains("duplicate `head-key`")
+        }),
+        "{:?}",
+        out.issues
+    );
 }
 
 #[test]
