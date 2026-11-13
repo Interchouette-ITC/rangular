@@ -427,6 +427,18 @@ fn checked_prop_emits_eval_bool_and_change_banana() {
 }
 
 #[test]
+fn dom_event_value_fallbacks_use_clippy_clean_defaulting() {
+    let out = compile(
+        r#"<input (input)="onInput($event)" (change)="onChange($event)" />"#,
+        "dom_event_view",
+    );
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.code.contains("map_or_else"), "{}", out.code);
+    assert!(!out.code.contains("unwrap_or_default"), "{}", out.code);
+    parse_file(&out.code).unwrap_or_else(|err| panic!("invalid Rust: {err}"));
+}
+
+#[test]
 fn open_graph_property_attributes_emit_explicit_html_attributes() {
     for template in [
         r#"<meta property="og:title" content="{{ title }}" />"#,

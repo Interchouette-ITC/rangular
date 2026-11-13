@@ -978,20 +978,21 @@ fn event_value_tokens(event_name: &str) -> TokenStream {
                 use wasm_bindgen::JsCast;
                 ev.target()
                     .and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok())
-                    .map(|el| {
-                        let ty = el.type_();
-                        if ty == "checkbox" || ty == "radio" {
-                            el.checked().to_string()
-                        } else {
-                            el.value()
-                        }
-                    })
-                    .or_else(|| {
-                        ev.target()
-                            .and_then(|t| t.dyn_into::<web_sys::HtmlSelectElement>().ok())
-                            .map(|el| el.value())
-                    })
-                    .unwrap_or_default()
+                    .map_or_else(
+                        || {
+                            ev.target()
+                                .and_then(|t| t.dyn_into::<web_sys::HtmlSelectElement>().ok())
+                                .map_or_else(String::new, |el| el.value())
+                        },
+                        |el| {
+                            let ty = el.type_();
+                            if ty == "checkbox" || ty == "radio" {
+                                el.checked().to_string()
+                            } else {
+                                el.value()
+                            }
+                        },
+                    )
             }
         },
         _ => quote! {
@@ -999,8 +1000,7 @@ fn event_value_tokens(event_name: &str) -> TokenStream {
                 use wasm_bindgen::JsCast;
                 ev.target()
                     .and_then(|t| t.dyn_into::<web_sys::HtmlInputElement>().ok())
-                    .map(|el| el.value())
-                    .unwrap_or_default()
+                    .map_or_else(String::new, |el| el.value())
             }
         },
     }
