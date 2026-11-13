@@ -1,3 +1,6 @@
+// Leptos's TypedBuilder derive emits intentionally uninhabited helper enums.
+#![allow(clippy::empty_enums)]
+
 use leptos::mount::mount_to_body;
 
 mod app;

@@ -23,11 +23,7 @@ const CONTENT_FADE_MS: u32 = 120;
 pub fn CodeShowcase() -> impl IntoView {
     let bus = expect_context::<ShowcaseBus>();
     let initial = source_for("chrome-header", 0);
-    let content = RwSignal::new(
-        initial
-            .map(|(_, f)| f.source.to_owned())
-            .unwrap_or_default(),
-    );
+    let content = RwSignal::new(initial.map_or_else(String::new, |(_, f)| f.source.to_owned()));
     let active_lang = RwSignal::new(initial.map_or(ShowcaseLang::Html, |(_, f)| f.lang));
     let handle = RwSignal::new(None::<EditorHandle>);
     let tab_files = RwSignal::new(initial.map(|(files, _)| files));

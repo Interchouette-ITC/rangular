@@ -1,4 +1,4 @@
-use rangular_aot::compile;
+use rangular_aot::{HeadComponentAdapter, compile, compile_head_named_with_adapter};
 use syn::parse_file;
 
 fn assert_emits(html: &str, fn_name: &str, label: &str) {
@@ -37,6 +37,181 @@ fn head_mode_emits_direct_elements_and_safe_json_ld() {
     );
     assert!(out.code.contains("Product: {}"), "{}", out.code);
     parse_file(&out.code).unwrap_or_else(|err| panic!("invalid head-mode Rust: {err}"));
+}
+
+#[test]
+fn head_component_adapter_emits_managed_components_and_consumes_keys() {
+    let adapter = HeadComponentAdapter::new(
+        "fixture::ManagedTitle",
+        "fixture::ManagedMeta",
+        "fixture::ManagedLink",
+    );
+    let out = compile_head_named_with_adapter(
+        r#"
+            <title head-key="title">{{ title }}</title>
+            <meta head-key="description" name="description" [content]="description" />
+            <meta property="og:image" content="/images/one.jpg" />
+            <link head-key="canonical" rel="canonical" [href]="canonical" />
+        "#,
+        "head.html",
+        "managed_head",
+        &adapter,
+    );
+
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.code.contains("fixture::ManagedTitle"), "{}", out.code);
+    assert!(out.code.contains("fixture::ManagedMeta"), "{}", out.code);
+    assert!(out.code.contains("fixture::ManagedLink"), "{}", out.code);
+    assert!(out.code.contains("head_key"), "{}", out.code);
+    assert!(!out.code.contains("head-key"), "{}", out.code);
+    parse_file(&out.code).expect("adapter output should parse as Rust");
+
+    let tokens = rangular_aot::compile_head_tokens_named_with_adapter(
+        r#"<meta head-key="description" name="description" />"#,
+        "head.html",
+        "managed_head",
+        &adapter,
+    );
+    assert!(tokens.ok(), "{:?}", tokens.issues);
+    syn::parse2::<syn::File>(tokens.tokens).expect("adapter tokens should parse as Rust");
+}
+
+#[test]
+fn head_component_adapter_rejects_dynamic_keys() {
+    let adapter = HeadComponentAdapter::new(
+        "fixture::ManagedTitle",
+        "fixture::ManagedMeta",
+        "fixture::ManagedLink",
+    );
+    let out = compile_head_named_with_adapter(
+        r#"<meta [head-key]="key" name="description" />"#,
+        "head.html",
+        "managed_head",
+        &adapter,
+    );
+
+    assert!(!out.ok());
+    assert!(
+        out.issues
+            .iter()
+            .any(|issue| issue.code == "RANG404" && issue.message.contains("static")),
+        "{:?}",
+        out.issues
+    );
+}
+
+#[test]
+fn head_component_adapter_maps_attributes_and_convenience_apis() {
+    let adapter = HeadComponentAdapter::new(
+        "fixture::ManagedTitle",
+        "fixture::ManagedMeta",
+        "fixture::ManagedLink",
+    );
+    let out = rangular_aot::compile_head_with_adapter(
+        r#"
+            <meta http-equiv="refresh" [attr.content]="meta_content" />
+            <link as="style" type="text/css" href="/assets/site.css" />
+        "#,
+        "managed_aliases",
+        &adapter,
+    );
+
+    assert!(out.ok(), "{:?}", out.issues);
+    for expected in ["http_equiv", "meta_content", "as_", "type_"] {
+        assert!(
+            out.code.contains(expected),
+            "missing {expected}:\n{}",
+            out.code
+        );
+    }
+    parse_file(&out.code).expect("mapped adapter output should parse as Rust");
+
+    let tokens = rangular_aot::compile_head_tokens_with_adapter(
+        "<title>Token API</title>",
+        "token_head",
+        &adapter,
+    );
+    assert!(tokens.ok(), "{:?}", tokens.issues);
+    syn::parse2::<syn::File>(tokens.tokens).expect("adapter token output should parse as Rust");
+}
+
+#[test]
+fn head_component_adapter_rejects_invalid_paths() {
+    let invalid = HeadComponentAdapter::new(
+        "fixture::ManagedTitle + fixture::ManagedMeta",
+        "fixture::ManagedMeta",
+        "fixture::ManagedLink",
+    );
+    let out =
+        compile_head_named_with_adapter("<title>Invalid</title>", "head.html", "head", &invalid);
+    assert_eq!(out.code, "");
+    assert_eq!(out.issues[0].code, "RANG404");
+    assert!(out.issues[0].message.contains("invalid title"));
+
+    let tokens = rangular_aot::compile_head_tokens_named_with_adapter(
+        "<title>Invalid</title>",
+        "head.html",
+        "head",
+        &invalid,
+    );
+    assert!(tokens.tokens.is_empty());
+    assert_eq!(tokens.issues[0].code, "RANG404");
+
+    let empty = HeadComponentAdapter::new("fixture::ManagedTitle", " ", "fixture::ManagedLink");
+    let out = rangular_aot::compile_head_with_adapter("<title>Empty path</title>", "head", &empty);
+    assert_eq!(out.code, "");
+    assert_eq!(out.issues[0].code, "RANG404");
+    assert!(out.issues[0].message.contains("meta"));
+    assert!(out.issues[0].message.contains("cannot be empty"));
+}
+
+#[test]
+fn head_component_adapter_rejects_duplicate_keys_across_elements() {
+    let adapter = HeadComponentAdapter::new(
+        "fixture::ManagedTitle",
+        "fixture::ManagedMeta",
+        "fixture::ManagedLink",
+    );
+    let out = compile_head_named_with_adapter(
+        r#"<meta head-key="description" name="description" /><meta head-key="description" property="og:description" />"#,
+        "head.html",
+        "managed_head",
+        &adapter,
+    );
+
+    assert!(!out.ok());
+    assert!(
+        out.issues.iter().any(|issue| {
+            issue.code == "RANG404" && issue.message.contains("duplicate `head-key`")
+        }),
+        "{:?}",
+        out.issues
+    );
+}
+
+#[test]
+fn head_component_adapter_rejects_unsupported_attributes_and_children() {
+    let adapter = HeadComponentAdapter::new(
+        "fixture::ManagedTitle",
+        "fixture::ManagedMeta",
+        "fixture::ManagedLink",
+    );
+    for (template, expected_code) in [
+        (r#"<title id="unsupported">Title</title>"#, "RANG404"),
+        (
+            r#"<meta head-key="one" head-key="two" name="description" />"#,
+            "RANG404",
+        ),
+        (r#"<meta (click)="handler" />"#, "RANG404"),
+        ("<link blocking />", "RANG404"),
+    ] {
+        let out = rangular_aot::compile_head_with_adapter(template, "invalid_head", &adapter);
+        assert!(
+            out.issues.iter().any(|issue| issue.code == expected_code),
+            "expected {expected_code} for {template}: {:?}",
+            out.issues
+        );
+    }
 }
 
 #[test]
@@ -276,6 +451,18 @@ fn checked_prop_emits_eval_bool_and_change_banana() {
         "expected bool checked prop + change banana:\n{}",
         out.code
     );
+    parse_file(&out.code).unwrap_or_else(|err| panic!("invalid Rust: {err}"));
+}
+
+#[test]
+fn dom_event_value_fallbacks_use_clippy_clean_defaulting() {
+    let out = compile(
+        r#"<input (input)="onInput($event)" (change)="onChange($event)" />"#,
+        "dom_event_view",
+    );
+    assert!(out.ok(), "{:?}", out.issues);
+    assert!(out.code.contains("map_or_else"), "{}", out.code);
+    assert!(!out.code.contains("unwrap_or_default"), "{}", out.code);
     parse_file(&out.code).unwrap_or_else(|err| panic!("invalid Rust: {err}"));
 }
 

@@ -10,8 +10,10 @@ mod lower;
 mod print;
 
 pub use emit::{
-    compile, compile_head, compile_head_named, compile_head_tokens, compile_head_tokens_named,
-    compile_named, compile_tokens, compile_tokens_named,
+    HeadComponentAdapter, compile, compile_head, compile_head_named,
+    compile_head_named_with_adapter, compile_head_tokens, compile_head_tokens_named,
+    compile_head_tokens_named_with_adapter, compile_head_tokens_with_adapter,
+    compile_head_with_adapter, compile_named, compile_tokens, compile_tokens_named,
 };
 pub use error::{AotIssue, EmitResult, EmitTokens};
 pub use glue::HostCell;

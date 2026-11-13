@@ -18,6 +18,7 @@ rangular-expr = { workspace = true }
 rangular-host = { workspace = true }
 rangular-parser = { workspace = true }
 send_wrapper = "0.6"
+syn = { version = "3", features = ["parsing"] }
 
 [dev-dependencies]
 syn = { version = "3", features = ["full"] }
