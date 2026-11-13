@@ -1235,8 +1235,9 @@ const fn sanitize_tag(tag: &str) -> &str {
 #[cfg(test)]
 mod coverage_arms {
     use super::{
-        HoistState, Scope, emit_rust, has_dynamic_attr, lower_head_canonical_link,
-        lower_head_json_ld, lower_head_meta, lower_head_script, lower_one_attr, sanitize_tag,
+        HoistState, Scope, emit_rust, has_dynamic_attr, head_component_prop_name,
+        lower_head_adapter_element, lower_head_canonical_link, lower_head_json_ld, lower_head_meta,
+        lower_head_script, lower_one_attr, sanitize_tag,
     };
     use rangular_parser::{Attr, Element, Node, Span};
 
@@ -1311,6 +1312,16 @@ mod coverage_arms {
     }
 
     #[test]
+    fn head_component_prop_name_rejects_other_tags() {
+        let attr = parse_element(r#"<meta name="description" />"#)
+            .attrs
+            .into_iter()
+            .next()
+            .expect("static name attribute");
+        assert_eq!(head_component_prop_name(&attr, "title"), None);
+    }
+
+    #[test]
     fn lower_head_script_keeps_text_around_non_text_ast_nodes() {
         let element = parse_element("<script>before{{ value }}after</script>");
         let tokens = lower_head_script(&element, &Scope::root(), &mut HoistState::new(true, None));
@@ -1354,6 +1365,24 @@ mod coverage_arms {
         canonical.children.push(child);
         issues.clear();
         assert!(lower_head_canonical_link(&canonical, &mut issues, &scope, &mut hoist).is_none());
+        assert_eq!(issues[0].code, "RANG403");
+    }
+
+    #[test]
+    fn head_component_adapter_elements_reject_children() {
+        let mut meta = parse_element("<meta name=\"description\" />");
+        meta.children
+            .push(Node::Text("child".into(), Span::new(0, 5)));
+        let mut issues = Vec::new();
+        let result = lower_head_adapter_element(
+            &meta,
+            &mut issues,
+            &Scope::root(),
+            &mut HoistState::new(true, None),
+            &proc_macro2::TokenStream::new(),
+            "meta",
+        );
+        assert!(result.is_none());
         assert_eq!(issues[0].code, "RANG403");
     }
 
