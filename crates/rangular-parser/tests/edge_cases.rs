@@ -680,6 +680,29 @@ fn leading_html_doctype_is_preserved_case_insensitively() {
 }
 
 #[test]
+fn rejects_a_duplicate_doctype_after_the_leading_one() {
+    let parsed = parse(
+        "<!DOCTYPE html><!DOCTYPE html><html></html>",
+        "document.html",
+    );
+    assert!(
+        parsed
+            .diagnostics
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("expected tag name")),
+        "{:?}",
+        parsed.diagnostics
+    );
+    let doctypes = parsed
+        .template
+        .nodes
+        .iter()
+        .filter(|node| matches!(node, Node::Doctype(_)))
+        .count();
+    assert_eq!(doctypes, 1);
+}
+
+#[test]
 fn rejects_unsupported_unterminated_and_misplaced_doctypes() {
     for (src, message) in [
         (
