@@ -9,6 +9,7 @@ use crate::expr::Expr;
 /// One node in the structural binding tree.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum IrNode {
+    Doctype,
     Element {
         tag: String,
         bindings: Vec<IrBinding>,
@@ -62,6 +63,7 @@ fn from_nodes(nodes: &[Node]) -> Vec<IrNode> {
 
 fn from_node(node: &Node) -> Option<IrNode> {
     match node {
+        Node::Doctype(_) => Some(IrNode::Doctype),
         Node::Element(el) => Some(from_element(el)),
         Node::Text(_, _) => Some(IrNode::Text),
         Node::Interpolation(_, _) => Some(IrNode::Interpolation),
@@ -179,6 +181,7 @@ pub fn snapshot(nodes: &[IrNode]) -> String {
 fn write_node(node: &IrNode, depth: usize, out: &mut String) {
     let pad = "  ".repeat(depth);
     match node {
+        IrNode::Doctype => out.extend([pad.as_str(), "<!DOCTYPE html>\n"]),
         IrNode::Text => {
             out.push_str(&pad);
             out.push_str("text\n");

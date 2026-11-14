@@ -76,6 +76,14 @@ encapsulation must not mangle global selectors the app loads separately.
 - Normal HTML elements and static text nodes.
 - `{`{ expression `}`}` for text interpolation.
 - HTML comments are preserved in the AST; they do not affect bindings.
+- A document template may start with `<!DOCTYPE html>` (case-insensitive,
+  optionally preceded by whitespace). The parser preserves it as the first
+  `Node::Doctype` in `Template.nodes`, and the structural IR includes
+  `IrNode::Doctype`. AOT emits `<!DOCTYPE html>` at the start of the view; runtime
+  interpretation and rendering preserve it as `VNode::Doctype`, which snapshots
+  write as `<!DOCTYPE html>`. Any other doctype, or a doctype after the first
+  node, is `RANG001`; head templates reject it with `RANG403`. A declaration
+  without template content remains an empty-template error (`RANG401`).
 
 ### Property and attribute bindings
 

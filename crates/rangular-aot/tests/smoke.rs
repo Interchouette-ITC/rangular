@@ -787,3 +787,81 @@ fn nested_unknown_outlet_and_non_ident_outlet() {
         "non-ident outlet skipped",
     );
 }
+
+#[test]
+fn document_template_emits_doctype_and_head_body_slots() {
+    let html = r#"<!DOCTYPE html>
+<html lang="fr">
+  <head><meta charset="utf-8"><ng-content select="head"></ng-content></head>
+  <body class="app"><ng-content></ng-content></body>
+</html>"#;
+    let out = rangular_aot::compile_named(html, "document.html", "document_view");
+    assert!(out.ok(), "{:?}", out.issues);
+    let compact: String = out.code.split_whitespace().collect();
+    assert!(
+        compact.contains("slot_head:Children,children:Children"),
+        "{}",
+        out.code
+    );
+    assert!(
+        compact.contains("view!{<!DOCTYPEhtml><htmllang=\"fr\">"),
+        "{}",
+        out.code
+    );
+    parse_file(&out.code).unwrap_or_else(|err| panic!("invalid document Rust: {err}"));
+
+    let without = compile("<html><body></body></html>", "plain_document");
+    assert!(without.ok(), "{:?}", without.issues);
+    assert!(!without.code.contains("DOCTYPE"), "{}", without.code);
+}
+
+#[test]
+fn doctype_is_preserved_by_source_and_ast_token_compilation() {
+    let source = "\n <!doctype HTML ><html><body></body></html>";
+    let parsed = rangular_parser::parse(source, "document.html");
+    assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+    for result in [
+        rangular_aot::compile_tokens(source, "document_view"),
+        rangular_aot::compile_tokens_named(source, "document.html", "document_view"),
+        rangular_aot::emit_rust_tokens(&parsed.template, "document_view"),
+    ] {
+        assert!(result.ok(), "{:?}", result.issues);
+        let compact: String = result.tokens.to_string().split_whitespace().collect();
+        assert!(compact.contains("view!{<!DOCTYPEhtml><html>"), "{compact}");
+        assert_eq!(compact.matches("<!DOCTYPEhtml>").count(), 1, "{compact}");
+        syn::parse2::<syn::File>(result.tokens).expect("valid document Rust");
+    }
+}
+
+#[test]
+fn head_mode_rejects_doctype() {
+    let out = rangular_aot::compile_head("<!DOCTYPE html><title>Page</title>", "head_view");
+    assert!(!out.ok(), "{}", out.code);
+    assert!(
+        out.issues
+            .iter()
+            .any(|issue| issue.code == "RANG403" && issue.message.contains("DOCTYPE")),
+        "{:?}",
+        out.issues
+    );
+    let adapter = HeadComponentAdapter::new("app::Title", "app::Meta", "app::Link");
+    for tokens in [
+        rangular_aot::compile_head_tokens("<!DOCTYPE html><title>Page</title>", "head_view"),
+        rangular_aot::compile_head_tokens_with_adapter(
+            "<!DOCTYPE html><title>Page</title>",
+            "head_view",
+            &adapter,
+        ),
+    ] {
+        assert!(!tokens.ok());
+        assert!(tokens.tokens.is_empty());
+        assert!(
+            tokens
+                .issues
+                .iter()
+                .any(|issue| issue.code == "RANG403" && issue.message.contains("DOCTYPE")),
+            "{:?}",
+            tokens.issues
+        );
+    }
+}

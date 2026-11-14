@@ -8,6 +8,8 @@ pub struct Template {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Node {
+    /// Leading `<!DOCTYPE html>` document declaration.
+    Doctype(Span),
     Element(Element),
     Text(String, Span),
     Interpolation(Expr, Span),

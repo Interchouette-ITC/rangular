@@ -13,6 +13,10 @@ pub fn snapshot(nodes: &[VNode]) -> String {
 fn write_node(node: &VNode, depth: usize, out: &mut String) {
     let pad = "  ".repeat(depth);
     match node {
+        VNode::Doctype => {
+            out.push_str(&pad);
+            out.push_str("<!DOCTYPE html>\n");
+        }
         VNode::Text(text) => {
             let trimmed = text.trim();
             if !trimmed.is_empty() {

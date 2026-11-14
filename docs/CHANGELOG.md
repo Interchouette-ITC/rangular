@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `rangular-build` document templates: `Config::document`, `Config::head`,
+  `Config::body`, and optional `Config::head_adapter` compile application-level
+  templates through the existing AOT pipeline into `<file-stem>_view.rs`, with
+  sibling SCSS for document and body templates. Components become optional when
+  a document template is registered; view-name collisions are build errors.
+  `HeadComponentAdapter` is re-exported from `rangular-build`.
+- Parser, AOT and runtime preserve a leading `<!DOCTYPE html>` in document
+  templates as `Node::Doctype`, `IrNode::Doctype` and `VNode::Doctype`; generated
+  views and runtime snapshots emit the canonical declaration. Head templates
+  reject it with `RANG403`.
+
 ## [1.0.4] - 2026-11-11
 
 ### Added

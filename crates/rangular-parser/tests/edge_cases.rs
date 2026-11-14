@@ -646,3 +646,65 @@ fn binding_ir_skips_non_ident_outlet_and_classify_passthrough() {
             .any(|a| matches!(a, Attr::Event { name, .. } if name == "click"))
     );
 }
+
+#[test]
+fn leading_html_doctype_is_preserved_case_insensitively() {
+    for src in [
+        "<!DOCTYPE html><html><body></body></html>",
+        "\n  <!doctype HTML >\n<html></html>",
+    ] {
+        let parsed = parse(src, "document.html");
+        assert!(parsed.ok(), "{src}: {:?}", parsed.diagnostics);
+        assert!(matches!(
+            &parsed.template.nodes[..],
+            [Node::Doctype(_), Node::Element(el)] if el.tag == "html"
+        ));
+        let Node::Doctype(span) = parsed.template.nodes[0] else {
+            panic!("missing doctype");
+        };
+        assert!(
+            src[span.start as usize..span.end as usize]
+                .to_ascii_lowercase()
+                .starts_with("<!doctype"),
+            "{span:?}"
+        );
+    }
+    let plain = parse("<p>no doctype</p>", "t.html");
+    assert!(
+        !plain
+            .template
+            .nodes
+            .iter()
+            .any(|node| matches!(node, Node::Doctype(_)))
+    );
+}
+
+#[test]
+fn rejects_unsupported_unterminated_and_misplaced_doctypes() {
+    for (src, message) in [
+        (
+            "<!DOCTYPE svg><svg></svg>",
+            "only `<!DOCTYPE html>` is supported",
+        ),
+        ("<!DOCTYPE html", "unterminated `<!DOCTYPE`"),
+        ("<p></p><!DOCTYPE html>", "expected tag name"),
+    ] {
+        let parsed = parse(src, "document.html");
+        assert!(
+            parsed
+                .diagnostics
+                .iter()
+                .any(|d| d.is_error() && d.message.contains(message)),
+            "{src}: {:?}",
+            parsed.diagnostics
+        );
+        assert!(
+            !parsed
+                .template
+                .nodes
+                .iter()
+                .any(|node| matches!(node, Node::Doctype(_))),
+            "{src}"
+        );
+    }
+}

@@ -61,11 +61,47 @@ impl<'src> Parser<'src> {
             diagnostics: Vec::new(),
             parse_head_scripts_raw,
         };
-        let nodes = p.parse_nodes(&Stop::Eof);
+        let mut nodes = Vec::new();
+        if let Some(doctype) = p.parse_leading_doctype() {
+            nodes.push(doctype);
+        }
+        nodes.extend(p.parse_nodes(&Stop::Eof));
         Parsed {
             template: Template { nodes },
             diagnostics: p.diagnostics,
         }
+    }
+
+    /// Parses `<!DOCTYPE html>` (case-insensitive), accepted only before the first node.
+    fn parse_leading_doctype(&mut self) -> Option<Node> {
+        const PREFIX: &str = "<!doctype";
+        self.skip_ws();
+        let start = self.pos;
+        let rest = &self.src[start..];
+        if !rest
+            .get(..PREFIX.len())
+            .is_some_and(|head| head.eq_ignore_ascii_case(PREFIX))
+        {
+            return None;
+        }
+        let Some(close) = rest.find('>') else {
+            self.pos = self.src.len();
+            self.error(
+                Span::new(pos(start), pos(self.pos)),
+                "unterminated `<!DOCTYPE` declaration",
+            );
+            return None;
+        };
+        let value = rest[PREFIX.len()..close].trim();
+        let end = start + close + 1;
+        let span = Span::new(pos(start), pos(end));
+        self.pos = end;
+        if value.eq_ignore_ascii_case("html") {
+            return Some(Node::Doctype(span));
+        }
+        let message = format!("unsupported doctype `{value}`; only `<!DOCTYPE html>` is supported");
+        self.error(span, message);
+        None
     }
 
     fn parse_nodes(&mut self, stop: &Stop) -> Vec<Node> {

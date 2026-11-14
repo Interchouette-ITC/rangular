@@ -184,7 +184,11 @@ pub fn render_with_slots_and_pipes(
         slots,
         templates,
     };
-    if template.nodes.is_empty() {
+    if template
+        .nodes
+        .iter()
+        .all(|node| matches!(node, Node::Doctype(_)))
+    {
         ctx.issues
             .push(RuntimeIssue::error("RANG401", "empty template"));
         return RenderResult {
@@ -212,6 +216,7 @@ fn render_nodes<H: Host>(nodes: &[Node], ctx: &mut Ctx<'_, H>) -> Vec<VNode> {
 
 fn render_node<H: Host>(node: &Node, ctx: &mut Ctx<'_, H>) -> Vec<VNode> {
     match node {
+        Node::Doctype(_) => vec![VNode::Doctype],
         Node::Element(el) => {
             if let Some(name) = template_outlet_ref(&el.attrs) {
                 return stamp_template(name, ctx);

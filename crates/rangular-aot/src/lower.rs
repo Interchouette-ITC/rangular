@@ -184,27 +184,34 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
     emit_rust_tokens_with_head_mode(template, fn_name, false, None)
 }
 
-pub fn emit_rust_tokens_head(template: &Template, fn_name: &str) -> EmitTokens {
-    emit_rust_tokens_with_head_mode(template, fn_name, true, None)
-}
-
-pub fn emit_rust_tokens_head_with_adapter(
-    template: &Template,
-    fn_name: &str,
-    adapter: HeadComponentPaths,
-) -> EmitTokens {
-    emit_rust_tokens_with_head_mode(template, fn_name, true, Some(adapter))
-}
-
-fn emit_rust_tokens_with_head_mode(
+pub fn emit_rust_tokens_with_head_mode(
     template: &Template,
     fn_name: &str,
     head_mode: bool,
     head_adapter: Option<HeadComponentPaths>,
 ) -> EmitTokens {
     let mut issues = Vec::new();
-    if template.nodes.is_empty() {
+    if template
+        .nodes
+        .iter()
+        .all(|node| matches!(node, Node::Doctype(_)))
+    {
         issues.push(AotIssue::error("RANG401", "empty template"));
+        return EmitTokens {
+            tokens: proc_macro2::TokenStream::new(),
+            issues,
+        };
+    }
+    if head_mode
+        && template
+            .nodes
+            .iter()
+            .any(|node| matches!(node, Node::Doctype(_)))
+    {
+        issues.push(AotIssue::error(
+            "RANG403",
+            "`<!DOCTYPE>` is not supported in head templates",
+        ));
         return EmitTokens {
             tokens: proc_macro2::TokenStream::new(),
             issues,
@@ -282,7 +289,9 @@ fn has_projection(nodes: &[Node]) -> bool {
                     .is_some_and(|nodes| has_projection(nodes))
         }
         Node::For(block) => has_projection(&block.body),
-        Node::Text(_, _) | Node::Interpolation(_, _) | Node::Comment(_, _) => false,
+        Node::Doctype(_) | Node::Text(_, _) | Node::Interpolation(_, _) | Node::Comment(_, _) => {
+            false
+        }
     })
 }
 
@@ -334,6 +343,7 @@ fn lower_node(
     }
 
     match node {
+        Node::Doctype(_) => Some(quote! { <!DOCTYPE html> }),
         Node::Element(el) => lower_element(el, issues, scope, templates, hoist),
         Node::Text(text, _) => {
             let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
