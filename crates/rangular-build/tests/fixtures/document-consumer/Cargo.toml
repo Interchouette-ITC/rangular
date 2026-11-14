@@ -1,0 +1,16 @@
+[package]
+name = "rangular-document-consumer-fixture"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+leptos = { version = "0.8", default-features = false, features = ["ssr"] }
+rangular-aot = { path = "../../../../rangular-aot" }
+rangular-expr = { path = "../../../../rangular-expr" }
+rangular-host = { path = "../../../../rangular-host" }
+
+[build-dependencies]
+rangular-build = { path = "../../.." }
