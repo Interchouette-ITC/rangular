@@ -229,13 +229,12 @@ fn write(root: &std::path::Path, relative: &str, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
-const DOCUMENT_HTML: &str = r#"<!DOCTYPE html>
-<html lang="en"><head><ng-content select="head"></ng-content></head>
-<body><ng-content></ng-content></body></html>"#;
-const HEAD_HTML: &str = r#"<title>{{ title }}</title>
-<meta name="description" content="{{ description }}">
-<link rel="canonical" href="{{ canonical }}">"#;
-const BODY_HTML: &str = "<main><h1>{{ title }}</h1></main>";
+const DOCUMENT_HTML: &str =
+    include_str!("../../tests/fixtures/document-consumer/src/document/document.html");
+const HEAD_HTML: &str =
+    include_str!("../../tests/fixtures/document-consumer/src/document/head.html");
+const BODY_HTML: &str =
+    include_str!("../../tests/fixtures/document-consumer/src/document/body.html");
 
 fn document_config() -> Config {
     Config::new("src/components", "style/site.css")
