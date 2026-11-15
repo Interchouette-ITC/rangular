@@ -835,14 +835,27 @@ fn doctype_is_preserved_by_source_and_ast_token_compilation() {
 
 #[test]
 fn head_mode_rejects_doctype() {
-    let out = rangular_aot::compile_head("<!DOCTYPE html><title>Page</title>", "head_view");
-    assert!(!out.ok(), "{}", out.code);
+    for source in ["<!DOCTYPE html><title>Page</title>", "<!DOCTYPE html>"] {
+        let out = rangular_aot::compile_head(source, "head_view");
+        assert!(!out.ok(), "{}", out.code);
+        assert!(
+            out.issues
+                .iter()
+                .any(|issue| issue.code == "RANG403" && issue.message.contains("DOCTYPE")),
+            "{source}: {:?}",
+            out.issues
+        );
+        assert!(
+            !out.issues.iter().any(|issue| issue.code == "RANG401"),
+            "{source}: {:?}",
+            out.issues
+        );
+    }
+    let empty = rangular_aot::compile_head("", "head_view");
     assert!(
-        out.issues
-            .iter()
-            .any(|issue| issue.code == "RANG403" && issue.message.contains("DOCTYPE")),
+        empty.issues.iter().any(|issue| issue.code == "RANG401"),
         "{:?}",
-        out.issues
+        empty.issues
     );
     let adapter = HeadComponentAdapter::new("app::Title", "app::Meta", "app::Link");
     for tokens in [

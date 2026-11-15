@@ -191,17 +191,6 @@ pub fn emit_rust_tokens_with_head_mode(
     head_adapter: Option<HeadComponentPaths>,
 ) -> EmitTokens {
     let mut issues = Vec::new();
-    if template
-        .nodes
-        .iter()
-        .all(|node| matches!(node, Node::Doctype(_)))
-    {
-        issues.push(AotIssue::error("RANG401", "empty template"));
-        return EmitTokens {
-            tokens: proc_macro2::TokenStream::new(),
-            issues,
-        };
-    }
     if head_mode
         && template
             .nodes
@@ -212,6 +201,17 @@ pub fn emit_rust_tokens_with_head_mode(
             "RANG403",
             "`<!DOCTYPE>` is not supported in head templates",
         ));
+        return EmitTokens {
+            tokens: proc_macro2::TokenStream::new(),
+            issues,
+        };
+    }
+    if template
+        .nodes
+        .iter()
+        .all(|node| matches!(node, Node::Doctype(_)))
+    {
+        issues.push(AotIssue::error("RANG401", "empty template"));
         return EmitTokens {
             tokens: proc_macro2::TokenStream::new(),
             issues,
