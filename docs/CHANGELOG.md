@@ -7,8 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-11-15
+
 ### Added
 
+- AOT head component adapters for title, metadata, and link integrations, with
+  stable `head-key` registry keys. ([#97](https://github.com/Interchouette-ITC/rangular/pull/97))
 - `rangular-build` document templates: `Config::document`, `Config::head`,
   `Config::body`, and optional `Config::head_adapter` compile application-level
   templates through the existing AOT pipeline into `<file-stem>_view.rs`, with
@@ -18,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Parser, AOT and runtime preserve a leading `<!DOCTYPE html>` in document
   templates as `Node::Doctype`, `IrNode::Doctype` and `VNode::Doctype`; generated
   views and runtime snapshots emit the canonical declaration. Head templates
-  reject it with `RANG403`.
+  reject it with `RANG403`. ([#98](https://github.com/Interchouette-ITC/rangular/pull/98))
 
 ## [1.0.4] - 2026-11-11
 
