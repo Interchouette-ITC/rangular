@@ -228,6 +228,30 @@ instead of lowering arbitrary body elements into the head. Text, interpolations,
 and projected children are rejected outside supported `<title>` and JSON-LD
 content.
 
+For document integrations that manage head entries through lifecycle
+components, provide their component paths with `HeadComponentAdapter`:
+
+```rust
+let adapter = rangular_aot::HeadComponentAdapter::new(
+    "my_app::ManagedTitle",
+    "my_app::ManagedMeta",
+    "my_app::ManagedLink",
+);
+let head = rangular_aot::compile_head_named_with_adapter(
+    &html,
+    "src/document/head.html",
+    "head_view",
+    &adapter,
+);
+std::fs::write(out_dir.join("head_view.rs"), &head.code)?;
+```
+
+In the head template, `head-key` supplies a stable registry key for `<title>`,
+`<meta>`, and `<link>` entries; it is consumed by the compiler rather than
+rendered as an HTML attribute. The title component receives its text, while
+metadata and link components receive their standard head attributes. Without
+an adapter, the compiler continues to emit native Leptos elements.
+
 JSON-LD uses a static `type="application/ld+json"` and either static JSON text
 or one interpolation containing the complete JSON value. The value must
 already be valid, serialized JSON; Rangular replaces `<` with `\u003c` so the
