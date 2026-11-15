@@ -76,90 +76,96 @@
 <a href=#76 id=76 data-nosnippet>76</a>                }
 <a href=#77 id=77 data-nosnippet>77</a>            }
 <a href=#78 id=78 data-nosnippet>78</a>            Node::For(block) =&gt; walk_selects(<span class="kw-2">&amp;</span>block.body, out),
-<a href=#79 id=79 data-nosnippet>79</a>            Node::Text(<span class="kw">_</span>, <span class="kw">_</span>) | Node::Interpolation(<span class="kw">_</span>, <span class="kw">_</span>) | Node::Comment(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; {}
-<a href=#80 id=80 data-nosnippet>80</a>        }
-<a href=#81 id=81 data-nosnippet>81</a>    }
-<a href=#82 id=82 data-nosnippet>82</a>}
-<a href=#83 id=83 data-nosnippet>83</a>
-<a href=#84 id=84 data-nosnippet>84</a><span class="doccomment">/// Whether the tree has a default (unselected) content projection slot.
-<a href=#85 id=85 data-nosnippet>85</a></span><span class="attr">#[must_use]
-<a href=#86 id=86 data-nosnippet>86</a></span><span class="kw">pub fn </span>has_default_projection(nodes: <span class="kw-2">&amp;</span>[Node]) -&gt; bool {
-<a href=#87 id=87 data-nosnippet>87</a>    nodes.iter().any(|node| <span class="kw">match </span>node {
-<a href=#88 id=88 data-nosnippet>88</a>        Node::Projection(proj) =&gt; proj.select.is_none(),
-<a href=#89 id=89 data-nosnippet>89</a>        Node::Element(el) =&gt; has_default_projection(<span class="kw-2">&amp;</span>el.children),
-<a href=#90 id=90 data-nosnippet>90</a>        Node::NgTemplate(t) =&gt; has_default_projection(<span class="kw-2">&amp;</span>t.body),
-<a href=#91 id=91 data-nosnippet>91</a>        Node::If(block) =&gt; {
-<a href=#92 id=92 data-nosnippet>92</a>            has_default_projection(<span class="kw-2">&amp;</span>block.then_branch)
-<a href=#93 id=93 data-nosnippet>93</a>                || block
-<a href=#94 id=94 data-nosnippet>94</a>                    .else_branch
-<a href=#95 id=95 data-nosnippet>95</a>                    .as_ref()
-<a href=#96 id=96 data-nosnippet>96</a>                    .is_some_and(|n| has_default_projection(n))
-<a href=#97 id=97 data-nosnippet>97</a>        }
-<a href=#98 id=98 data-nosnippet>98</a>        Node::For(block) =&gt; has_default_projection(<span class="kw-2">&amp;</span>block.body),
-<a href=#99 id=99 data-nosnippet>99</a>        Node::Text(<span class="kw">_</span>, <span class="kw">_</span>) | Node::Interpolation(<span class="kw">_</span>, <span class="kw">_</span>) | Node::Comment(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="bool-val">false</span>,
-<a href=#100 id=100 data-nosnippet>100</a>    })
-<a href=#101 id=101 data-nosnippet>101</a>}
-<a href=#102 id=102 data-nosnippet>102</a>
-<a href=#103 id=103 data-nosnippet>103</a><span class="doccomment">/// Rust parameter name for a `select` string (`.header` → `slot_header`).
-<a href=#104 id=104 data-nosnippet>104</a></span><span class="attr">#[must_use]
-<a href=#105 id=105 data-nosnippet>105</a></span><span class="kw">pub fn </span>select_param_name(select: <span class="kw-2">&amp;</span>str) -&gt; String {
-<a href=#106 id=106 data-nosnippet>106</a>    <span class="kw">let </span>trimmed = select
-<a href=#107 id=107 data-nosnippet>107</a>        .trim()
-<a href=#108 id=108 data-nosnippet>108</a>        .trim_start_matches(<span class="string">'.'</span>)
-<a href=#109 id=109 data-nosnippet>109</a>        .trim_start_matches(<span class="string">'['</span>)
-<a href=#110 id=110 data-nosnippet>110</a>        .trim_end_matches(<span class="string">']'</span>);
-<a href=#111 id=111 data-nosnippet>111</a>    <span class="kw">let </span>cleaned: String = trimmed
-<a href=#112 id=112 data-nosnippet>112</a>        .chars()
-<a href=#113 id=113 data-nosnippet>113</a>        .map(|c| {
-<a href=#114 id=114 data-nosnippet>114</a>            <span class="kw">if </span>c.is_ascii_alphanumeric() {
-<a href=#115 id=115 data-nosnippet>115</a>                c.to_ascii_lowercase()
-<a href=#116 id=116 data-nosnippet>116</a>            } <span class="kw">else </span>{
-<a href=#117 id=117 data-nosnippet>117</a>                <span class="string">'_'
-<a href=#118 id=118 data-nosnippet>118</a>            </span>}
-<a href=#119 id=119 data-nosnippet>119</a>        })
-<a href=#120 id=120 data-nosnippet>120</a>        .collect();
-<a href=#121 id=121 data-nosnippet>121</a>    <span class="kw">let </span>cleaned = cleaned.trim_matches(<span class="string">'_'</span>);
-<a href=#122 id=122 data-nosnippet>122</a>    <span class="kw">if </span>cleaned.is_empty() {
-<a href=#123 id=123 data-nosnippet>123</a>        <span class="string">"slot_named"</span>.into()
-<a href=#124 id=124 data-nosnippet>124</a>    } <span class="kw">else </span>{
-<a href=#125 id=125 data-nosnippet>125</a>        <span class="macro">format!</span>(<span class="string">"slot_{cleaned}"</span>)
-<a href=#126 id=126 data-nosnippet>126</a>    }
-<a href=#127 id=127 data-nosnippet>127</a>}
-<a href=#128 id=128 data-nosnippet>128</a>
-<a href=#129 id=129 data-nosnippet>129</a><span class="doccomment">/// Collect `#ref` ng-template bodies keyed by ref name.
-<a href=#130 id=130 data-nosnippet>130</a></span><span class="attr">#[must_use]
-<a href=#131 id=131 data-nosnippet>131</a></span><span class="kw">pub fn </span>collect_ng_templates(nodes: <span class="kw-2">&amp;</span>[Node]) -&gt; Vec&lt;(String, Vec&lt;Node&gt;)&gt; {
-<a href=#132 id=132 data-nosnippet>132</a>    <span class="kw">let </span><span class="kw-2">mut </span>out = Vec::new();
-<a href=#133 id=133 data-nosnippet>133</a>    walk_ng_templates(nodes, <span class="kw-2">&amp;mut </span>out);
-<a href=#134 id=134 data-nosnippet>134</a>    out
-<a href=#135 id=135 data-nosnippet>135</a>}
-<a href=#136 id=136 data-nosnippet>136</a>
-<a href=#137 id=137 data-nosnippet>137</a><span class="kw">fn </span>walk_ng_templates(nodes: <span class="kw-2">&amp;</span>[Node], out: <span class="kw-2">&amp;mut </span>Vec&lt;(String, Vec&lt;Node&gt;)&gt;) {
-<a href=#138 id=138 data-nosnippet>138</a>    <span class="kw">for </span>node <span class="kw">in </span>nodes {
-<a href=#139 id=139 data-nosnippet>139</a>        <span class="kw">match </span>node {
-<a href=#140 id=140 data-nosnippet>140</a>            Node::NgTemplate(t) =&gt; {
-<a href=#141 id=141 data-nosnippet>141</a>                out.push((t.name.clone(), t.body.clone()));
-<a href=#142 id=142 data-nosnippet>142</a>                walk_ng_templates(<span class="kw-2">&amp;</span>t.body, out);
-<a href=#143 id=143 data-nosnippet>143</a>            }
-<a href=#144 id=144 data-nosnippet>144</a>            Node::Element(el) =&gt; walk_ng_templates(<span class="kw-2">&amp;</span>el.children, out),
-<a href=#145 id=145 data-nosnippet>145</a>            Node::If(block) =&gt; {
-<a href=#146 id=146 data-nosnippet>146</a>                walk_ng_templates(<span class="kw-2">&amp;</span>block.then_branch, out);
-<a href=#147 id=147 data-nosnippet>147</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(else_branch) = <span class="kw-2">&amp;</span>block.else_branch {
-<a href=#148 id=148 data-nosnippet>148</a>                    walk_ng_templates(else_branch, out);
-<a href=#149 id=149 data-nosnippet>149</a>                }
-<a href=#150 id=150 data-nosnippet>150</a>            }
-<a href=#151 id=151 data-nosnippet>151</a>            Node::For(block) =&gt; walk_ng_templates(<span class="kw-2">&amp;</span>block.body, out),
-<a href=#152 id=152 data-nosnippet>152</a>            Node::Projection(<span class="kw">_</span>)
-<a href=#153 id=153 data-nosnippet>153</a>            | Node::Text(<span class="kw">_</span>, <span class="kw">_</span>)
-<a href=#154 id=154 data-nosnippet>154</a>            | Node::Interpolation(<span class="kw">_</span>, <span class="kw">_</span>)
-<a href=#155 id=155 data-nosnippet>155</a>            | Node::Comment(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; {}
-<a href=#156 id=156 data-nosnippet>156</a>        }
-<a href=#157 id=157 data-nosnippet>157</a>    }
-<a href=#158 id=158 data-nosnippet>158</a>}
-<a href=#159 id=159 data-nosnippet>159</a>
-<a href=#160 id=160 data-nosnippet>160</a><span class="doccomment">/// True when `el` is an `ng-container` used only as an outlet host.
-<a href=#161 id=161 data-nosnippet>161</a></span><span class="attr">#[must_use]
-<a href=#162 id=162 data-nosnippet>162</a></span><span class="kw">pub fn </span>is_outlet_container(el: <span class="kw-2">&amp;</span>Element) -&gt; bool {
-<a href=#163 id=163 data-nosnippet>163</a>    el.tag == <span class="string">"ng-container" </span>&amp;&amp; template_outlet_ref(<span class="kw-2">&amp;</span>el.attrs).is_some()
+<a href=#79 id=79 data-nosnippet>79</a>            Node::Doctype(<span class="kw">_</span>)
+<a href=#80 id=80 data-nosnippet>80</a>            | Node::Text(<span class="kw">_</span>, <span class="kw">_</span>)
+<a href=#81 id=81 data-nosnippet>81</a>            | Node::Interpolation(<span class="kw">_</span>, <span class="kw">_</span>)
+<a href=#82 id=82 data-nosnippet>82</a>            | Node::Comment(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; {}
+<a href=#83 id=83 data-nosnippet>83</a>        }
+<a href=#84 id=84 data-nosnippet>84</a>    }
+<a href=#85 id=85 data-nosnippet>85</a>}
+<a href=#86 id=86 data-nosnippet>86</a>
+<a href=#87 id=87 data-nosnippet>87</a><span class="doccomment">/// Whether the tree has a default (unselected) content projection slot.
+<a href=#88 id=88 data-nosnippet>88</a></span><span class="attr">#[must_use]
+<a href=#89 id=89 data-nosnippet>89</a></span><span class="kw">pub fn </span>has_default_projection(nodes: <span class="kw-2">&amp;</span>[Node]) -&gt; bool {
+<a href=#90 id=90 data-nosnippet>90</a>    nodes.iter().any(|node| <span class="kw">match </span>node {
+<a href=#91 id=91 data-nosnippet>91</a>        Node::Projection(proj) =&gt; proj.select.is_none(),
+<a href=#92 id=92 data-nosnippet>92</a>        Node::Element(el) =&gt; has_default_projection(<span class="kw-2">&amp;</span>el.children),
+<a href=#93 id=93 data-nosnippet>93</a>        Node::NgTemplate(t) =&gt; has_default_projection(<span class="kw-2">&amp;</span>t.body),
+<a href=#94 id=94 data-nosnippet>94</a>        Node::If(block) =&gt; {
+<a href=#95 id=95 data-nosnippet>95</a>            has_default_projection(<span class="kw-2">&amp;</span>block.then_branch)
+<a href=#96 id=96 data-nosnippet>96</a>                || block
+<a href=#97 id=97 data-nosnippet>97</a>                    .else_branch
+<a href=#98 id=98 data-nosnippet>98</a>                    .as_ref()
+<a href=#99 id=99 data-nosnippet>99</a>                    .is_some_and(|n| has_default_projection(n))
+<a href=#100 id=100 data-nosnippet>100</a>        }
+<a href=#101 id=101 data-nosnippet>101</a>        Node::For(block) =&gt; has_default_projection(<span class="kw-2">&amp;</span>block.body),
+<a href=#102 id=102 data-nosnippet>102</a>        Node::Doctype(<span class="kw">_</span>) | Node::Text(<span class="kw">_</span>, <span class="kw">_</span>) | Node::Interpolation(<span class="kw">_</span>, <span class="kw">_</span>) | Node::Comment(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
+<a href=#103 id=103 data-nosnippet>103</a>            <span class="bool-val">false
+<a href=#104 id=104 data-nosnippet>104</a>        </span>}
+<a href=#105 id=105 data-nosnippet>105</a>    })
+<a href=#106 id=106 data-nosnippet>106</a>}
+<a href=#107 id=107 data-nosnippet>107</a>
+<a href=#108 id=108 data-nosnippet>108</a><span class="doccomment">/// Rust parameter name for a `select` string (`.header` → `slot_header`).
+<a href=#109 id=109 data-nosnippet>109</a></span><span class="attr">#[must_use]
+<a href=#110 id=110 data-nosnippet>110</a></span><span class="kw">pub fn </span>select_param_name(select: <span class="kw-2">&amp;</span>str) -&gt; String {
+<a href=#111 id=111 data-nosnippet>111</a>    <span class="kw">let </span>trimmed = select
+<a href=#112 id=112 data-nosnippet>112</a>        .trim()
+<a href=#113 id=113 data-nosnippet>113</a>        .trim_start_matches(<span class="string">'.'</span>)
+<a href=#114 id=114 data-nosnippet>114</a>        .trim_start_matches(<span class="string">'['</span>)
+<a href=#115 id=115 data-nosnippet>115</a>        .trim_end_matches(<span class="string">']'</span>);
+<a href=#116 id=116 data-nosnippet>116</a>    <span class="kw">let </span>cleaned: String = trimmed
+<a href=#117 id=117 data-nosnippet>117</a>        .chars()
+<a href=#118 id=118 data-nosnippet>118</a>        .map(|c| {
+<a href=#119 id=119 data-nosnippet>119</a>            <span class="kw">if </span>c.is_ascii_alphanumeric() {
+<a href=#120 id=120 data-nosnippet>120</a>                c.to_ascii_lowercase()
+<a href=#121 id=121 data-nosnippet>121</a>            } <span class="kw">else </span>{
+<a href=#122 id=122 data-nosnippet>122</a>                <span class="string">'_'
+<a href=#123 id=123 data-nosnippet>123</a>            </span>}
+<a href=#124 id=124 data-nosnippet>124</a>        })
+<a href=#125 id=125 data-nosnippet>125</a>        .collect();
+<a href=#126 id=126 data-nosnippet>126</a>    <span class="kw">let </span>cleaned = cleaned.trim_matches(<span class="string">'_'</span>);
+<a href=#127 id=127 data-nosnippet>127</a>    <span class="kw">if </span>cleaned.is_empty() {
+<a href=#128 id=128 data-nosnippet>128</a>        <span class="string">"slot_named"</span>.into()
+<a href=#129 id=129 data-nosnippet>129</a>    } <span class="kw">else </span>{
+<a href=#130 id=130 data-nosnippet>130</a>        <span class="macro">format!</span>(<span class="string">"slot_{cleaned}"</span>)
+<a href=#131 id=131 data-nosnippet>131</a>    }
+<a href=#132 id=132 data-nosnippet>132</a>}
+<a href=#133 id=133 data-nosnippet>133</a>
+<a href=#134 id=134 data-nosnippet>134</a><span class="doccomment">/// Collect `#ref` ng-template bodies keyed by ref name.
+<a href=#135 id=135 data-nosnippet>135</a></span><span class="attr">#[must_use]
+<a href=#136 id=136 data-nosnippet>136</a></span><span class="kw">pub fn </span>collect_ng_templates(nodes: <span class="kw-2">&amp;</span>[Node]) -&gt; Vec&lt;(String, Vec&lt;Node&gt;)&gt; {
+<a href=#137 id=137 data-nosnippet>137</a>    <span class="kw">let </span><span class="kw-2">mut </span>out = Vec::new();
+<a href=#138 id=138 data-nosnippet>138</a>    walk_ng_templates(nodes, <span class="kw-2">&amp;mut </span>out);
+<a href=#139 id=139 data-nosnippet>139</a>    out
+<a href=#140 id=140 data-nosnippet>140</a>}
+<a href=#141 id=141 data-nosnippet>141</a>
+<a href=#142 id=142 data-nosnippet>142</a><span class="kw">fn </span>walk_ng_templates(nodes: <span class="kw-2">&amp;</span>[Node], out: <span class="kw-2">&amp;mut </span>Vec&lt;(String, Vec&lt;Node&gt;)&gt;) {
+<a href=#143 id=143 data-nosnippet>143</a>    <span class="kw">for </span>node <span class="kw">in </span>nodes {
+<a href=#144 id=144 data-nosnippet>144</a>        <span class="kw">match </span>node {
+<a href=#145 id=145 data-nosnippet>145</a>            Node::NgTemplate(t) =&gt; {
+<a href=#146 id=146 data-nosnippet>146</a>                out.push((t.name.clone(), t.body.clone()));
+<a href=#147 id=147 data-nosnippet>147</a>                walk_ng_templates(<span class="kw-2">&amp;</span>t.body, out);
+<a href=#148 id=148 data-nosnippet>148</a>            }
+<a href=#149 id=149 data-nosnippet>149</a>            Node::Element(el) =&gt; walk_ng_templates(<span class="kw-2">&amp;</span>el.children, out),
+<a href=#150 id=150 data-nosnippet>150</a>            Node::If(block) =&gt; {
+<a href=#151 id=151 data-nosnippet>151</a>                walk_ng_templates(<span class="kw-2">&amp;</span>block.then_branch, out);
+<a href=#152 id=152 data-nosnippet>152</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(else_branch) = <span class="kw-2">&amp;</span>block.else_branch {
+<a href=#153 id=153 data-nosnippet>153</a>                    walk_ng_templates(else_branch, out);
+<a href=#154 id=154 data-nosnippet>154</a>                }
+<a href=#155 id=155 data-nosnippet>155</a>            }
+<a href=#156 id=156 data-nosnippet>156</a>            Node::For(block) =&gt; walk_ng_templates(<span class="kw-2">&amp;</span>block.body, out),
+<a href=#157 id=157 data-nosnippet>157</a>            Node::Doctype(<span class="kw">_</span>)
+<a href=#158 id=158 data-nosnippet>158</a>            | Node::Projection(<span class="kw">_</span>)
+<a href=#159 id=159 data-nosnippet>159</a>            | Node::Text(<span class="kw">_</span>, <span class="kw">_</span>)
+<a href=#160 id=160 data-nosnippet>160</a>            | Node::Interpolation(<span class="kw">_</span>, <span class="kw">_</span>)
+<a href=#161 id=161 data-nosnippet>161</a>            | Node::Comment(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; {}
+<a href=#162 id=162 data-nosnippet>162</a>        }
+<a href=#163 id=163 data-nosnippet>163</a>    }
 <a href=#164 id=164 data-nosnippet>164</a>}
+<a href=#165 id=165 data-nosnippet>165</a>
+<a href=#166 id=166 data-nosnippet>166</a><span class="doccomment">/// True when `el` is an `ng-container` used only as an outlet host.
+<a href=#167 id=167 data-nosnippet>167</a></span><span class="attr">#[must_use]
+<a href=#168 id=168 data-nosnippet>168</a></span><span class="kw">pub fn </span>is_outlet_container(el: <span class="kw-2">&amp;</span>Element) -&gt; bool {
+<a href=#169 id=169 data-nosnippet>169</a>    el.tag == <span class="string">"ng-container" </span>&amp;&amp; template_outlet_ref(<span class="kw-2">&amp;</span>el.attrs).is_some()
+<a href=#170 id=170 data-nosnippet>170</a>}
 </code></pre></div></section></main></body></html>

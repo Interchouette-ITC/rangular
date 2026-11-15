@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["build"],"struct":["Config"]};
+window.SIDEBAR_ITEMS = {"fn":["build"],"struct":["Config","HeadComponentAdapter"]};
