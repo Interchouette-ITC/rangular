@@ -240,6 +240,105 @@ scripts with a dynamic `type`) are emitted as raw text, preserving whitespace,
 markup-like characters, and `{{...}}` verbatim; Rangular interpolation is not
 evaluated inside those scripts.
 
+### Document templates with `rangular-build`
+
+`rangular-build` compiles components and, optionally, the application's
+document, head, and body templates in one `build.rs` call. No per-template
+compiler calls are needed:
+
+```rust
+// build.rs
+use rangular_build::{Config, build};
+
+fn main() {
+    build(
+        Config::new("src/components", "style/site.css")
+            .global_scss("style/global.scss")
+            .document("src/document/document.html")
+            .head("src/document/head.html")
+            .body("src/document/body.html"),
+    );
+}
+```
+
+Each registered template generates `OUT_DIR/rangular/<file-stem>_view.rs`
+(`document.html` → `document_view`), next to the component views. All three are
+optional:
+
+| Role         | Compiler                                       | Sibling `<stem>.scss` |
+| ------------ | ---------------------------------------------- | --------------------- |
+| `document()` | regular (`compile_named`), leading doctype OK  | compiled              |
+| `head()`     | head (`compile_head_named`), `RANG403` rules   | ignored               |
+| `body()`     | regular (`compile_named`)                      | compiled              |
+
+Stylesheets are written in order: global, document, body, then components.
+`.head_adapter(HeadComponentAdapter::new(title, meta, link))` compiles head
+elements to your own Leptos components (see above). A build fails with a clear
+message when a template is missing or invalid, when a file stem is not a Rust
+identifier, when two generated views share a name (for example a `head`
+component and `head.html`), or when `head_adapter` is set without `head`. When
+at least one document template is registered, the components directory may be
+empty.
+
+A document template describes the whole page and uses content projection for
+the parts supplied when rendering:
+
+```html
+<!-- src/document/document.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <ng-content select="head"></ng-content>
+  </head>
+  <body>
+    <ng-content></ng-content>
+  </body>
+</html>
+```
+
+```html
+<!-- src/document/head.html -->
+<title>{{ title }}</title>
+<meta name="description" content="{{ description }}" />
+```
+
+```html
+<!-- src/document/body.html -->
+<main><h1>{{ title }}</h1></main>
+```
+
+The generated views are ordinary Rust functions. `select="head"` becomes a
+`slot_head: Children` parameter and the default slot becomes `children`:
+
+```rust
+use leptos::prelude::*;
+use rangular_aot::HostCell;
+
+include!(concat!(env!("OUT_DIR"), "/rangular/document_view.rs"));
+include!(concat!(env!("OUT_DIR"), "/rangular/head_view.rs"));
+include!(concat!(env!("OUT_DIR"), "/rangular/body_view.rs"));
+
+fn page<H: rangular_host::Host + Clone + Send + 'static>(host: H) -> impl IntoView {
+    let (head_host, body_host) = (host.clone(), host.clone());
+    document_view(
+        HostCell::new(host),
+        Box::new(move || head_view(HostCell::new(head_host)).into_any()),
+        Box::new(move || body_view(HostCell::new(body_host)).into_any()),
+    )
+}
+```
+
+The head and body views can also be used on their own by a document framework
+that owns the outer `<html>` shell.
+
+Leading `<!DOCTYPE html>` declarations are preserved in both AOT and runtime
+execution, including when a parsed template is passed directly to `emit_rust*`
+or `render*`. The interpreter returns `VNode::Doctype` as the first node, and
+runtime snapshots begin with `<!DOCTYPE html>`. The runtime returns a virtual
+tree rather than mounting a browser document; consumers of that tree must handle
+the doctype variant instead of treating it as text or an element.
+
 Language details: [`SPEC.md`](SPEC.md). Fixture layout:
 [`../tests/fixtures/README.md`](../tests/fixtures/README.md).
 
@@ -259,6 +358,7 @@ rangular-host = { git = "https://github.com/Interchouette-ITC/rangular.git", bra
 
 [build-dependencies]
 rangular-aot = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
+rangular-build = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" } # optional Config-based build
 rangular-css = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
 ```
 
@@ -350,6 +450,7 @@ How to add fixtures: [`../tests/fixtures/README.md`](../tests/fixtures/README.md
 | `rangular-css`     | Component SCSS, `:host`, encapsulation       |
 | `rangular-host`    | get / set / call / events                    |
 | `rangular-aot`     | Compile-time lowering to Leptos              |
+| `rangular-build`   | `build.rs` templates + SCSS compilation      |
 | `rangular-macros`  | `rangular_template!` (includes build output) |
 | `rangular-runtime` | Interpret AST at runtime                     |
 | `rangular`         | Facade + component registry                  |

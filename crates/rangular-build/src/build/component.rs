@@ -14,7 +14,7 @@ impl Component {
     }
 }
 
-pub fn discover(root: &Path) -> Result<Vec<Component>, String> {
+pub fn discover(root: &Path, allow_empty: bool) -> Result<Vec<Component>, String> {
     let entries =
         fs::read_dir(root).map_err(|error| format!("read {}: {error}", root.display()))?;
     let mut components = Vec::new();
@@ -31,7 +31,7 @@ pub fn discover(root: &Path) -> Result<Vec<Component>, String> {
         }
     }
     components.sort_by(|left, right| left.name.cmp(&right.name));
-    if components.is_empty() {
+    if components.is_empty() && !allow_empty {
         return Err(format!("no components found under {}", root.display()));
     }
     Ok(components)
@@ -86,7 +86,7 @@ mod tests {
         fs::write(root.join("ignored/other.html"), "<p>Ignored</p>").unwrap();
         fs::write(root.join("file.txt"), "ignored").unwrap();
 
-        let components = discover(&root).unwrap();
+        let components = discover(&root, false).unwrap();
         assert_eq!(
             components
                 .iter()
@@ -102,12 +102,15 @@ mod tests {
     fn reports_missing_and_empty_component_roots() {
         let temp = TempDir::new();
         assert!(matches!(
-            discover(&temp.path().join("absent")),
+            discover(&temp.path().join("absent"), true),
             Err(error) if error.contains("read ")
         ));
         let empty = temp.path().join("empty");
         fs::create_dir_all(&empty).unwrap();
-        assert!(matches!(discover(&empty), Err(error) if error.contains("no components found")));
+        assert!(
+            matches!(discover(&empty, false), Err(error) if error.contains("no components found"))
+        );
+        assert!(discover(&empty, true).unwrap().is_empty());
     }
 
     #[test]
@@ -161,6 +164,6 @@ mod tests {
         fs::create_dir_all(&root).unwrap();
         let invalid_name = std::ffi::OsStr::from_bytes(b"bad-\xff");
         fs::create_dir(root.join(invalid_name)).unwrap();
-        assert!(matches!(discover(&root), Err(error) if error.contains("valid UTF-8")));
+        assert!(matches!(discover(&root, false), Err(error) if error.contains("valid UTF-8")));
     }
 }

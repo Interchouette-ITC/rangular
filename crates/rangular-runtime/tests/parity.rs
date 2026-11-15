@@ -49,6 +49,92 @@ impl Host for EmptyHost {
     }
 }
 
+#[test]
+fn document_doctype_is_preserved_in_aot_and_interpreted_templates() {
+    for source in [
+        "<!DOCTYPE html><html><head><title>Page</title></head><body>Body</body></html>",
+        "\n\t<!doctype HTML ><html><head><title>Page</title></head><body>Body</body></html>",
+    ] {
+        let parsed = parse(source, "document.html");
+        assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+        let mut host = EmptyHost;
+        let interpreted = interpret(source, "document.html", &mut host);
+        let rendered = rangular_runtime::render(&parsed.template, &mut host);
+        assert!(interpreted.ok(), "{:?}", interpreted.issues);
+        assert!(rendered.ok(), "{:?}", rendered.issues);
+        assert_eq!(interpreted.nodes, rendered.nodes);
+        assert_eq!(
+            interpreted.snapshot(),
+            "<!DOCTYPE html>\n<html>\n  <head>\n    <title>\n      Page\n    </title>\n  </head>\n  <body>\n    Body\n  </body>\n</html>\n"
+        );
+
+        for compiled in [
+            compile(source, "document_view"),
+            rangular_aot::emit_rust(&parsed.template, "document_view"),
+        ] {
+            assert!(compiled.ok(), "{:?}", compiled.issues);
+            let compact: String = compiled.code.split_whitespace().collect();
+            assert!(compact.contains("view!{<!DOCTYPEhtml><html>"), "{compact}");
+            assert_eq!(compact.matches("<!DOCTYPEhtml>").count(), 1, "{compact}");
+        }
+
+        let aot_ir = rangular_aot::structural_ir(source, "document.html").unwrap();
+        let runtime_ir = rangular_runtime::structural_ir(source, "document.html").unwrap();
+        assert_eq!(aot_ir, runtime_ir);
+        assert_eq!(aot_ir.0.first(), Some(&rangular_parser::IrNode::Doctype));
+        assert!(aot_ir.1.starts_with("<!DOCTYPE html>\n"), "{}", aot_ir.1);
+    }
+}
+
+#[test]
+fn invalid_document_doctypes_fail_in_aot_and_runtime() {
+    for (source, code) in [
+        ("<!DOCTYPE svg><svg></svg>", "RANG001"),
+        ("<!DOCTYPE html", "RANG001"),
+        ("<html></html><!DOCTYPE html>", "RANG001"),
+        ("<html><!DOCTYPE html></html>", "RANG001"),
+        ("<!DOCTYPE html><!DOCTYPE html><html></html>", "RANG001"),
+        ("<!DOCTYPE html><@bad", "RANG001"),
+        ("<!DOCTYPE html>", "RANG401"),
+    ] {
+        let mut host = EmptyHost;
+        let interpreted = interpret(source, "document.html", &mut host);
+        assert!(!interpreted.ok(), "{source}");
+        assert_eq!(interpreted.nodes.len(), 0, "{source}");
+        assert!(
+            interpreted.issues.iter().any(|issue| issue.code == code),
+            "{source}: {:?}",
+            interpreted.issues
+        );
+        let compiled = compile(source, "document_view");
+        assert!(!compiled.ok(), "{source}");
+        assert_eq!(compiled.code, "", "{source}");
+        assert!(
+            compiled.issues.iter().any(|issue| issue.code == code),
+            "{source}: {:?}",
+            compiled.issues
+        );
+        let tokens = rangular_aot::compile_tokens(source, "document_view");
+        assert!(!tokens.ok(), "{source}");
+        assert!(tokens.tokens.is_empty(), "{source}");
+    }
+}
+
+#[test]
+fn document_without_doctype_does_not_gain_one_in_either_backend() {
+    let source = "<html><body>Body</body></html>";
+    let mut host = EmptyHost;
+    let interpreted = interpret(source, "document.html", &mut host);
+    assert!(interpreted.ok(), "{:?}", interpreted.issues);
+    assert_eq!(
+        interpreted.snapshot(),
+        "<html>\n  <body>\n    Body\n  </body>\n</html>\n"
+    );
+    let compiled = compile(source, "document_view");
+    assert!(compiled.ok(), "{:?}", compiled.issues);
+    assert!(!compiled.code.contains("DOCTYPE"), "{}", compiled.code);
+}
+
 struct SeedBarHost {
     seed: String,
     worker_ready: bool,

@@ -1,9 +1,7 @@
 use rangular_parser::{Diagnostic, builtin_tag_io, classify_bindings, parse, parse_head_template};
 
 use crate::error::{AotIssue, EmitResult, EmitTokens};
-use crate::lower::{
-    HeadComponentPaths, emit_rust_tokens, emit_rust_tokens_head, emit_rust_tokens_head_with_adapter,
-};
+use crate::lower::{HeadComponentPaths, emit_rust_tokens_with_head_mode};
 
 /// Leptos component paths used to opt a generated head view into a document
 /// integration's title, metadata, and link lifecycle.
@@ -153,15 +151,8 @@ fn compile_named_with_options(
         };
     }
     classify_bindings(&mut parsed.template, &builtin_tag_io());
-    let mut out = if head_mode {
-        if let Some(adapter) = head_adapter {
-            emit_rust_tokens_head_with_adapter(&parsed.template, fn_name, adapter)
-        } else {
-            emit_rust_tokens_head(&parsed.template, fn_name)
-        }
-    } else {
-        emit_rust_tokens(&parsed.template, fn_name)
-    };
+    let mut out =
+        emit_rust_tokens_with_head_mode(&parsed.template, fn_name, head_mode, head_adapter);
     let code = crate::print::tokens_to_rust_source(&out.tokens);
     issues.append(&mut out.issues);
     EmitResult { code, issues }
@@ -222,15 +213,7 @@ fn compile_tokens_named_with_options(
         };
     }
     classify_bindings(&mut parsed.template, &builtin_tag_io());
-    if head_mode {
-        if let Some(adapter) = head_adapter {
-            emit_rust_tokens_head_with_adapter(&parsed.template, fn_name, adapter)
-        } else {
-            emit_rust_tokens_head(&parsed.template, fn_name)
-        }
-    } else {
-        emit_rust_tokens(&parsed.template, fn_name)
-    }
+    emit_rust_tokens_with_head_mode(&parsed.template, fn_name, head_mode, head_adapter)
 }
 
 fn parse_component_path(kind: &str, path: &str) -> Result<proc_macro2::TokenStream, AotIssue> {

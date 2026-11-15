@@ -184,26 +184,33 @@ pub fn emit_rust_tokens(template: &Template, fn_name: &str) -> EmitTokens {
     emit_rust_tokens_with_head_mode(template, fn_name, false, None)
 }
 
-pub fn emit_rust_tokens_head(template: &Template, fn_name: &str) -> EmitTokens {
-    emit_rust_tokens_with_head_mode(template, fn_name, true, None)
-}
-
-pub fn emit_rust_tokens_head_with_adapter(
-    template: &Template,
-    fn_name: &str,
-    adapter: HeadComponentPaths,
-) -> EmitTokens {
-    emit_rust_tokens_with_head_mode(template, fn_name, true, Some(adapter))
-}
-
-fn emit_rust_tokens_with_head_mode(
+pub fn emit_rust_tokens_with_head_mode(
     template: &Template,
     fn_name: &str,
     head_mode: bool,
     head_adapter: Option<HeadComponentPaths>,
 ) -> EmitTokens {
     let mut issues = Vec::new();
-    if template.nodes.is_empty() {
+    if head_mode
+        && template
+            .nodes
+            .iter()
+            .any(|node| matches!(node, Node::Doctype(_)))
+    {
+        issues.push(AotIssue::error(
+            "RANG403",
+            "`<!DOCTYPE>` is not supported in head templates",
+        ));
+        return EmitTokens {
+            tokens: proc_macro2::TokenStream::new(),
+            issues,
+        };
+    }
+    if template
+        .nodes
+        .iter()
+        .all(|node| matches!(node, Node::Doctype(_)))
+    {
         issues.push(AotIssue::error("RANG401", "empty template"));
         return EmitTokens {
             tokens: proc_macro2::TokenStream::new(),
@@ -282,7 +289,9 @@ fn has_projection(nodes: &[Node]) -> bool {
                     .is_some_and(|nodes| has_projection(nodes))
         }
         Node::For(block) => has_projection(&block.body),
-        Node::Text(_, _) | Node::Interpolation(_, _) | Node::Comment(_, _) => false,
+        Node::Doctype(_) | Node::Text(_, _) | Node::Interpolation(_, _) | Node::Comment(_, _) => {
+            false
+        }
     })
 }
 
@@ -334,6 +343,7 @@ fn lower_node(
     }
 
     match node {
+        Node::Doctype(_) => Some(quote! { <!DOCTYPE html> }),
         Node::Element(el) => lower_element(el, issues, scope, templates, hoist),
         Node::Text(text, _) => {
             let collapsed = text.split_whitespace().collect::<Vec<_>>().join(" ");
@@ -478,7 +488,7 @@ fn lower_head_title(
 ) -> Option<TokenStream> {
     let attrs = lower_attrs(&el.attrs, scope, hoist);
     let text = lower_head_text_content(&el.children, issues, scope, hoist, true)?;
-    Some(quote! { <title #attrs>{#text}</title> })
+    Some(quote! { <title #attrs>{move || #text}</title> })
 }
 
 fn lower_head_adapter_title(
@@ -506,7 +516,7 @@ fn lower_head_adapter_title(
     let text = lower_head_text_content(&el.children, issues, scope, hoist, true)?;
     let key_prop = key.map_or_else(TokenStream::new, |key| quote! { head_key=#key });
     Some(quote! {
-        <#component text=#text #key_prop />
+        <#component text={move || #text} #key_prop />
     })
 }
 
@@ -767,7 +777,7 @@ fn lower_head_json_ld(
     Some(quote! {
         <script #attrs>
             {move || {
-                let __rangular_json = (#json)();
+                let __rangular_json = #json;
                 rangular_aot::escape_json_ld(&__rangular_json)
             }}
         </script>
@@ -820,8 +830,7 @@ fn lower_head_text_content(
             }
             Node::Interpolation(expr, _) => {
                 format.push_str("{}");
-                let value = lower_head_binding(expr, scope, hoist);
-                values.push(quote! { (#value)() });
+                values.push(lower_head_binding(expr, scope, hoist));
             }
             Node::Comment(_, _) => {}
             _ => {
@@ -834,9 +843,14 @@ fn lower_head_text_content(
         }
     }
     if !has_expression {
-        return Some(quote! { move || String::from(#format) });
+        return Some(quote! { String::from(#format) });
     }
-    Some(quote! { move || format!(#format, #(#values),*) })
+    if let [value] = values.as_slice()
+        && format == "{}"
+    {
+        return Some(value.clone());
+    }
+    Some(quote! { format!(#format, #(#values),*) })
 }
 
 fn lower_head_binding(expr: &Expr, scope: &Scope<'_>, hoist: &mut HoistState) -> TokenStream {
@@ -847,7 +861,7 @@ fn lower_head_binding(expr: &Expr, scope: &Scope<'_>, hoist: &mut HoistState) ->
         scope,
         &quote! { host.prop_str_scoped(#expr, #loop_scope) },
     );
-    quote! { move || #value.get_value()() }
+    quote! { #value.get_value()() }
 }
 
 fn static_attr_value<'a>(attrs: &'a [Attr], name: &str) -> Option<&'a str> {

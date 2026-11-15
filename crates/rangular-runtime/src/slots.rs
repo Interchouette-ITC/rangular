@@ -6,6 +6,8 @@ use rangular_parser::matches_select;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum VNode {
+    /// Canonical `<!DOCTYPE html>` document declaration.
+    Doctype,
     Element {
         tag: String,
         attrs: Vec<(String, String)>,
@@ -65,6 +67,6 @@ impl ProjectionBag {
 fn vnode_matches(node: &VNode, select: &str) -> bool {
     match node {
         VNode::Element { tag, attrs, .. } => matches_select(tag, attrs, select),
-        VNode::Text(_) => false,
+        VNode::Doctype | VNode::Text(_) => false,
     }
 }

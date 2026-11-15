@@ -76,7 +76,10 @@ fn walk_selects(nodes: &[Node], out: &mut Vec<String>) {
                 }
             }
             Node::For(block) => walk_selects(&block.body, out),
-            Node::Text(_, _) | Node::Interpolation(_, _) | Node::Comment(_, _) => {}
+            Node::Doctype(_)
+            | Node::Text(_, _)
+            | Node::Interpolation(_, _)
+            | Node::Comment(_, _) => {}
         }
     }
 }
@@ -96,7 +99,9 @@ pub fn has_default_projection(nodes: &[Node]) -> bool {
                     .is_some_and(|n| has_default_projection(n))
         }
         Node::For(block) => has_default_projection(&block.body),
-        Node::Text(_, _) | Node::Interpolation(_, _) | Node::Comment(_, _) => false,
+        Node::Doctype(_) | Node::Text(_, _) | Node::Interpolation(_, _) | Node::Comment(_, _) => {
+            false
+        }
     })
 }
 
@@ -149,7 +154,8 @@ fn walk_ng_templates(nodes: &[Node], out: &mut Vec<(String, Vec<Node>)>) {
                 }
             }
             Node::For(block) => walk_ng_templates(&block.body, out),
-            Node::Projection(_)
+            Node::Doctype(_)
+            | Node::Projection(_)
             | Node::Text(_, _)
             | Node::Interpolation(_, _)
             | Node::Comment(_, _) => {}

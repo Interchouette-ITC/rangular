@@ -1,5 +1,5 @@
 [package]
-name = "rangular-aot-head-component-fixture"
+name = "rangular-document-consumer-fixture"
 version = "0.1.0"
 edition = "2024"
 publish = false
@@ -8,10 +8,9 @@ publish = false
 
 [dependencies]
 leptos = { version = "0.8", default-features = false, features = ["ssr"] }
-rangular-aot = { path = "../../../" }
+rangular-aot = { path = "../../../../rangular-aot" }
 rangular-expr = { path = "../../../../rangular-expr" }
 rangular-host = { path = "../../../../rangular-host" }
-serenade-view = { git = "https://github.com/Interchouette-ITC/Serenade.git", branch = "dev", features = ["leptos-ssr"] }
 
 [build-dependencies]
-rangular-aot = { path = "../../../" }
+rangular-build = { path = "../../.." }

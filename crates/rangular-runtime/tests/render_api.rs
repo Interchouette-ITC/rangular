@@ -42,6 +42,74 @@ fn interpret_parse_error_returns_issues() {
 }
 
 #[test]
+fn document_doctype_is_preserved_by_all_render_apis() {
+    use rangular_runtime::{
+        interpret_with_pipes, interpret_with_slot_and_pipes, interpret_with_slots_and_pipes,
+        render_with_slot_and_pipes, render_with_slots_and_pipes,
+    };
+
+    let source = "\n <!doctype HTML ><html><body>{{label}}</body></html>";
+    let parsed = rangular_parser::parse(source, "document.html");
+    assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+    let mut host = DemoHost;
+    let slots = ProjectionBag::default();
+    let pipes = rangular_expr::PipeRegistry::builtins();
+    let results = [
+        interpret(source, "document.html", &mut host),
+        interpret_with_pipes(source, "document.html", &mut host, pipes),
+        interpret_with_slot(source, "document.html", &mut host, &[]),
+        interpret_with_slot_and_pipes(source, "document.html", &mut host, &[], pipes),
+        interpret_with_slots(source, "document.html", &mut host, &slots),
+        interpret_with_slots_and_pipes(source, "document.html", &mut host, &slots, pipes),
+        render(&parsed.template, &mut host),
+        render_with_slot(&parsed.template, &mut host, &[]),
+        render_with_slot_and_pipes(&parsed.template, &mut host, &[], pipes),
+        render_with_slots(&parsed.template, &mut host, &slots),
+        render_with_slots_and_pipes(&parsed.template, &mut host, &slots, pipes),
+    ];
+    for result in results {
+        assert!(result.ok(), "{:?}", result.issues);
+        assert_eq!(result.nodes.first(), Some(&VNode::Doctype));
+        assert_eq!(
+            result.snapshot(),
+            "<!DOCTYPE html>\n<html>\n  <body>\n    Hi\n  </body>\n</html>\n"
+        );
+    }
+}
+
+#[test]
+fn document_doctype_is_preserved_with_named_and_default_projection() {
+    let source = r#"<!DOCTYPE html><html>
+<head><ng-content select="title"></ng-content></head>
+<body><ng-content></ng-content></body></html>"#;
+    let parsed = rangular_parser::parse(source, "document.html");
+    assert!(parsed.ok(), "{:?}", parsed.diagnostics);
+    let slot = [
+        VNode::Element {
+            tag: "title".into(),
+            attrs: vec![],
+            children: vec![VNode::Text("Page".into())],
+        },
+        VNode::Text("Body".into()),
+    ];
+    let bag = ProjectionBag::from_flat(&slot, &["title".into()]);
+    let mut host = DemoHost;
+    let results = [
+        interpret_with_slot(source, "document.html", &mut host, &slot),
+        interpret_with_slots(source, "document.html", &mut host, &bag),
+        render_with_slot(&parsed.template, &mut host, &slot),
+        render_with_slots(&parsed.template, &mut host, &bag),
+    ];
+    for result in results {
+        assert!(result.ok(), "{:?}", result.issues);
+        assert_eq!(
+            result.snapshot(),
+            "<!DOCTYPE html>\n<html>\n  <head>\n    <title>\n      Page\n    </title>\n  </head>\n  <body>\n    Body\n  </body>\n</html>\n"
+        );
+    }
+}
+
+#[test]
 fn render_apis_and_display_variants() {
     let mut host = DemoHost;
     let parsed = rangular_parser::parse(
@@ -127,6 +195,7 @@ fn structural_ir_and_projection_bag_edges() {
     assert!(structural_ir("<p>ok</p>", "t.html").is_some());
 
     let roots = [
+        VNode::Doctype,
         VNode::Element {
             tag: "div".into(),
             attrs: vec![("class".into(), "header".into())],
@@ -140,6 +209,7 @@ fn structural_ir_and_projection_bag_edges() {
         },
     ];
     let bag = ProjectionBag::from_flat(&roots, &[".header".into(), ".footer".into()]);
+    assert_eq!(bag.default.first(), Some(&VNode::Doctype));
     assert_ne!(bag.for_select(Some(".header")).len(), 0);
     assert_eq!(bag.for_select(Some(".missing")).len(), 0);
     assert_ne!(bag.for_select(None).len(), 0);

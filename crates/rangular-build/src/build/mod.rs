@@ -5,31 +5,42 @@ use std::path::PathBuf;
 
 mod component;
 mod config;
+mod document;
 mod styles;
 
 pub use config::Config;
 
 use self::component::{Component, compile_template, discover, relative_label};
+use self::document::{DocumentTemplate, resolve as resolve_documents};
 use self::styles::append as append_styles;
 
 /// Discover and compile a package's rangular templates and styles.
 ///
 /// Reads `CARGO_MANIFEST_DIR` and `OUT_DIR`, writes generated Rust under
 /// `OUT_DIR/rangular`, writes CSS to the configured output path, and emits Cargo
-/// rerun directives for the component directory and optional global stylesheet.
+/// rerun directives for the component directory, the directories of registered
+/// document templates, and the optional global stylesheet.
 /// Panics with the offending path and compiler diagnostics on failure, as
 /// expected for a Cargo build script.
 ///
+/// Document templates registered with [`Config::document`], [`Config::head`],
+/// and [`Config::body`] are compiled alongside components. Their sibling SCSS
+/// (document and body only) is placed after the global stylesheet and before
+/// component stylesheets.
+///
 /// # Arguments
 ///
-/// * `config` - Component source directory, generated CSS path, and optional
-///   global SCSS path. Paths are relative to the Cargo package root.
+/// * `config` - Component source directory, generated CSS path, optional
+///   global SCSS path, and optional document templates. Paths are relative to
+///   the Cargo package root.
 ///
 /// # Panics
 ///
 /// Panics when `CARGO_MANIFEST_DIR` or `OUT_DIR` is missing, when no matching
-/// components are found, when a template or stylesheet fails to compile, or
-/// when an input or output file cannot be read or written.
+/// components are found and no document template is registered, when a
+/// document template path is invalid or its generated view name collides with
+/// another view, when a template or stylesheet fails to compile, or when an
+/// input or output file cannot be read or written.
 ///
 /// # Examples
 ///
@@ -79,7 +90,18 @@ fn run_at(
         );
     }
 
-    let components = discover(&components_dir)?;
+    let documents = resolve_documents(config, manifest)?;
+    let mut watched_dirs = Vec::new();
+    for document in &documents {
+        let watched = document.path().parent().unwrap_or(manifest);
+        if !watched_dirs.contains(&watched) {
+            println!("cargo:rerun-if-changed={}", watched.display());
+            watched_dirs.push(watched);
+        }
+    }
+
+    let components = discover(&components_dir, !documents.is_empty())?;
+    check_view_name_collisions(&components, &documents, manifest)?;
     fs::create_dir_all(&generated_dir)
         .map_err(|error| format!("create {}: {error}", generated_dir.display()))?;
 
@@ -92,7 +114,8 @@ fn run_at(
         )?;
     }
 
-    let generated = compile_components(&components, manifest, &mut css)?;
+    let mut generated = compile_documents(config, &documents, manifest, &mut css)?;
+    generated.extend(compile_components(&components, manifest, &mut css)?);
     for (view_name, code) in generated {
         let output = generated_dir.join(format!("{view_name}.rs"));
         fs::write(&output, code).map_err(|error| format!("write {}: {error}", output.display()))?;
@@ -103,6 +126,57 @@ fn run_at(
             .map_err(|error| format!("create {}: {error}", parent.display()))?;
     }
     fs::write(&css_output, css).map_err(|error| format!("write {}: {error}", css_output.display()))
+}
+
+fn check_view_name_collisions(
+    components: &[Component],
+    documents: &[DocumentTemplate],
+    manifest: &std::path::Path,
+) -> Result<(), String> {
+    let mut seen: Vec<(String, String)> = components
+        .iter()
+        .map(|component| {
+            (
+                format!("{}_view", component.name),
+                format!("component `{}`", component.name),
+            )
+        })
+        .collect();
+    for document in documents {
+        let owner = format!(
+            "{} template {}",
+            document.role.label(),
+            relative_label(manifest, document.path())
+        );
+        if let Some((_, existing)) = seen.iter().find(|(name, _)| *name == document.view_name) {
+            return Err(format!(
+                "{owner} generates `{}`, which collides with {existing}",
+                document.view_name
+            ));
+        }
+        seen.push((document.view_name.clone(), owner));
+    }
+    Ok(())
+}
+
+fn compile_documents(
+    config: &Config,
+    documents: &[DocumentTemplate],
+    manifest: &std::path::Path,
+    css: &mut String,
+) -> Result<Vec<(String, String)>, String> {
+    documents
+        .iter()
+        .map(|document| {
+            let code = document.compile(manifest, config.head_adapter.as_ref())?;
+            if let Some(scss_path) = document.scss_path() {
+                let label = relative_label(manifest, &scss_path);
+                let _ = writeln!(css, "\n/* {} */", document.role.label());
+                append_styles(&scss_path, &label, css)?;
+            }
+            Ok((document.view_name.clone(), code))
+        })
+        .collect()
 }
 
 fn compile_components(
