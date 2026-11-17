@@ -74,8 +74,11 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name }}
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      # Publish with the declared MSRV (`rust-version` in Cargo.toml).
+      - name: Install Rust 1.100
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.100"
 
       - name: Rust cache
         uses: Swatinem/rust-cache@v2

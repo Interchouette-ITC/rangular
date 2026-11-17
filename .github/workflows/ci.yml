@@ -72,6 +72,30 @@ jobs:
         if: needs.changes.outputs.code == 'true'
         run: make test
 
+  msrv:
+    name: MSRV 1.100 · fmt · clippy · test · doc
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Markdown-only
+        if: needs.changes.outputs.code != 'true'
+        run: echo "markdown-only; skipping MSRV"
+      # Must match `rust-version` in Cargo.toml.
+      - uses: dtolnay/rust-toolchain@master
+        if: needs.changes.outputs.code == 'true'
+        with:
+          toolchain: "1.100"
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        if: needs.changes.outputs.code == 'true'
+        with:
+          key: msrv
+      - name: Lint, test and doc on Rust 1.100
+        if: needs.changes.outputs.code == 'true'
+        run: make lint test doc
+
   no-panic:
     name: garbage fixtures never panic
     needs: changes

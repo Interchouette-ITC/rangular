@@ -67,8 +67,9 @@ the workspace and demo versions, then the `crates` job:
 2. runs `make/publish/publish-crates.sh publish` with the `CARGO_REGISTRY_TOKEN`
    repository secret, exposed only to that step. The script:
    - fails immediately if the token is empty;
-   - skips versions that already exist on crates.io, so a rerun after a
-     partial failure resumes where it stopped;
+   - does not re-upload versions that already exist on crates.io, but still
+     waits for each of them in the sparse index, so a rerun after a partial
+     failure (including an index timeout) resumes where it stopped;
    - publishes in the order above with `cargo publish --locked` (full
      verification, never `--no-verify`);
    - waits for each version to appear in the sparse index before the next

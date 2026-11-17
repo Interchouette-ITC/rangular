@@ -7,7 +7,8 @@
 # Operator entry: `make publish-check`; upload runs from the release workflow.
 #
 # `publish` is safe to rerun after a partial failure: versions already on
-# crates.io are skipped. It needs CARGO_REGISTRY_TOKEN and never passes
+# crates.io are not uploaded again, but each one is still awaited in the
+# sparse index before its dependents are published. It needs CARGO_REGISTRY_TOKEN and never passes
 # --no-verify.
 set -euo pipefail
 
@@ -84,7 +85,10 @@ publish() {
     status=$(registry_status "$name" "$version")
     case "$status" in
       200)
-        echo "$name $version already on crates.io; skipping"
+        # A previous run may have uploaded it but timed out before indexing;
+        # dependents must not be published until the index serves it.
+        echo "$name $version already on crates.io; skipping upload"
+        wait_for_index "$name" "$version"
         continue
         ;;
       404) ;;

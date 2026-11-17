@@ -22,7 +22,9 @@ First release prepared for publication on [crates.io](https://crates.io/).
   or two-way form values still need direct `web-sys` (and `wasm-bindgen`)
   dependencies.
 - Minimum supported Rust version is now **1.100** for the workspace and both
-  demos; the Docker builder image moves to `rust:1.100.0-bookworm`.
+  demos; the Docker builder image moves to `rust:1.100.0-bookworm`. A CI job
+  (`msrv`) runs `make lint test doc` on Rust 1.100, and the release `crates`
+  job publishes with 1.100.
 - `demo-leptos` depends on the `rangular` facade only; `demo-tauri` and
   `tauri.conf.json` are aligned to 1.0.6.
 - All nine packages are publishable: `publish = false` removed, and each has a
@@ -42,11 +44,20 @@ First release prepared for publication on [crates.io](https://crates.io/).
 - Native SSR and SSR-to-browser hydration tests: a consumer crate renders a
   counter component on the server, and `make test-hydration` (CI job
   `hydration`) hydrates that exact HTML in headless Chrome, checking that
-  server DOM nodes are reused and that events and reactive updates work. A
-  negative test ensures a fresh client render is detected.
+  server DOM nodes are reused and that events and reactive updates work.
+  Before hydrating, the server HTML must match a client render of the same
+  view node by node (tags, attributes, text, and Leptos markers), since
+  Leptos itself accepts some mismatches silently, such as a renamed tag or a
+  missing marker. The test also fails on any browser `console.error` /
+  `console.warn`, uncaught error, or unhandled rejection during hydration.
+  Negative tests ensure a fresh client render, each structural corruption,
+  and each diagnostic channel are detected. The fixture's server-only
+  `render_counter` / `render_page` are gated behind `ssr`, because Leptos
+  panics when rendering HTML from a hydrate-only build.
 - A test asserting generated code contains no implementation-crate paths.
 - crates.io publication: `make/publish/publish-crates.sh` (dependency-ordered,
-  skips already-published versions, waits for the index), `make publish-check`,
+  does not re-upload published versions but still waits for each in the
+  index, so reruns resume safely), `make publish-check`,
   and a `crates` job in the release workflow using the `CARGO_REGISTRY_TOKEN`
   secret. See [`RELEASING.md`](RELEASING.md).
 - `docs/RELEASING.md` and a `rangular-build` README.

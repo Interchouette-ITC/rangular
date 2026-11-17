@@ -94,6 +94,9 @@ pub fn counter_app() -> impl IntoView {
 }
 
 /// Renders the counter application to HTML exactly as served to browsers.
+///
+/// Server-only: Leptos panics when rendering attributes to HTML without `ssr`.
+#[cfg(feature = "ssr")]
 #[must_use]
 pub fn render_counter() -> String {
     let owner = Owner::new();
@@ -102,6 +105,7 @@ pub fn render_counter() -> String {
     html
 }
 
+#[cfg(feature = "ssr")]
 #[must_use]
 pub fn render_page(page: Page) -> String {
     let owner = Owner::new();
@@ -110,7 +114,7 @@ pub fn render_page(page: Page) -> String {
     html
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "ssr"))]
 mod tests {
     use super::{COUNTER_VIEW_SOURCE, Page, render_counter, render_page};
 
