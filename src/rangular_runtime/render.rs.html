@@ -361,10 +361,10 @@
 <a href=#361 id=361 data-nosnippet>361</a><span class="kw">fn </span>resolve_frame&lt;H: Host&gt;(expr: <span class="kw-2">&amp;</span>Expr, ctx: <span class="kw-2">&amp;mut </span>Ctx&lt;<span class="lifetime">'_</span>, H&gt;) -&gt; <span class="prelude-ty">Option</span>&lt;Value&gt; {
 <a href=#362 id=362 data-nosnippet>362</a>    <span class="kw">match </span>expr {
 <a href=#363 id=363 data-nosnippet>363</a>        Expr::Ident(name) =&gt; {
-<a href=#364 id=364 data-nosnippet>364</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>((index, count)) = ctx.loop_depth.last().copied() {
-<a href=#365 id=365 data-nosnippet>365</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(value) = for_implicit_value(name, index, count) {
-<a href=#366 id=366 data-nosnippet>366</a>                    <span class="kw">return </span><span class="prelude-val">Some</span>(value);
-<a href=#367 id=367 data-nosnippet>367</a>                }
+<a href=#364 id=364 data-nosnippet>364</a>            <span class="kw">if let </span><span class="prelude-val">Some</span>((index, count)) = ctx.loop_depth.last().copied()
+<a href=#365 id=365 data-nosnippet>365</a>                &amp;&amp; <span class="kw">let </span><span class="prelude-val">Some</span>(value) = for_implicit_value(name, index, count)
+<a href=#366 id=366 data-nosnippet>366</a>            {
+<a href=#367 id=367 data-nosnippet>367</a>                <span class="kw">return </span><span class="prelude-val">Some</span>(value);
 <a href=#368 id=368 data-nosnippet>368</a>            }
 <a href=#369 id=369 data-nosnippet>369</a>            ctx.frames
 <a href=#370 id=370 data-nosnippet>370</a>                .iter()
