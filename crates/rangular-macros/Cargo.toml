@@ -1,15 +1,16 @@
 [package]
 name = "rangular-macros"
 description = "Proc macros for rangular component templates"
-readme = "../../docs/README.md"
+readme = "README.md"
+keywords = ["angular", "leptos", "proc-macro", "templates"]
+categories = ["template-engine", "development-tools::procedural-macro-helpers"]
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+license-file.workspace = true
 authors.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-publish = false
-
 
 [lib]
 proc-macro = true
@@ -17,4 +18,4 @@ proc-macro = true
 [dependencies]
 proc-macro2 = "1"
 quote = "1"
-syn = { version = "2", features = ["full"] }
+syn = { version = "3", features = ["full"] }

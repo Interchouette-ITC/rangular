@@ -1,15 +1,16 @@
 [package]
 name = "rangular-parser"
 description = "Angular-subset HTML template parser for rangular"
-readme = "../../docs/README.md"
+readme = "README.md"
+keywords = ["angular", "html", "parser", "templates", "leptos"]
+categories = ["parser-implementations", "template-engine"]
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+license-file.workspace = true
 authors.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-publish = false
-
 
 [dependencies]
 rangular-expr = { workspace = true }

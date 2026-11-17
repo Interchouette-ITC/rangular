@@ -1,17 +1,20 @@
 [package]
 name = "rangular-host"
 description = "Host binding API shared by rangular AOT and runtime"
-readme = "../../docs/README.md"
+readme = "README.md"
+keywords = ["angular", "leptos", "templates", "bindings", "host"]
+categories = ["template-engine", "web-programming"]
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+license-file.workspace = true
 authors.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-publish = false
 
 [dependencies]
 regex = "1.11"
 
+# Path-only so `cargo publish` strips it: rangular-expr depends on rangular-host.
 [dev-dependencies]
-rangular-expr = { workspace = true }
+rangular-expr = { path = "../rangular-expr" }

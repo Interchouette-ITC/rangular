@@ -36,21 +36,25 @@ examples only.
 
 ## Depend from a local clone or pin a commit
 
-Until crates.io, the README shows a `git` + `branch = "dev"` dependency. To
-freeze a tree, pin a commit:
+Applications depend on the `rangular` facade and the `rangular-build` build
+helper only. For unreleased changes, pin a commit:
 
 ```toml
-rangular-aot = { git = "https://github.com/Interchouette-ITC/rangular.git", rev = "…" }
-rangular-css = { git = "https://github.com/Interchouette-ITC/rangular.git", rev = "…" }
-rangular-host = { git = "https://github.com/Interchouette-ITC/rangular.git", rev = "…" }
+[dependencies]
+rangular = { git = "https://github.com/Interchouette-ITC/rangular.git", rev = "…" }
+
+[build-dependencies]
+rangular-build = { git = "https://github.com/Interchouette-ITC/rangular.git", rev = "…" }
 ```
 
 For day-to-day hacking against a sibling checkout:
 
 ```toml
-rangular-aot = { path = "../rangular/crates/rangular-aot" }
-rangular-css = { path = "../rangular/crates/rangular-css" }
-rangular-host = { path = "../rangular/crates/rangular-host" }
+[dependencies]
+rangular = { path = "../rangular/crates/rangular" }
+
+[build-dependencies]
+rangular-build = { path = "../rangular/crates/rangular-build" }
 ```
 
 Adjust the relative path to match your layout.
@@ -58,7 +62,16 @@ Adjust the relative path to match your layout.
 ## Code changes
 
 - Prefer one concern per PR.
-- Run `make lint` and `make test` before push.
+- The root `Makefile` only includes `make/*.mk` (`make help` lists targets).
+  Put new targets in the matching `make/` file, and move any recipe longer
+  than a few lines into a sibling `.sh` script, as `make/version/` does.
+- Run `make lint` and `make test` before push. Changes to code generation or
+  rendering should also pass `make test-hydration` (needs `wasm32-unknown-unknown`,
+  `wasm-bindgen-test-runner` matching the consumer fixture lockfile, and
+  chromedriver; set `CHROME_BIN` if your default Chrome does not match it).
+- Generated code must reference Rangular only through `rangular::…` facade
+  paths; `crates/rangular-aot/tests/smoke.rs` and the consumer fixture under
+  `crates/rangular-build/tests/fixtures/document-consumer/` enforce this.
 - Local fuzz / unsafe audit: `make fuzz` (default target `parse-html`, needs nightly +
   `cargo fuzz`) and `make geiger` (needs `cargo geiger`).
 - Conventional commits: `feat(parser): …`, `fix(aot): …`, etc.

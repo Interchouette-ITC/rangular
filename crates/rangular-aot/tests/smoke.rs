@@ -31,7 +31,7 @@ fn head_mode_emits_direct_elements_and_safe_json_ld() {
     assert!(out.code.contains("canonical_url"), "{}", out.code);
     assert!(out.code.contains("<b>Product</b>"), "{}", out.code);
     assert!(
-        out.code.contains("rangular_aot::escape_json_ld"),
+        out.code.contains("rangular::aot::escape_json_ld"),
         "{}",
         out.code
     );
@@ -564,10 +564,10 @@ fn banana_hostcell_sets_via_dom_event() {
         }
 
         fn set(&mut self, name: &str, value: Value) -> Result<(), HostError> {
-            if name == "seed" {
-                if let Some(s) = value.as_str() {
-                    *self.seed.borrow_mut() = s.to_owned();
-                }
+            if name == "seed"
+                && let Some(s) = value.as_str()
+            {
+                *self.seed.borrow_mut() = s.to_owned();
             }
             Ok(())
         }
@@ -606,10 +606,10 @@ fn banana_checked_hostcell_sets_bool_via_change() {
         }
 
         fn set(&mut self, name: &str, value: Value) -> Result<(), HostError> {
-            if name == "flag" {
-                if let Some(b) = value.as_bool() {
-                    *self.flag.borrow_mut() = b;
-                }
+            if name == "flag"
+                && let Some(b) = value.as_bool()
+            {
+                *self.flag.borrow_mut() = b;
             }
             Ok(())
         }
@@ -877,4 +877,91 @@ fn head_mode_rejects_doctype() {
             tokens.issues
         );
     }
+}
+
+const IMPLEMENTATION_PATHS: [&str; 7] = [
+    "rangular_aot",
+    "rangular_css",
+    "rangular_expr",
+    "rangular_host",
+    "rangular_macros",
+    "rangular_parser",
+    "rangular_runtime",
+];
+
+/// Generated code must reach Rangular only through the `rangular` facade.
+fn assert_facade_only(code: &str, label: &str) {
+    let normalized: String = code.chars().filter(|c| !c.is_whitespace()).collect();
+    for path in IMPLEMENTATION_PATHS {
+        let needle = format!("{path}::");
+        let mut start = 0;
+        while let Some(found) = normalized[start..].find(&needle) {
+            let at = start + found;
+            let prefixed = normalized[..at].ends_with('_');
+            assert!(
+                prefixed,
+                "{label}: generated code references `{path}` directly:\n{code}"
+            );
+            start = at + needle.len();
+        }
+    }
+    assert!(
+        normalized.contains("rangular::host::Host"),
+        "{label}: expected facade host bound:\n{code}"
+    );
+}
+
+#[test]
+fn generated_code_uses_only_facade_paths() {
+    let component = r#"
+        <section [class.on]="on && !off" [attr.title]="label | uppercase">
+          <p>{{ on ? 'yes' : "no" }} {{ count + 1 }} {{ flag == true }} {{ a != b || c }}</p>
+          <p>{{ amount | number }} {{ greet('x', 2, false) }}</p>
+          <input type="text" [(value)]="seed" [disabled]="!on" />
+          <input type="checkbox" [(checked)]="checked" />
+          <button type="button" (click)="push($event)">Push</button>
+          @if (on) { <span>shown</span> } @else { <span>hidden</span> }
+          @for (item of items; track item) {
+            <li [class.first]="$first" (click)="pick(item, $index)">{{ $index }} {{ item }} {{ $count }}</li>
+          }
+          <ng-container [ngTemplateOutlet]="card"></ng-container>
+          <ng-template #card><b>{{ label }}</b></ng-template>
+          <app-io-child [label]="label" (picked)="onPicked($event)"></app-io-child>
+        </section>
+    "#;
+    let out = compile(component, "facade_view");
+    assert!(out.ok(), "{:?}", out.issues);
+    parse_file(&out.code).unwrap_or_else(|err| panic!("invalid Rust: {err}"));
+    assert!(out.code.contains("LoopScope"), "{}", out.code);
+    assert_facade_only(&out.code, "component");
+
+    for (label, template) in [
+        ("default projection", "<div><ng-content></ng-content></div>"),
+        (
+            "named projection",
+            r#"<header><rg-content select=".header"></rg-content></header><rg-content></rg-content>"#,
+        ),
+    ] {
+        let out = compile(template, "projection_view");
+        assert!(out.ok(), "{label}: {:?}", out.issues);
+        assert_facade_only(&out.code, label);
+    }
+
+    let head = rangular_aot::compile_head(
+        r#"<title>{{ title }}</title>
+           <meta name="description" content="{{ description }}" />
+           <script type="application/ld+json">{{ ld_json }}</script>"#,
+        "head_view",
+    );
+    assert!(head.ok(), "{:?}", head.issues);
+    assert!(
+        head.code.contains("rangular::aot::escape_json_ld"),
+        "{}",
+        head.code
+    );
+    assert_facade_only(&head.code, "head");
+
+    let tokens = rangular_aot::compile_tokens(component, "facade_tokens_view");
+    assert!(tokens.ok(), "{:?}", tokens.issues);
+    assert_facade_only(&tokens.tokens.to_string(), "tokens");
 }

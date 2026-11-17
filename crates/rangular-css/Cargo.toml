@@ -1,15 +1,16 @@
 [package]
 name = "rangular-css"
 description = "Component SCSS, :host, and emulated encapsulation for rangular"
-readme = "../../docs/README.md"
+readme = "README.md"
+keywords = ["scss", "css", "leptos", "angular", "encapsulation"]
+categories = ["web-programming", "template-engine"]
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+license-file.workspace = true
 authors.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-publish = false
-
 
 [dependencies]
 grass = "0.13"

@@ -114,6 +114,34 @@ jobs:
         if: needs.changes.outputs.code == 'true'
         run: make demo-check && make demo-build
 
+  hydration:
+    name: SSR to browser hydration
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Markdown-only
+        if: needs.changes.outputs.code != 'true'
+        run: echo "markdown-only; skipping hydration"
+      - uses: dtolnay/rust-toolchain@stable
+        if: needs.changes.outputs.code == 'true'
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        if: needs.changes.outputs.code == 'true'
+      - name: Install wasm-bindgen-test-runner matching the fixture lockfile
+        if: needs.changes.outputs.code == 'true'
+        run: |
+          version=$(awk '/^name = "wasm-bindgen"$/{getline; gsub(/"/,"",$3); print $3; exit}' \
+            crates/rangular-build/tests/fixtures/document-consumer/Cargo.lock)
+          cargo install --locked wasm-bindgen-cli --version "$version"
+      - name: Native SSR render and headless Chrome hydration
+        if: needs.changes.outputs.code == 'true'
+        # ubuntu-latest ships Chrome with a matching chromedriver.
+        run: make test-hydration CHROMEDRIVER="$CHROMEWEBDRIVER/chromedriver"
+
   doc:
     name: rustdoc
     needs: changes

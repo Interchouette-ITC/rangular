@@ -1,6 +1,6 @@
 use leptos::prelude::*;
-use rangular_aot::HostCell;
-use rangular_host::{Host, HostError, Value, required};
+use rangular::aot::HostCell;
+use rangular::host::{Host, HostError, Value, required};
 
 include!(concat!(env!("OUT_DIR"), "/rangular/field_required_view.rs"));
 

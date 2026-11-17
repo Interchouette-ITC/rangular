@@ -6,11 +6,35 @@ publish = false
 
 [workspace]
 
+[features]
+default = ["ssr"]
+ssr = ["leptos/ssr"]
+hydrate = ["leptos/hydrate"]
+
+# Rangular is consumed only through the `rangular` facade and the separate
+# `rangular-build` build dependency; implementation crates stay transitive.
 [dependencies]
-leptos = { version = "0.8", default-features = false, features = ["ssr"] }
-rangular-aot = { path = "../../../../rangular-aot" }
-rangular-expr = { path = "../../../../rangular-expr" }
-rangular-host = { path = "../../../../rangular-host" }
+leptos = { version = "0.8", default-features = false }
+rangular = { path = "../../../../rangular" }
+web-sys = { version = "0.3", features = ["Event", "MouseEvent"] }
 
 [build-dependencies]
 rangular-build = { path = "../../.." }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+js-sys = "0.3"
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+wasm-bindgen-test = "0.3"
+web-sys = { version = "0.3", features = [
+    "Document",
+    "Element",
+    "HtmlCollection",
+    "HtmlElement",
+    "Node",
+    "Window",
+] }
+
+[[example]]
+name = "render_counter"
+required-features = ["ssr"]

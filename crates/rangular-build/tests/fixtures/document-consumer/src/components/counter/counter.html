@@ -1,0 +1,15 @@
+<section class="counter" aria-label="{{ title }}">
+  <h2 id="counter-title">{{ title }}</h2>
+  <p id="counter-value">Count: {{ count }}</p>
+  @if (positive) {
+  <p id="counter-state">positive</p>
+  } @else {
+  <p id="counter-state">zero</p>
+  }
+  <button id="counter-increment" type="button" (click)="increment()">Increment</button>
+  <ul id="counter-items">
+    @for (item of items; track item) {
+    <li>{{ $index }}: {{ item }}</li>
+    }
+  </ul>
+</section>

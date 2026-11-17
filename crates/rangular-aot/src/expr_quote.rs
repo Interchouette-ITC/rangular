@@ -5,18 +5,18 @@ use rangular_expr::{BinOp, Expr, Literal, UnOp};
 pub fn expr_tokens(expr: &Expr) -> TokenStream {
     match expr {
         Expr::Lit(lit) => lit_tokens(lit),
-        Expr::Ident(name) => quote! { rangular_expr::Expr::Ident(#name.to_string()) },
+        Expr::Ident(name) => quote! { rangular::expr::Expr::Ident(#name.to_string()) },
         Expr::Unary { op, expr } => {
             let inner = expr_tokens(expr);
             let op = unop_tokens(*op);
-            quote! { rangular_expr::Expr::Unary { op: #op, expr: Box::new(#inner) } }
+            quote! { rangular::expr::Expr::Unary { op: #op, expr: Box::new(#inner) } }
         }
         Expr::Binary { op, left, right } => {
             let l = expr_tokens(left);
             let r = expr_tokens(right);
             let op = binop_tokens(*op);
             quote! {
-                rangular_expr::Expr::Binary {
+                rangular::expr::Expr::Binary {
                     op: #op,
                     left: Box::new(#l),
                     right: Box::new(#r),
@@ -27,7 +27,7 @@ pub fn expr_tokens(expr: &Expr) -> TokenStream {
             let c = expr_tokens(callee);
             let a = args.iter().map(expr_tokens);
             quote! {
-                rangular_expr::Expr::Call {
+                rangular::expr::Expr::Call {
                     callee: Box::new(#c),
                     args: vec![#(#a),*],
                 }
@@ -37,7 +37,7 @@ pub fn expr_tokens(expr: &Expr) -> TokenStream {
             let inner = expr_tokens(expr);
             let a = args.iter().map(expr_tokens);
             quote! {
-                rangular_expr::Expr::Pipe {
+                rangular::expr::Expr::Pipe {
                     expr: Box::new(#inner),
                     name: #name.to_string(),
                     args: vec![#(#a),*],
@@ -53,7 +53,7 @@ pub fn expr_tokens(expr: &Expr) -> TokenStream {
             let t = expr_tokens(then_branch);
             let e = expr_tokens(else_branch);
             quote! {
-                rangular_expr::Expr::Ternary {
+                rangular::expr::Expr::Ternary {
                     cond: Box::new(#c),
                     then_branch: Box::new(#t),
                     else_branch: Box::new(#e),
@@ -66,25 +66,25 @@ pub fn expr_tokens(expr: &Expr) -> TokenStream {
 fn lit_tokens(lit: &Literal) -> TokenStream {
     match lit {
         Literal::Str(s) => {
-            quote! { rangular_expr::Expr::Lit(rangular_expr::Literal::Str(#s.to_string())) }
+            quote! { rangular::expr::Expr::Lit(rangular::expr::Literal::Str(#s.to_string())) }
         }
-        Literal::Num(n) => quote! { rangular_expr::Expr::Lit(rangular_expr::Literal::Num(#n)) },
-        Literal::Bool(b) => quote! { rangular_expr::Expr::Lit(rangular_expr::Literal::Bool(#b)) },
+        Literal::Num(n) => quote! { rangular::expr::Expr::Lit(rangular::expr::Literal::Num(#n)) },
+        Literal::Bool(b) => quote! { rangular::expr::Expr::Lit(rangular::expr::Literal::Bool(#b)) },
     }
 }
 
 fn unop_tokens(op: UnOp) -> TokenStream {
     match op {
-        UnOp::Not => quote! { rangular_expr::UnOp::Not },
+        UnOp::Not => quote! { rangular::expr::UnOp::Not },
     }
 }
 
 fn binop_tokens(op: BinOp) -> TokenStream {
     match op {
-        BinOp::Or => quote! { rangular_expr::BinOp::Or },
-        BinOp::And => quote! { rangular_expr::BinOp::And },
-        BinOp::Eq => quote! { rangular_expr::BinOp::Eq },
-        BinOp::Ne => quote! { rangular_expr::BinOp::Ne },
-        BinOp::Add => quote! { rangular_expr::BinOp::Add },
+        BinOp::Or => quote! { rangular::expr::BinOp::Or },
+        BinOp::And => quote! { rangular::expr::BinOp::And },
+        BinOp::Eq => quote! { rangular::expr::BinOp::Eq },
+        BinOp::Ne => quote! { rangular::expr::BinOp::Ne },
+        BinOp::Add => quote! { rangular::expr::BinOp::Add },
     }
 }

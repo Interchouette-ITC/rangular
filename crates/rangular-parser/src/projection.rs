@@ -61,10 +61,10 @@ fn walk_selects(nodes: &[Node], out: &mut Vec<String>) {
     for node in nodes {
         match node {
             Node::Projection(proj) => {
-                if let Some(select) = &proj.select {
-                    if !out.iter().any(|s| s == select) {
-                        out.push(select.clone());
-                    }
+                if let Some(select) = &proj.select
+                    && !out.iter().any(|s| s == select)
+                {
+                    out.push(select.clone());
                 }
             }
             Node::Element(el) => walk_selects(&el.children, out),

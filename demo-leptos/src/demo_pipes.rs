@@ -1,7 +1,7 @@
 use std::sync::{Arc, OnceLock};
 
-use rangular_expr::{EvalError, PipeRegistry};
-use rangular_host::Value;
+use rangular::expr::{EvalError, PipeRegistry};
+use rangular::host::Value;
 
 pub fn demo_pipes() -> Arc<PipeRegistry> {
     static PIPES: OnceLock<Arc<PipeRegistry>> = OnceLock::new();
@@ -40,8 +40,8 @@ fn pipe_crab(value: &Value, args: &[Value]) -> Result<Value, EvalError> {
 #[cfg(test)]
 mod tests {
     use super::demo_pipes;
-    use rangular_expr::{eval_with_pipes, parse};
-    use rangular_host::{Host, HostError, Value};
+    use rangular::expr::{eval_with_pipes, parse};
+    use rangular::host::{Host, HostError, Value};
 
     struct LabelHost;
 
@@ -69,6 +69,6 @@ mod tests {
         let err = pipes
             .apply("crab", &Value::Unit, &[])
             .expect_err("unit");
-        assert!(matches!(err, rangular_expr::EvalError::TypeMismatch(_)));
+        assert!(matches!(err, rangular::expr::EvalError::TypeMismatch(_)));
     }
 }

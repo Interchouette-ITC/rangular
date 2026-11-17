@@ -1,6 +1,6 @@
 use leptos::prelude::*;
-use rangular_aot::HostCell;
-use rangular_host::{Host, HostError, Regex, Value, first_error, min_length, pattern, required};
+use rangular::aot::HostCell;
+use rangular::host::{Host, HostError, Regex, Value, first_error, min_length, pattern, required};
 
 include!(concat!(
     env!("OUT_DIR"),

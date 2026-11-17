@@ -31,10 +31,10 @@ impl Scope<'_> {
 
 fn scope_loop(scope: &Scope<'_>) -> TokenStream {
     scope.loop_item.map_or_else(
-        || quote! { rangular_host::LoopScope::NONE },
+        || quote! { rangular::host::LoopScope::NONE },
         |item| {
             quote! {
-                rangular_host::LoopScope {
+                rangular::host::LoopScope {
                     item_name: Some(#item),
                     item_val: Some(__rangular_loop.as_str()),
                     index: Some(__rangular_index),
@@ -142,7 +142,7 @@ impl HoistState {
         let id = format_ident!("__rangular_e{n}");
         let init = expr_tokens(expr);
         self.expr_lets.push(quote! {
-            let #id: &'static rangular_expr::Expr = Box::leak(Box::new(#init));
+            let #id: &'static rangular::expr::Expr = Box::leak(Box::new(#init));
         });
         quote! { #id }
     }
@@ -234,8 +234,8 @@ pub fn emit_rust_tokens_with_head_mode(
     let has_default = has_default_projection(&template.nodes);
     let tokens = if selects.is_empty() && has_projection(&template.nodes) {
         quote! {
-            pub fn #ident<H: rangular_host::Host + 'static>(
-                host: rangular_aot::HostCell<H>,
+            pub fn #ident<H: rangular::host::Host + 'static>(
+                host: rangular::aot::HostCell<H>,
                 children: Children,
             ) -> impl IntoView {
                 let __rangular_host = leptos::prelude::StoredValue::new(host);
@@ -253,8 +253,8 @@ pub fn emit_rust_tokens_with_head_mode(
             params.push(quote! { children: Children });
         }
         quote! {
-            pub fn #ident<H: rangular_host::Host + 'static>(
-                host: rangular_aot::HostCell<H>,
+            pub fn #ident<H: rangular::host::Host + 'static>(
+                host: rangular::aot::HostCell<H>,
                 #(#params),*
             ) -> impl IntoView {
                 let __rangular_host = leptos::prelude::StoredValue::new(host);
@@ -264,8 +264,8 @@ pub fn emit_rust_tokens_with_head_mode(
         }
     } else {
         quote! {
-            pub fn #ident<H: rangular_host::Host + 'static>(
-                host: rangular_aot::HostCell<H>,
+            pub fn #ident<H: rangular::host::Host + 'static>(
+                host: rangular::aot::HostCell<H>,
             ) -> impl IntoView {
                 let __rangular_host = leptos::prelude::StoredValue::new(host);
                 #prelude
@@ -380,17 +380,17 @@ fn lower_element(
     hoist: &mut HoistState,
 ) -> Option<TokenStream> {
     let head_tag = hoist.head_mode.then(|| el.tag.to_ascii_lowercase());
-    if let Some(tag) = &head_tag {
-        if !matches!(
+    if let Some(tag) = &head_tag
+        && !matches!(
             tag.as_str(),
             "ng-container" | "title" | "meta" | "link" | "script"
-        ) {
-            issues.push(AotIssue::error(
-                "RANG403",
-                format!("unsupported element `<{}>` in head template", el.tag),
-            ));
-            return None;
-        }
+        )
+    {
+        issues.push(AotIssue::error(
+            "RANG403",
+            format!("unsupported element `<{}>` in head template", el.tag),
+        ));
+        return None;
     }
     if let Some(name) = template_outlet_ref(&el.attrs) {
         let Some(body) = templates.get(name) else {
@@ -426,14 +426,13 @@ fn lower_element(
             }
             return lower_head_meta(el, issues, scope, hoist);
         }
-        if head_tag == "link" {
-            if let Some(component) = hoist
+        if head_tag == "link"
+            && let Some(component) = hoist
                 .head_adapter
                 .as_ref()
                 .map(|adapter| adapter.link.clone())
-            {
-                return lower_head_adapter_element(el, issues, scope, hoist, &component, "link");
-            }
+        {
+            return lower_head_adapter_element(el, issues, scope, hoist, &component, "link");
         }
         if head_tag == "link"
             && static_attr_value(&el.attrs, "rel").is_some_and(|rel| {
@@ -778,7 +777,7 @@ fn lower_head_json_ld(
         <script #attrs>
             {move || {
                 let __rangular_json = #json;
-                rangular_aot::escape_json_ld(&__rangular_json)
+                rangular::aot::escape_json_ld(&__rangular_json)
             }}
         </script>
     })
@@ -1150,7 +1149,7 @@ fn lower_for(
                     let (__rangular_index, __rangular_count, item) = row;
                     host.prop_str_scoped(
                         #tr,
-                        rangular_host::LoopScope {
+                        rangular::host::LoopScope {
                             item_name: Some(#item_lit),
                             item_val: Some(item.as_str()),
                             index: Some(*__rangular_index),

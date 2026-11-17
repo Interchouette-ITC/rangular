@@ -361,10 +361,10 @@ fn eval_expr<H: Host>(expr: &Expr, ctx: &mut Ctx<'_, H>) -> Value {
 fn resolve_frame<H: Host>(expr: &Expr, ctx: &mut Ctx<'_, H>) -> Option<Value> {
     match expr {
         Expr::Ident(name) => {
-            if let Some((index, count)) = ctx.loop_depth.last().copied() {
-                if let Some(value) = for_implicit_value(name, index, count) {
-                    return Some(value);
-                }
+            if let Some((index, count)) = ctx.loop_depth.last().copied()
+                && let Some(value) = for_implicit_value(name, index, count)
+            {
+                return Some(value);
             }
             ctx.frames
                 .iter()

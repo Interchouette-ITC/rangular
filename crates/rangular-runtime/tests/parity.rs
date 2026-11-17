@@ -763,10 +763,10 @@ fn checkbox_checked_bool_prop_and_banana_change() {
         }
 
         fn set(&mut self, key: &str, value: Value) -> Result<(), HostError> {
-            if key == "on" {
-                if let Some(b) = value.as_bool() {
-                    self.on = b;
-                }
+            if key == "on"
+                && let Some(b) = value.as_bool()
+            {
+                self.on = b;
             }
             Ok(())
         }

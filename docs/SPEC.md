@@ -40,6 +40,16 @@ let html = generated::hello_view(host).into_view().to_html();
 leptos::mount::hydrate_body(|| generated::hello_view(host));
 ```
 
+Generated code names Rangular items only through the `rangular` facade
+(`rangular::host`, `rangular::aot`, `rangular::expr`), so the consuming crate
+depends on `rangular` for every target.
+
+| Target                        | Status    | Coverage                                                                  |
+| ----------------------------- | --------- | ------------------------------------------------------------------------- |
+| Browser CSR / wasm            | Supported | Demo wasm build and lint                                                  |
+| Native SSR                    | Supported | Exact HTML assertions in an independent consumer crate                    |
+| SSR + browser hydration       | Supported | Native SSR output hydrated in headless Chrome; server nodes reused, events and reactive updates verified |
+
 Leptos remains responsible for HTML escaping, hydration markers, and DOM
 hydration. AOT-generated views are the shared source of UI; hand-authored HTML
 strings are not an SSR substitute.
@@ -291,7 +301,7 @@ scoped by encapsulation when you use that path.
 
 ## Component SCSS (v0.1)
 
-Authors write **SCSS** component sheets (`:host`, nesting, `&`). `rangular_css::encapsulate`
+Authors write **SCSS** component sheets (`:host`, nesting, `&`). `rangular::css::encapsulate`
 compiles them (grass) then applies emulated encapsulation. Output is flat CSS for
 the browser. Encapsulation is **emulated**: scoped rules receive a generated
 attribute selector; `:host` rewrites to that host selector.
@@ -322,7 +332,7 @@ Rules:
   selectors still encapsulate.
 - Unbalanced or malformed input yields `RANG301` diagnostics; never panics.
 
-API: `rangular_css::encapsulate` (SCSS) with `ScopeAttrs`. Flat CSS helpers are
+API: `rangular::css::encapsulate` (SCSS) with `ScopeAttrs`. Flat CSS helpers are
 test/tooling only (`encapsulate_css`).
 
 ## Host API (shared by AOT and runtime)

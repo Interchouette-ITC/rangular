@@ -102,7 +102,7 @@ impl Registry {
         self.pipes.register(name, pipe);
     }
 
-    /// Pipe map for [`rangular_expr::eval_with_pipes`] / `HostCell`.
+    /// Pipe map for [`crate::expr::eval_with_pipes`] / `HostCell`.
     #[must_use]
     pub const fn pipes(&self) -> &PipeRegistry {
         &self.pipes
@@ -123,7 +123,7 @@ impl Registry {
         self.tags.values()
     }
 
-    /// Tag → I/O map for [`rangular_parser::classify_bindings`].
+    /// Tag → I/O map for [`crate::parser::classify_bindings`].
     #[must_use]
     pub fn tag_io_map(&self) -> HashMap<String, TagIo> {
         self.tags

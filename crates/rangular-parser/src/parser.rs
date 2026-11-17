@@ -814,12 +814,11 @@ impl<'src> Parser<'src> {
         // attribute binding that evaluates the expressions at runtime.
         // e.g. `href="/user/{{ id }}"` → `Attr::Attribute` with
         // `Expr::Binary(Add, Lit("/user/"), Ident("id"))`.
-        if let Some(raw) = &value {
-            if raw.contains("{{") {
-                if let Some(expr) = self.parse_interpolated_attr_value(raw, span) {
-                    return Some(Attr::Attribute { name, expr, span });
-                }
-            }
+        if let Some(raw) = &value
+            && raw.contains("{{")
+            && let Some(expr) = self.parse_interpolated_attr_value(raw, span)
+        {
+            return Some(Attr::Attribute { name, expr, span });
         }
         Some(Attr::Static { name, value, span })
     }
