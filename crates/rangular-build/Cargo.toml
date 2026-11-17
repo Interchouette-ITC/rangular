@@ -10,6 +10,8 @@ license-file.workspace = true
 authors.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+# The consumer-fixture test needs the repository; it runs in workspace CI.
+exclude = ["tests/"]
 
 [dependencies]
 rangular-aot = { workspace = true }
