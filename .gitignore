@@ -4,7 +4,6 @@ coverage/
 fuzz/target/
 fuzz/corpus/
 fuzz/artifacts/
-/coverage/
 /demo-leptos/dist/
 /demo-leptos/target/
 /demo-tauri/src/target/
