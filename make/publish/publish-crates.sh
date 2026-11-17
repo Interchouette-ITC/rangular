@@ -16,6 +16,8 @@ CARGO=${CARGO:-cargo}
 INDEX_ATTEMPTS=${INDEX_ATTEMPTS:-60}
 INDEX_INTERVAL=${INDEX_INTERVAL:-10}
 USER_AGENT="rangular-release (https://github.com/Interchouette-ITC/rangular)"
+# Bounds every request so a stalled connection cannot hang the release.
+CURL_TIMEOUTS=(--connect-timeout 10 --max-time 30)
 
 # Dependencies before dependents (normal and versioned dev-dependencies).
 CRATES=(
@@ -57,15 +59,18 @@ for name, package in sorted(packages.items()):
 
 # Prints 200 if the version exists on crates.io, 404 if not.
 registry_status() {
-  curl -sS -o /dev/null -w '%{http_code}' -A "$USER_AGENT" \
+  curl "${CURL_TIMEOUTS[@]}" -sS -o /dev/null -w '%{http_code}' -A "$USER_AGENT" \
     "https://crates.io/api/v1/crates/$1/$2"
 }
 
 wait_for_index() {
-  local name=$1 version=$2 attempt
+  local name=$1 version=$2 attempt body
   local url="https://index.crates.io/${name:0:2}/${name:2:2}/${name}"
   for ((attempt = 1; attempt <= INDEX_ATTEMPTS; attempt++)); do
-    if curl -fsS -A "$USER_AGENT" "$url" 2>/dev/null | grep -q "\"vers\":\"${version}\""; then
+    # Read the whole entry first: piping into `grep -q` under pipefail can fail
+    # with SIGPIPE even when the version is present.
+    body=$(curl "${CURL_TIMEOUTS[@]}" -fsS -A "$USER_AGENT" "$url" 2>/dev/null) || body=''
+    if [[ $body == *"\"vers\":\"${version}\""* ]]; then
       echo "$name $version is available in the index"
       return 0
     fi

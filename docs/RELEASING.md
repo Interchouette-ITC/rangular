@@ -40,7 +40,7 @@ and fails if it drifts from the workspace members.
 1. `make version-set VERSION=x.y.z` (workspace, demos, `tauri.conf.json`,
    lockfiles including the consumer fixture, and the `rangular = "x.y.z"` /
    `rangular-build = "x.y.z"` installation snippets listed in `VERSIONED_DOCS`
-   in the `Makefile`).
+   in [`make/version/version.mk`](../make/version/version.mk)).
 2. Move `[Unreleased]` entries into a new section of
    [`CHANGELOG.md`](CHANGELOG.md).
 3. Validate locally:
