@@ -92,6 +92,8 @@ jobs:
         if: needs.changes.outputs.code == 'true'
         with:
           key: msrv
+      # Only checks that compile the project; `make test` already runs the
+      # no-panic tests. audit/deny are dependency policy and stay on stable.
       - name: Lint, test and doc on Rust 1.100
         if: needs.changes.outputs.code == 'true'
         run: make lint test doc
