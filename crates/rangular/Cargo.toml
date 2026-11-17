@@ -6,7 +6,6 @@ keywords = ["angular", "leptos", "templates", "wasm", "ssr"]
 categories = ["web-programming", "template-engine", "wasm"]
 version.workspace = true
 edition.workspace = true
-license.workspace = true
 license-file.workspace = true
 authors.workspace = true
 repository.workspace = true

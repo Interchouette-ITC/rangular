@@ -139,8 +139,12 @@ jobs:
           cargo install --locked wasm-bindgen-cli --version "$version"
       - name: Native SSR render and headless Chrome hydration
         if: needs.changes.outputs.code == 'true'
-        # ubuntu-latest ships Chrome with a matching chromedriver.
-        run: make test-hydration CHROMEDRIVER="$CHROMEWEBDRIVER/chromedriver"
+        # ubuntu-latest ships Chrome with a matching chromedriver; pin both so
+        # chromedriver never has to discover (or download) a browser itself.
+        run: >-
+          make test-hydration
+          CHROMEDRIVER="$CHROMEWEBDRIVER/chromedriver"
+          CHROME_BIN="$(command -v google-chrome)"
 
   doc:
     name: rustdoc

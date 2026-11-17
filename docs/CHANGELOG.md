@@ -26,7 +26,7 @@ First release prepared for publication on [crates.io](https://crates.io/).
 - `demo-leptos` depends on the `rangular` facade only; `demo-tauri` and
   `tauri.conf.json` are aligned to 1.0.6.
 - All nine packages are publishable: `publish = false` removed, and each has a
-  README, the Apache-2.0 `LICENSE` text (`license-file.workspace = true`),
+  README and the `LICENSE` file (`license-file.workspace = true`),
   keywords, and categories. `rangular-host`'s dev-dependency on
   `rangular-expr` is path-only so the published dependency graph has no cycle.
 - `make version-set` / `version-bump-*` also refresh the consumer fixture

@@ -5,7 +5,8 @@
 # Steps:
 #   1. Check wasm-bindgen-test-runner (version = fixture lockfile) and chromedriver.
 #   2. Render the counter with the `render_counter` example → $HYDRATION_OUT/counter.html.
-#   3. Write webdriver.json (headless; "binary" only when CHROME_BIN is set).
+#   3. With CHROME_BIN: check its major matches chromedriver and smoke-launch it
+#      headless; then write webdriver.json ("binary" only when CHROME_BIN is set).
 #   4. Run the wasm32 `hydration` test against that HTML.
 #   5. Clippy the wasm32 hydrate build.
 #
@@ -39,9 +40,29 @@ CARGO_TARGET_DIR="$HYDRATION_OUT" \
 { set +x; } 2>/dev/null
 test -s "$HYDRATION_OUT/counter.html" || { echo "SSR render produced no HTML"; exit 1; }
 
+driver_major=$("$CHROMEDRIVER" --version | awk '{split($2, v, "."); print v[1]}')
+echo "chromedriver: $("$CHROMEDRIVER" --version)"
 binary=''
-if [ -n "$CHROME_BIN" ]; then binary=",\"binary\":\"$CHROME_BIN\""; fi
-printf '{"goog:chromeOptions":{"args":["--headless=new","--no-sandbox","--disable-gpu","--disable-dev-shm-usage"]%s}}\n' "$binary" \
+if [ -n "$CHROME_BIN" ]; then
+  command -v "$CHROME_BIN" >/dev/null || { echo "CHROME_BIN=$CHROME_BIN not found"; exit 1; }
+  CHROME_BIN=$(command -v "$CHROME_BIN")
+  chrome_version=$("$CHROME_BIN" --version)
+  echo "chrome: $chrome_version ($CHROME_BIN)"
+  chrome_major=$(grep -oE '[0-9]+\.[0-9.]+' <<<"$chrome_version" | head -1 | cut -d. -f1)
+  if [ "$chrome_major" != "$driver_major" ]; then
+    echo "chrome $chrome_major does not match chromedriver $driver_major"
+    exit 1
+  fi
+  # Fail fast with Chrome's own output instead of a 60s webdriver session timeout.
+  if ! timeout 60 "$CHROME_BIN" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage \
+      --no-first-run --no-default-browser-check --user-data-dir="$(mktemp -d)" \
+      --dump-dom about:blank >/dev/null; then
+    echo "headless Chrome failed to start: $CHROME_BIN"
+    exit 1
+  fi
+  binary=",\"binary\":\"$CHROME_BIN\""
+fi
+printf '{"goog:chromeOptions":{"args":["--headless=new","--no-sandbox","--disable-gpu","--disable-dev-shm-usage","--no-first-run","--no-default-browser-check"]%s}}\n' "$binary" \
   > "$HYDRATION_OUT/webdriver.json"
 
 set -x

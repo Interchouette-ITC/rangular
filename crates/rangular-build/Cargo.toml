@@ -6,7 +6,6 @@ keywords = ["angular", "leptos", "build-script", "templates", "scss"]
 categories = ["development-tools::build-utils", "template-engine"]
 version.workspace = true
 edition.workspace = true
-license.workspace = true
 license-file.workspace = true
 authors.workspace = true
 repository.workspace = true
