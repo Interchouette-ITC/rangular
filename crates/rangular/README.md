@@ -29,12 +29,12 @@ Generated views reference Rangular only through `rangular::…` paths.
 ```toml
 [dependencies]
 leptos = { version = "0.8", features = ["csr"] } # "ssr" on the server, "hydrate" in the browser
-rangular = "1.0.6"
+rangular = "1.1.0"
 # Needed because generated event handlers name `web_sys::MouseEvent` and friends.
 web-sys = { version = "0.3", features = ["Event", "MouseEvent"] }
 
 [build-dependencies]
-rangular-build = "1.0.6"
+rangular-build = "1.1.0"
 ```
 
 `build.rs`:

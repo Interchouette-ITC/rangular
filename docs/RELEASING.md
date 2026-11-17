@@ -56,14 +56,21 @@ and fails if it drifts from the workspace members.
    registry, so dependents are verified before their dependencies are on
    crates.io.
 4. Merge, wait for CI and the dev Docker image, then create the GitHub
-   Release with tag `vx.y.z` (published, not draft or pre-release).
+   Release with tag `vx.y.z` (published, not draft or pre-release). The
+   release workflow reruns CI on the tag anyway, so a red check blocks
+   publication even if it was missed here.
 
 ## What the release workflow does
 
 [`release.yml`](../.github/workflows/release.yml) validates the tag against
-the workspace and demo versions, then the `crates` job:
+the workspace and demo versions, then runs the whole
+[`ci.yml`](../.github/workflows/ci.yml) workflow on the tagged commit (its `ci`
+job: lint, tests, MSRV 1.100, no-panic, demos, hydration, rustdoc,
+supply-chain, coverage). The `crates`, `docker` and `desktop` jobs need both
+`validate` and `ci`, so nothing is published unless every check passes. Then
+the `crates` job, on Rust 1.100:
 
-1. runs `make test` and `make publish-check` on the tag;
+1. runs `make publish-check` on the tag;
 2. runs `make/publish/publish-crates.sh publish` with the `CARGO_REGISTRY_TOKEN`
    repository secret, exposed only to that step. The script:
    - fails immediately if the token is empty;
@@ -80,12 +87,13 @@ The job is serialized (`concurrency: crates-io-publish`) and skipped for
 draft and pre-release releases. The workflow runs on `release: created`, so a
 release saved as a draft and published later does not trigger it; publish
 from a clean checkout of the tag with `make/publish/publish-crates.sh publish`
-instead. A crates.io version cannot be replaced; fix
+instead. That manual path bypasses the CI gate: confirm CI is green on the
+tagged commit first. A crates.io version cannot be replaced; fix
 forward with a new patch release, or `cargo yank` a broken version.
 
-## First publication (1.0.6)
+## First publication (1.1.0)
 
-The nine package names do not exist on crates.io before 1.0.6, so the first
+The nine package names do not exist on crates.io before 1.1.0, so the first
 run creates them:
 
 - The `CARGO_REGISTRY_TOKEN` token needs the **publish-new** and

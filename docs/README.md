@@ -92,18 +92,18 @@ packages are implementation crates pulled in transitively; do not depend on
 them directly.
 
 > **Availability:** releases are on [crates.io](https://crates.io/) from
-> 1.0.6. For unreleased changes, use the git or path form shown in
+> 1.1.0. For unreleased changes, use the git or path form shown in
 > [Use it in your project](#use-it-in-your-project).
 
 ```toml
 [dependencies]
 leptos = { version = "0.8", features = ["csr"] } # or "ssr" / "hydrate"
-rangular = "1.0.6"
+rangular = "1.1.0"
 web-sys = { version = "0.3", features = ["Event", "MouseEvent", "HtmlInputElement"] }
 wasm-bindgen = "0.2"
 
 [build-dependencies]
-rangular-build = "1.0.6"
+rangular-build = "1.1.0"
 ```
 
 `web-sys` and `wasm-bindgen` are needed only when templates bind DOM events or
@@ -442,16 +442,16 @@ Language details: [`SPEC.md`](SPEC.md). Fixture layout:
 
 ## Use it in your project
 
-### crates.io (from 1.0.6)
+### crates.io (from 1.1.0)
 
 Use the [Quick start](#quick-start) dependencies:
 
 ```toml
 [dependencies]
-rangular = "1.0.6"
+rangular = "1.1.0"
 
 [build-dependencies]
-rangular-build = "1.0.6"
+rangular-build = "1.1.0"
 ```
 
 ### Cargo (git), for unreleased changes
@@ -599,7 +599,7 @@ Shipped on `dev` (fixture-backed):
 - [x] Host-side validation helpers (`required`, length, `pattern`, `first_error`; fixtures; not NgModel)
 - [x] Facade-only consumption: generated views need only `rangular` + `rangular-build`
 - [x] Native SSR and SSR-to-browser hydration covered by tests
-- [x] crates.io publication prepared for all nine packages (1.0.6, see [`RELEASING.md`](RELEASING.md))
+- [x] crates.io publication prepared for all nine packages (1.1.0, see [`RELEASING.md`](RELEASING.md))
 
 Still future:
 

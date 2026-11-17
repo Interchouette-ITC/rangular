@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [dev, main, master]
+  # Release gate: release.yml runs this whole workflow before publishing.
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -23,10 +25,12 @@ jobs:
     name: detect changes
     runs-on: ubuntu-latest
     outputs:
-      code: ${{ steps.filter.outputs.code }}
+      # Outside pull_request/push (e.g. called by release.yml) every check runs.
+      code: ${{ steps.filter.outputs.code || 'true' }}
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
         id: filter
         with:
           filters: |

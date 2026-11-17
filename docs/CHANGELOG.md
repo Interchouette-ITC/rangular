@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.6] - 2026-11-17
+## [1.1.0] - 2026-11-17
 
 First release prepared for publication on [crates.io](https://crates.io/).
 
@@ -26,7 +26,7 @@ First release prepared for publication on [crates.io](https://crates.io/).
   (`msrv`) runs `make lint test doc` on Rust 1.100, and the release `crates`
   job publishes with 1.100.
 - `demo-leptos` depends on the `rangular` facade only; `demo-tauri` and
-  `tauri.conf.json` are aligned to 1.0.6.
+  `tauri.conf.json` are aligned to 1.1.0.
 - All nine packages are publishable: `publish = false` removed, and each has a
   README and the `LICENSE` file (`license-file.workspace = true`),
   keywords, and categories. `rangular-host`'s dev-dependency on
@@ -60,6 +60,10 @@ First release prepared for publication on [crates.io](https://crates.io/).
   index, so reruns resume safely), `make publish-check`,
   and a `crates` job in the release workflow using the `CARGO_REGISTRY_TOKEN`
   secret. See [`RELEASING.md`](RELEASING.md).
+- Release gate: `release.yml` reruns the full CI workflow (now also
+  `workflow_call`) on the tagged commit, and the crates.io, Docker and Tauri
+  jobs only run once it passes. When called this way, CI runs every check
+  instead of skipping Markdown-only changes.
 - `docs/RELEASING.md` and a `rangular-build` README.
 
 ### Fixed

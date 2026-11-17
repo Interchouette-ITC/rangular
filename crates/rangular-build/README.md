@@ -6,10 +6,10 @@ to the `rangular` facade:
 ```toml
 [dependencies]
 leptos = "0.8"
-rangular = "1.0.6"
+rangular = "1.1.0"
 
 [build-dependencies]
-rangular-build = "1.0.6"
+rangular-build = "1.1.0"
 ```
 
 ```rust,no_run

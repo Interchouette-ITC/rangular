@@ -1,7 +1,8 @@
 name: Release
 
-# After CI is green on the version commit: create GitHub Release tag vX.Y.Z.
-# This workflow then validates, pushes Docker :version+:latest, attaches
+# Create GitHub Release tag vX.Y.Z on the version commit. This workflow
+# validates the tag, reruns the full CI workflow (ci.yml) on the tagged commit,
+# and only once both pass pushes Docker :version+:latest, attaches
 # Linux/Windows Tauri installers (cargo tauri build + softprops upload), and
 # publishes the nine workspace crates to crates.io (non-draft, non-prerelease
 # releases only; see docs/RELEASING.md).
@@ -57,9 +58,19 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "OK: tag $TAG matches $VERSION"
 
+  # Gate: lint, tests, MSRV, hydration, demos, docs and supply-chain must all
+  # pass on the tagged commit before anything is published.
+  ci:
+    name: CI
+    needs: validate
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+    permissions:
+      contents: write
+
   crates:
     name: Publish crates.io
-    needs: validate
+    needs: [validate, ci]
     if: ${{ !github.event.release.draft && !github.event.release.prerelease }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -83,9 +94,7 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Test
-        run: make test
-
+      # Tests already ran on 1.100 in the CI gate (msrv job).
       - name: Package and verify all crates
         run: make publish-check
 
@@ -96,7 +105,7 @@ jobs:
 
   docker:
     name: Docker :version + :latest
-    needs: validate
+    needs: [validate, ci]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -162,7 +171,7 @@ jobs:
 
   desktop:
     name: Tauri ${{ matrix.platform }}
-    needs: validate
+    needs: [validate, ci]
     permissions:
       contents: write
     strategy:
