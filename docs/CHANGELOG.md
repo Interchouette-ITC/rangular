@@ -31,6 +31,8 @@ First release prepared for publication on [crates.io](https://crates.io/).
   README and the `LICENSE` file (`license-file.workspace = true`),
   keywords, and categories. `rangular-host`'s dev-dependency on
   `rangular-expr` is path-only so the published dependency graph has no cycle.
+  `rangular-build` excludes `tests/` from its package: the consumer-fixture
+  test needs the repository and runs in workspace CI instead.
 - `make version-set` / `version-bump-*` also refresh the consumer fixture
   lockfile and the `rangular` / `rangular-build` installation snippets in the
   READMEs.
