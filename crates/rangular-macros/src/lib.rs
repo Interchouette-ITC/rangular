@@ -1,8 +1,9 @@
 //! Proc macros for rangular component templates.
 //!
 //! Expands to `include!` of AOT output under `OUT_DIR/rangular/`. The consuming
-//! crate's `build.rs` must call `rangular_aot::compile_named` and write
-//! `{fn_name}.rs` there before compiling the crate that invokes this macro.
+//! crate's `build.rs` must write `{fn_name}.rs` there before compiling the
+//! crate that invokes this macro, normally with `rangular-build` or, in custom
+//! build scripts, with `rangular::aot::compile_named`.
 
 #![forbid(unsafe_code)]
 

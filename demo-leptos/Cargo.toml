@@ -1,7 +1,7 @@
 [package]
 name = "rangular-demo"
 description = "Browser demo for rangular (Leptos CSR + colocated panels)"
-version = "1.0.5"
+version = "1.1.0"
 edition = "2024"
 license = "Apache-2.0"
 publish = false
@@ -11,9 +11,7 @@ console_error_panic_hook = "0.1"
 gloo-timers = { version = "0.4", features = ["futures"] }
 kode-leptos = "0.5.5"
 leptos = { version = "0.8", features = ["csr"] }
-rangular-aot = { path = "../crates/rangular-aot" }
-rangular-expr = { path = "../crates/rangular-expr" }
-rangular-host = { path = "../crates/rangular-host" }
+rangular = { path = "../crates/rangular" }
 wasm-bindgen = "0.2"
 web-sys = { version = "0.3", features = [
     "Window",
@@ -30,5 +28,4 @@ web-sys = { version = "0.3", features = [
 ] }
 
 [build-dependencies]
-rangular-aot = { path = "../crates/rangular-aot" }
-rangular-css = { path = "../crates/rangular-css" }
+rangular = { path = "../crates/rangular" }

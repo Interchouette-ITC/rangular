@@ -7,6 +7,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-17
+
+First release prepared for publication on [crates.io](https://crates.io/).
+
+### Changed
+
+- **Breaking for generated code:** AOT output now references Rangular only
+  through the `rangular` facade (`rangular::host`, `rangular::aot`,
+  `rangular::expr`) instead of `rangular_host`, `rangular_aot`, and
+  `rangular_expr`. Consumers depend on `rangular` (plus `rangular-build` as a
+  build dependency) rather than the implementation crates, and should import
+  `rangular::aot::HostCell` / `rangular::host::…`. Templates that bind DOM events
+  or two-way form values still need direct `web-sys` (and `wasm-bindgen`)
+  dependencies.
+- Minimum supported Rust version is now **1.100** for the workspace and both
+  demos; the Docker builder image moves to `rust:1.100.0-bookworm`. A CI job
+  (`msrv`) runs `make lint test doc` on Rust 1.100, and the release `crates`
+  job publishes with 1.100.
+- `demo-leptos` depends on the `rangular` facade only; `demo-tauri` and
+  `tauri.conf.json` are aligned to 1.1.0.
+- All nine packages are publishable: `publish = false` removed, and each has a
+  README and the `LICENSE` file (`license-file.workspace = true`),
+  keywords, and categories. `rangular-host`'s dev-dependency on
+  `rangular-expr` is path-only so the published dependency graph has no cycle.
+- `make version-set` / `version-bump-*` also refresh the consumer fixture
+  lockfile and the `rangular` / `rangular-build` installation snippets in the
+  READMEs.
+- The `Makefile` is a thin index that includes `make/*.mk`; long recipes live
+  in companion scripts (`make/hydration/test-hydration.sh`,
+  `make/version/version-apply.sh`, `make/publish/publish-crates.sh`). Target
+  names and overrides are unchanged.
+
+### Added
+
+- Native SSR and SSR-to-browser hydration tests: a consumer crate renders a
+  counter component on the server, and `make test-hydration` (CI job
+  `hydration`) hydrates that exact HTML in headless Chrome, checking that
+  server DOM nodes are reused and that events and reactive updates work.
+  Before hydrating, the server HTML must match a client render of the same
+  view node by node (tags, attributes, text, and Leptos markers), since
+  Leptos itself accepts some mismatches silently, such as a renamed tag or a
+  missing marker. The test also fails on any browser `console.error` /
+  `console.warn`, uncaught error, or unhandled rejection during hydration.
+  Negative tests ensure a fresh client render, each structural corruption,
+  and each diagnostic channel are detected. The fixture's server-only
+  `render_counter` / `render_page` are gated behind `ssr`, because Leptos
+  panics when rendering HTML from a hydrate-only build.
+- A test asserting generated code contains no implementation-crate paths.
+- crates.io publication: `make/publish/publish-crates.sh` (dependency-ordered,
+  does not re-upload published versions but still waits for each in the
+  index, so reruns resume safely), `make publish-check`,
+  and a `crates` job in the release workflow using the `CARGO_REGISTRY_TOKEN`
+  secret. See [`RELEASING.md`](RELEASING.md).
+- Release gate: `release.yml` reruns the full CI workflow (now also
+  `workflow_call`) on the tagged commit, and the crates.io, Docker and Tauri
+  jobs only run once it passes. When called this way, CI runs every check
+  instead of skipping Markdown-only changes.
+- `docs/RELEASING.md` and a `rangular-build` README.
+
+### Fixed
+
+- The `document_consumer` test failed under `cargo test --locked` because the
+  consumer fixture's `Cargo.lock` was stale after the version bump; it is
+  refreshed and kept in sync by the version helper.
+- The version helper ran `cargo metadata --no-deps`, which left the workspace
+  and demo lockfiles at the previous version and broke later `--locked`
+  commands; it now refreshes every lockfile and fails if a refresh fails.
+
+### Documentation
+
+- The guide leads with `rangular` + `rangular-build`, documents the facade
+  modules, the package layout and publication model, and keeps manual AOT
+  compilation as an advanced `build.rs` option.
+- CSR, SSR, and hydration are stated consistently as supported targets across
+  `README.md`, `OVERVIEW.md`, and `SPEC.md`, with their test coverage.
+- The `rangular` crate README contains a complete working example.
+
 ## [1.0.5] - 2026-11-15
 
 ### Added

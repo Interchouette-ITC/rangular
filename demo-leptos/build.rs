@@ -51,7 +51,7 @@ fn compile_panel(components: &Path, out_dir: &Path, css: &mut String, dir: &str,
         panic!("read {}: {err}", html_path.display());
     });
     let source = format!("src/components/{dir}/{dir}.html");
-    let aot = rangular_aot::compile_named(&html, &source, fn_name);
+    let aot = rangular::aot::compile_named(&html, &source, fn_name);
     assert!(aot.ok(), "{dir}.html: {:?}", aot.issues);
     let rs_path = out_dir.join(format!("{fn_name}.rs"));
     std::fs::write(&rs_path, &aot.code).unwrap_or_else(|err| {
@@ -63,7 +63,7 @@ fn append_scss(css: &mut String, label: &str, scss_path: &Path) {
     let scss = std::fs::read_to_string(scss_path).unwrap_or_else(|err| {
         panic!("read {}: {err}", scss_path.display());
     });
-    let result = rangular_css::compile_scss(&scss);
+    let result = rangular::css::compile_scss(&scss);
     assert!(result.ok(), "{label}.scss: {:?}", result.issues);
     let _ = write!(css, "\n/* --- {label} --- */\n");
     css.push_str(&result.css);

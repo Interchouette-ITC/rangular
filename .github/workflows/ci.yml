@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [dev, main, master]
+  # Release gate: release.yml runs this whole workflow before publishing.
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -23,10 +25,12 @@ jobs:
     name: detect changes
     runs-on: ubuntu-latest
     outputs:
-      code: ${{ steps.filter.outputs.code }}
+      # Outside pull_request/push (e.g. called by release.yml) every check runs.
+      code: ${{ steps.filter.outputs.code || 'true' }}
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
         id: filter
         with:
           filters: |
@@ -72,6 +76,32 @@ jobs:
         if: needs.changes.outputs.code == 'true'
         run: make test
 
+  msrv:
+    name: MSRV 1.100 · fmt · clippy · test · doc
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Markdown-only
+        if: needs.changes.outputs.code != 'true'
+        run: echo "markdown-only; skipping MSRV"
+      # Must match `rust-version` in Cargo.toml.
+      - uses: dtolnay/rust-toolchain@master
+        if: needs.changes.outputs.code == 'true'
+        with:
+          toolchain: "1.100"
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        if: needs.changes.outputs.code == 'true'
+        with:
+          key: msrv
+      # Only checks that compile the project; `make test` already runs the
+      # no-panic tests. audit/deny are dependency policy and stay on stable.
+      - name: Lint, test and doc on Rust 1.100
+        if: needs.changes.outputs.code == 'true'
+        run: make lint test doc
+
   no-panic:
     name: garbage fixtures never panic
     needs: changes
@@ -113,6 +143,38 @@ jobs:
       - name: Demo check + build
         if: needs.changes.outputs.code == 'true'
         run: make demo-check && make demo-build
+
+  hydration:
+    name: SSR to browser hydration
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - name: Markdown-only
+        if: needs.changes.outputs.code != 'true'
+        run: echo "markdown-only; skipping hydration"
+      - uses: dtolnay/rust-toolchain@stable
+        if: needs.changes.outputs.code == 'true'
+        with:
+          targets: wasm32-unknown-unknown
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        if: needs.changes.outputs.code == 'true'
+      - name: Install wasm-bindgen-test-runner matching the fixture lockfile
+        if: needs.changes.outputs.code == 'true'
+        run: |
+          version=$(awk '/^name = "wasm-bindgen"$/{getline; gsub(/"/,"",$3); print $3; exit}' \
+            crates/rangular-build/tests/fixtures/document-consumer/Cargo.lock)
+          cargo install --locked wasm-bindgen-cli --version "$version"
+      - name: Native SSR render and headless Chrome hydration
+        if: needs.changes.outputs.code == 'true'
+        # ubuntu-latest ships Chrome with a matching chromedriver; pin both so
+        # chromedriver never has to discover (or download) a browser itself.
+        run: >-
+          make test-hydration
+          CHROMEDRIVER="${CHROMEWEBDRIVER:+$CHROMEWEBDRIVER/}chromedriver"
+          CHROME_BIN="$(command -v google-chrome)"
 
   doc:
     name: rustdoc

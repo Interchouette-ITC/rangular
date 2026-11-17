@@ -69,10 +69,10 @@ impl<H: Host> HostCell<H> {
 
     #[must_use]
     pub fn eval_value(&self, expr: &Expr) -> Value {
-        if let Expr::Ident(name) = expr {
-            if name == "$event" {
-                return self.event.borrow().clone();
-            }
+        if let Expr::Ident(name) = expr
+            && name == "$event"
+        {
+            return self.event.borrow().clone();
         }
         eval_with_pipes(expr, &mut *self.host.borrow_mut(), &self.pipes).unwrap_or(Value::Unit)
     }
@@ -91,28 +91,27 @@ impl<H: Host> HostCell<H> {
                 .unwrap_or(Value::Unit);
         }
         if let Expr::Ident(name) = expr {
-            if let Some(item_name) = loop_scope.item_name {
-                if name == item_name {
-                    if let Some(val) = loop_scope.item_val {
-                        return Value::Str(val.to_owned());
-                    }
-                }
+            if let Some(item_name) = loop_scope.item_name
+                && name == item_name
+                && let Some(val) = loop_scope.item_val
+            {
+                return Value::Str(val.to_owned());
             }
-            if let (Some(index), Some(count)) = (loop_scope.index, loop_scope.count) {
-                if let Some(value) = for_implicit_value(name, index, count) {
-                    return value;
-                }
+            if let (Some(index), Some(count)) = (loop_scope.index, loop_scope.count)
+                && let Some(value) = for_implicit_value(name, index, count)
+            {
+                return value;
             }
         }
-        if let Expr::Call { callee, args } = expr {
-            if let Expr::Ident(callee_name) = callee.as_ref() {
-                let values: Vec<Value> = args
-                    .iter()
-                    .map(|arg| self.eval_scoped(arg, loop_scope))
-                    .collect();
-                if let Ok(v) = self.host.borrow_mut().call(callee_name, &values) {
-                    return v;
-                }
+        if let Expr::Call { callee, args } = expr
+            && let Expr::Ident(callee_name) = callee.as_ref()
+        {
+            let values: Vec<Value> = args
+                .iter()
+                .map(|arg| self.eval_scoped(arg, loop_scope))
+                .collect();
+            if let Ok(v) = self.host.borrow_mut().call(callee_name, &values) {
+                return v;
             }
         }
         self.eval_value(expr)

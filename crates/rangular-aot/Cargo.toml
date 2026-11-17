@@ -1,15 +1,15 @@
 [package]
 name = "rangular-aot"
 description = "Compile-time lowering of rangular templates to Leptos"
-readme = "../../docs/README.md"
+readme = "README.md"
+keywords = ["angular", "leptos", "templates", "codegen", "compiler"]
+categories = ["template-engine", "web-programming"]
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 authors.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-publish = false
-
 
 [dependencies]
 proc-macro2 = "1"

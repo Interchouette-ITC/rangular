@@ -6,7 +6,7 @@
 #   docker build -f docker/Dockerfile -t interchouette/rangular-demo .
 #   make docker-run
 
-ARG RUST_IMAGE=rust:1.99.1-bookworm
+ARG RUST_IMAGE=rust:1.100.0-bookworm
 ARG NGINX_IMAGE=nginxinc/nginx-unprivileged:1.31.7-alpine3.24
 
 FROM ${RUST_IMAGE} AS builder

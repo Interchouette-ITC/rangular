@@ -1,15 +1,15 @@
 [package]
 name = "rangular-expr"
 description = "Expression AST and evaluation for rangular templates"
-readme = "../../docs/README.md"
+readme = "README.md"
+keywords = ["angular", "templates", "expressions", "leptos", "evaluator"]
+categories = ["template-engine", "web-programming"]
 version.workspace = true
 edition.workspace = true
-license.workspace = true
+license-file.workspace = true
 authors.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-publish = false
-
 
 [dependencies]
 rangular-host = { workspace = true }

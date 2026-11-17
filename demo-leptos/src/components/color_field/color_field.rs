@@ -1,6 +1,6 @@
 use leptos::prelude::*;
-use rangular_aot::HostCell;
-use rangular_host::{EventPayload, Host, HostError, Value};
+use rangular::aot::HostCell;
+use rangular::host::{EventPayload, Host, HostError, Value};
 use wasm_bindgen::JsCast;
 
 include!(concat!(env!("OUT_DIR"), "/rangular/color_field_view.rs"));

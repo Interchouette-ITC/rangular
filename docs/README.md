@@ -14,7 +14,8 @@
 </p>
 
 Write markup in familiar `.html` / `.scss`, keep state and handlers in Rust, and
-render with [Leptos](https://leptos.dev/) in the browser (CSR / Trunk / wasm).
+render with [Leptos](https://leptos.dev/): in the browser (CSR / Trunk / wasm),
+on the server (SSR), or server-rendered and hydrated in the browser.
 
 **Live:** [https://rangular.interchouette.net](https://rangular.interchouette.net)
 
@@ -69,9 +70,11 @@ flowchart LR
 | -------------------- | ------------------------------------------------------------------------------- |
 | Language             | v0.1 contract in [`SPEC.md`](SPEC.md)                                 |
 | Parser / expr / host | Core subset                                                                     |
-| AOT                  | `rangular-aot` + `rangular-macros`                                              |
-| Runtime              | `rangular-runtime` (parity / tooling)                                           |
-| SCSS                 | `rangular-css` (`compile_scss` or encapsulate; Bootstrap utilities stay global) |
+| Public entry point   | `rangular` facade (`rangular::{aot, css, expr, host, macros, parser, runtime}`) |
+| Build support        | `rangular-build` (separate build dependency for `build.rs`)                     |
+| AOT                  | `rangular::aot` + `rangular::macros`                                            |
+| Runtime              | `rangular::runtime` (parity / tooling)                                          |
+| SCSS                 | `rangular::css` (`compile_scss` or encapsulate; Bootstrap utilities stay global) |
 | Registry             | Component tags + typed `provide` / `inject`                                     |
 | Growth               | Fixture corpus in [`tests/fixtures/`](../tests/fixtures/) (tests; not the demo) |
 | Demo                 | [`demo-leptos/`](../demo-leptos/) dogfoods AOT with its own panels                           |
@@ -80,6 +83,61 @@ Layers: `tests/fixtures/` is the language growth corpus for crate tests; `demo-l
 
 Honest subset, not full Angular. New syntax lands through fixtures and semver.
 Unsupported input yields `RANG*` diagnostics; templates must never panic the process.
+
+## Quick start
+
+Applications use two Rangular packages: the **`rangular` facade** as a normal
+dependency and **`rangular-build`** as a build dependency. The other seven
+packages are implementation crates pulled in transitively; do not depend on
+them directly.
+
+> **Availability:** releases are on [crates.io](https://crates.io/) from
+> 1.1.0. For unreleased changes, use the git or path form shown in
+> [Use it in your project](#use-it-in-your-project).
+
+```toml
+[dependencies]
+leptos = { version = "0.8", features = ["csr"] } # or "ssr" / "hydrate"
+rangular = "1.1.0"
+web-sys = { version = "0.3", features = ["Event", "MouseEvent", "HtmlInputElement"] }
+wasm-bindgen = "0.2"
+
+[build-dependencies]
+rangular-build = "1.1.0"
+```
+
+`web-sys` and `wasm-bindgen` are needed only when templates bind DOM events or
+two-way form values: generated handlers name their event types directly.
+
+```rust
+// build.rs
+fn main() {
+    rangular_build::build(rangular_build::Config::new(
+        "src/components",       // src/components/<name>/<name>.html (+ .scss)
+        "style/components.css", // generated stylesheet
+    ));
+}
+```
+
+Every `src/components/<name>/<name>.html` becomes
+`OUT_DIR/rangular/<name>_view.rs` containing `pub fn <name>_view(...)`.
+Generated code refers to Rangular only through `rangular::...` paths, so the
+facade is all your crate needs at runtime. Import from the facade in your own
+code too:
+
+| Facade module       | Typical use                                                    |
+| ------------------- | -------------------------------------------------------------- |
+| `rangular::host`    | `Host`, `HostError`, `Value`, `EventPayload`, validators       |
+| `rangular::aot`     | `HostCell` for generated views; `compile_named` for custom builds |
+| `rangular::expr`    | Expression AST, evaluation, `PipeRegistry` for custom pipes    |
+| `rangular::css`     | `compile_scss` / `encapsulate` for custom style pipelines      |
+| `rangular::macros`  | `rangular_template!` (includes generated views)                |
+| `rangular::parser`  | Template parser and diagnostics, for tooling                   |
+| `rangular::runtime` | Runtime interpreter for tests and tooling                      |
+
+The facade also exports the component `Registry` and `VERSION`.
+`rangular-build` is **not** re-exported by the facade: Cargo build scripts can
+only use `[build-dependencies]`.
 
 ## One component = three files
 
@@ -135,7 +193,7 @@ Growth corpus (tests only): [`tests/fixtures/components/`](../tests/fixtures/com
 ```
 
 SCSS is compiled **in Rust** by [`grass`](https://crates.io/crates/grass)
-(a Sass implementation). No Node / `sass` CLI. `rangular_css::compile_scss`
+(a Sass implementation). No Node / `sass` CLI. `rangular::css::compile_scss`
 calls `grass::from_string` at build time and emits flat CSS for the browser.
 `encapsulate` does the same compile, then applies emulated `:host` / scoping
 when you need that path.
@@ -145,8 +203,8 @@ generated view from Leptos:
 
 ```rust
 use leptos::prelude::*;
-use rangular_aot::HostCell;
-use rangular_host::{Host, HostError, Value};
+use rangular::aot::HostCell;
+use rangular::host::{Host, HostError, Value};
 
 include!(concat!(env!("OUT_DIR"), "/rangular/item_list_view.rs"));
 
@@ -187,23 +245,39 @@ impl Host for ItemListHost {
 That is the whole idea: **`.html` + `.scss` + `.rs`**. Leptos only mounts the
 component; it does not embed the markup.
 
-### Wire AOT in `build.rs`
+### Wire the build
 
-Once per component, compile the template (and SCSS) at build time. Generated
-Rust lands under `OUT_DIR/rangular/` for the `include!` above.
+The recommended `build.rs` is the one-call [`rangular-build`](#quick-start)
+setup: it discovers every component directory, compiles templates and SCSS,
+writes `OUT_DIR/rangular/<name>_view.rs`, and emits Cargo rerun directives.
+
+#### Advanced: manual AOT compilation
+
+When you need your own discovery, naming, or stylesheet layout (the in-repo
+demo keeps an explicit panel order and wraps CSS in `@layer`), call the
+compiler through the facade. Add `rangular` to `[build-dependencies]` as well:
 
 ```rust
-let html = std::fs::read_to_string("src/components/item_list/item_list.html")?;
-let aot = rangular_aot::compile_named(
-    &html,
-    "src/components/item_list/item_list.html",
-    "item_list_view",
-);
-std::fs::write(out_dir.join("item_list_view.rs"), &aot.code)?;
+// build.rs (custom pipeline)
+use std::{env, fs, path::PathBuf};
 
-let scss = std::fs::read_to_string("src/components/item_list/item_list.scss")?;
-let css = rangular_css::compile_scss(&scss); // flat CSS for Leptos CSR
-// append css.css into your app stylesheet
+fn main() {
+    let out_dir = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR")).join("rangular");
+    fs::create_dir_all(&out_dir).expect("create OUT_DIR/rangular");
+    println!("cargo:rerun-if-changed=src/components");
+
+    let source = "src/components/item_list/item_list.html";
+    let html = fs::read_to_string(source).expect("read template");
+    let aot = rangular::aot::compile_named(&html, source, "item_list_view");
+    assert!(aot.ok(), "{source}: {:?}", aot.issues);
+    fs::write(out_dir.join("item_list_view.rs"), &aot.code).expect("write view");
+
+    let scss = fs::read_to_string("src/components/item_list/item_list.scss")
+        .expect("read styles");
+    let css = rangular::css::compile_scss(&scss);
+    assert!(css.ok(), "item_list.scss: {:?}", css.issues);
+    fs::write("style/components.css", &css.css).expect("write stylesheet");
+}
 ```
 
 ### Compile a document head template
@@ -213,7 +287,7 @@ Use the opt-in head compiler for document head templates; ordinary
 Leptos elements.
 
 ```rust
-let head = rangular_aot::compile_head_named(
+let head = rangular::aot::compile_head_named(
     &html,
     "src/document/head.html",
     "head_view",
@@ -232,12 +306,12 @@ For document integrations that manage head entries through lifecycle
 components, provide their component paths with `HeadComponentAdapter`:
 
 ```rust
-let adapter = rangular_aot::HeadComponentAdapter::new(
+let adapter = rangular::aot::HeadComponentAdapter::new(
     "my_app::ManagedTitle",
     "my_app::ManagedMeta",
     "my_app::ManagedLink",
 );
-let head = rangular_aot::compile_head_named_with_adapter(
+let head = rangular::aot::compile_head_named_with_adapter(
     &html,
     "src/document/head.html",
     "head_view",
@@ -337,13 +411,13 @@ The generated views are ordinary Rust functions. `select="head"` becomes a
 
 ```rust
 use leptos::prelude::*;
-use rangular_aot::HostCell;
+use rangular::aot::HostCell;
 
 include!(concat!(env!("OUT_DIR"), "/rangular/document_view.rs"));
 include!(concat!(env!("OUT_DIR"), "/rangular/head_view.rs"));
 include!(concat!(env!("OUT_DIR"), "/rangular/body_view.rs"));
 
-fn page<H: rangular_host::Host + Clone + Send + 'static>(host: H) -> impl IntoView {
+fn page<H: rangular::host::Host + Clone + Send + 'static>(host: H) -> impl IntoView {
     let (head_host, body_host) = (host.clone(), host.clone());
     document_view(
         HostCell::new(host),
@@ -368,26 +442,45 @@ Language details: [`SPEC.md`](SPEC.md). Fixture layout:
 
 ## Use it in your project
 
-Not on [crates.io](https://crates.io/) yet. Until then, depend on git `dev`.
-You need a [Leptos](https://leptos.dev/) CSR app (Trunk / wasm) and a `build.rs`
-that compiles each component (see above).
+### crates.io (from 1.1.0)
 
-### Cargo (git)
+Use the [Quick start](#quick-start) dependencies:
+
+```toml
+[dependencies]
+rangular = "1.1.0"
+
+[build-dependencies]
+rangular-build = "1.1.0"
+```
+
+### Cargo (git), for unreleased changes
 
 ```toml
 [dependencies]
 leptos = { version = "0.8", features = ["csr"] }
-rangular-aot = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
-rangular-host = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
+rangular = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
 
 [build-dependencies]
-rangular-aot = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
-rangular-build = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" } # optional Config-based build
-rangular-css = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
+rangular-build = { git = "https://github.com/Interchouette-ITC/rangular.git", branch = "dev" }
 ```
 
 Pin a commit (`rev`) or use a local path checkout: see
 [`CONTRIBUTING.md`](CONTRIBUTING.md#depend-from-a-local-clone-or-pin-a-commit).
+
+### Package layout and publication model
+
+All nine workspace packages are published to crates.io together, with one
+shared version. Applications depend on `rangular` and `rangular-build`; the
+remaining packages are implementation crates that those two pull in, and are
+published only because Cargo requires every registry dependency to exist on
+the registry. Their APIs are reachable through the facade modules.
+
+Upgrading from 1.0.5 or earlier: generated views now reference
+`rangular::host`, `rangular::aot`, and `rangular::expr` instead of
+`rangular_host`, `rangular_aot`, and `rangular_expr`. Replace direct
+`rangular-aot` / `rangular-host` / `rangular-expr` dependencies with
+`rangular`, and update imports to the facade paths.
 
 ## Goals
 
@@ -395,14 +488,23 @@ Pin a commit (`rev`) or use a local path checkout: see
 | ------------------ | ------------------------------------------------------- |
 | Markup out of Rust | External templates; no component `view!` in controllers |
 | Familiar authoring | Angular-shaped bindings, `@if` / `@for`, component CSS  |
-| Web-native         | [Leptos](https://leptos.dev/) CSR on wasm               |
+| Web-native         | [Leptos](https://leptos.dev/) CSR, SSR, and hydration   |
 | Safe parsing       | Diagnostics on bad input; no panic on template text     |
 
-## Browser first (and what that means)
+## Rendering targets
 
-**v0.1 targets the browser DOM.** That is the contract in
-[`SPEC.md`](SPEC.md): Leptos CSR / wasm. Native desktop widget toolkits
-(egui, iced, GTK, and similar) are **out of scope**.
+Generated views are ordinary Leptos components, so the target is chosen by the
+Leptos feature your crate enables. Native desktop widget toolkits (egui, iced,
+GTK, and similar) are **out of scope**; see [`SPEC.md`](SPEC.md).
+
+| Target                         | Leptos feature        | Tested in this repository                                                              |
+| ------------------------------ | --------------------- | -------------------------------------------------------------------------------------- |
+| Browser CSR (Trunk / wasm)     | `csr`                 | `demo-leptos` Trunk build and wasm Clippy (`make demo-check`, `make demo-build`)       |
+| Server rendering (native SSR)  | `ssr`                 | Consumer fixture renders exact document and component HTML (`make test`)              |
+| SSR + browser hydration        | `ssr` / `hydrate`     | Native SSR output hydrated in headless Chrome; node reuse, events, updates (`make test-hydration`) |
+
+Server and browser builds must use the same template and equivalent initial
+host state. Details: [`SPEC.md`](SPEC.md#server-rendering-and-hydration).
 
 ### Shipping a desktop app with rangular
 
@@ -458,7 +560,8 @@ Details: [`../demo-leptos/README.md`](../demo-leptos/README.md).
 ```bash
 make check   # cargo check --workspace
 make lint    # fmt + clippy
-make test    # workspace tests (includes parity)
+make test    # workspace tests (includes parity and the facade-only consumer)
+make test-hydration  # native SSR + headless Chrome hydration (needs chromedriver)
 make ci      # lint + test + no-panic garbage fixtures
 ```
 
@@ -467,17 +570,19 @@ How to add fixtures: [`../tests/fixtures/README.md`](../tests/fixtures/README.md
 
 ## Workspace
 
-| Crate              | Role                                         |
-| ------------------ | -------------------------------------------- |
-| `rangular-parser`  | HTML + Angular syntax → AST                  |
-| `rangular-expr`    | Expression AST and evaluation                |
-| `rangular-css`     | Component SCSS, `:host`, encapsulation       |
-| `rangular-host`    | get / set / call / events                    |
-| `rangular-aot`     | Compile-time lowering to Leptos              |
-| `rangular-build`   | `build.rs` templates + SCSS compilation      |
-| `rangular-macros`  | `rangular_template!` (includes build output) |
-| `rangular-runtime` | Interpret AST at runtime                     |
-| `rangular`         | Facade + component registry                  |
+| Package            | Role                                         | Depend on it?            |
+| ------------------ | -------------------------------------------- | ------------------------ |
+| `rangular`         | Facade + component registry                  | **Yes** (`[dependencies]`) |
+| `rangular-build`   | `build.rs` templates + SCSS compilation      | **Yes** (`[build-dependencies]`) |
+| `rangular-parser`  | HTML + Angular syntax → AST                  | No (`rangular::parser`)  |
+| `rangular-expr`    | Expression AST and evaluation                | No (`rangular::expr`)    |
+| `rangular-css`     | Component SCSS, `:host`, encapsulation       | No (`rangular::css`)     |
+| `rangular-host`    | get / set / call / events                    | No (`rangular::host`)    |
+| `rangular-aot`     | Compile-time lowering to Leptos              | No (`rangular::aot`)     |
+| `rangular-macros`  | `rangular_template!` (includes build output) | No (`rangular::macros`)  |
+| `rangular-runtime` | Interpret AST at runtime                     | No (`rangular::runtime`) |
+
+Release and crates.io publication steps: [`RELEASING.md`](RELEASING.md).
 
 ## Roadmap
 
@@ -492,17 +597,19 @@ Shipped on `dev` (fixture-backed):
 - [x] Two-way banana `[(prop)]` (Host `get` / `set`)
 - [x] Named `<rg-content select>` + `ng-template` / `[ngTemplateOutlet]`
 - [x] Host-side validation helpers (`required`, length, `pattern`, `first_error`; fixtures; not NgModel)
+- [x] Facade-only consumption: generated views need only `rangular` + `rangular-build`
+- [x] Native SSR and SSR-to-browser hydration covered by tests
+- [x] crates.io publication prepared for all nine packages (1.1.0, see [`RELEASING.md`](RELEASING.md))
 
 Still future:
 
-- crates.io when the v0.1 surface is stable
 - Full Angular forms / `NgModel` / reactive validators
 - Grow the subset only when fixtures land (habit stays)
 - **Other Rust UI targets?** Today AOT lowers only to Leptos. Separate
   backends for [Dioxus](https://dioxuslabs.com/), [egui](https://www.egui.rs/),
   and [iced](https://iced.rs/) are an open question: worth the maintenance cost
   for a shared parser / host, or stay web-DOM / Leptos only? Not committed; v0.1
-  stays Leptos CSR.
+  stays Leptos (CSR, SSR, hydration).
 
 ## Docs
 
@@ -511,6 +618,8 @@ Still future:
 - [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) - community standards
 - [`SECURITY.md`](SECURITY.md) - vulnerability reporting
 - [`OVERVIEW.md`](OVERVIEW.md) - docs index and related projects
+- [`RELEASING.md`](RELEASING.md) - versioning and crates.io publication
+- [`CHANGELOG.md`](CHANGELOG.md) - release notes
 
 This repo’s logo combines the **Angular** shield with **[Ferris](https://rustacean.net/)**
 (the Rust mascot). It is only a friendly project logo, not a brand: we reuse
@@ -523,7 +632,7 @@ excellent crates:
 
 | Crate                                                                                                                               | Role here                                       |
 | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| [Leptos](https://leptos.dev/)                                                                                                       | Browser CSR / wasm render target for AOT output |
+| [Leptos](https://leptos.dev/)                                                                                                       | CSR, SSR, and hydration target for AOT output   |
 | [grass](https://crates.io/crates/grass)                                                                                             | In-process Sass / SCSS compile (no Node)        |
 | [syn](https://crates.io/crates/syn) / [quote](https://crates.io/crates/quote) / [proc-macro2](https://crates.io/crates/proc-macro2) | Proc-macro and AOT code generation              |
 
