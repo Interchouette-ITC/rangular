@@ -73,7 +73,7 @@ jobs:
     needs: [validate, ci]
     if: ${{ !github.event.release.draft && !github.event.release.prerelease }}
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 180
     permissions:
       contents: read
     concurrency:

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Retry crates.io rate limits at the reported reset time during publication,
+  with bounded attempts and waiting time.
+
 ## [1.1.0] - 2026-11-17
 
 First release prepared for publication on [crates.io](https://crates.io/).

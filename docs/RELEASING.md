@@ -79,6 +79,12 @@ the `crates` job, on Rust 1.100:
      failure (including an index timeout) resumes where it stopped;
    - publishes in the order above with `cargo publish --locked` (full
      verification, never `--no-verify`);
+   - retries HTTP 429 rate limits, waiting until the reset time reported by
+     crates.io or 60 seconds if none is available. It rechecks whether the
+     version exists before each retry. Retries are bounded by
+     `PUBLISH_MAX_ATTEMPTS` (default 6 per crate, maximum 100) and
+     `PUBLISH_MAX_WAIT` (default 7200 seconds of rate-limit waiting per run,
+     maximum 86400); other errors fail immediately;
    - waits for each version to appear in the sparse index before the next
      package (bounded: `INDEX_ATTEMPTS` × `INDEX_INTERVAL` seconds, default
      10 minutes) and fails on timeout.
