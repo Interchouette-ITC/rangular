@@ -15,6 +15,8 @@ set -euo pipefail
 CARGO=${CARGO:-cargo}
 INDEX_ATTEMPTS=${INDEX_ATTEMPTS:-60}
 INDEX_INTERVAL=${INDEX_INTERVAL:-10}
+PUBLISH_MAX_ATTEMPTS=${PUBLISH_MAX_ATTEMPTS:-6}
+PUBLISH_MAX_WAIT=${PUBLISH_MAX_WAIT:-7200}
 USER_AGENT="rangular-release (https://github.com/Interchouette-ITC/rangular)"
 # Bounds every request so a stalled connection cannot hang the release.
 CURL_TIMEOUTS=(--connect-timeout 10 --max-time 30)
@@ -80,31 +82,84 @@ wait_for_index() {
   return 1
 }
 
+rate_limit_delay() {
+  python3 -c '
+from email.utils import parsedate_to_datetime
+import math, re, sys, time
+
+match = re.search(r"try again after\s+(.+?\s(?:GMT|UTC))\b", sys.stdin.read(), re.IGNORECASE)
+if match:
+    try:
+        reset = parsedate_to_datetime(match.group(1))
+        if reset.tzinfo is None:
+            raise ValueError("reset time has no timezone")
+        delay = math.ceil(reset.timestamp() - time.time()) + 2
+        if delay > 0:
+            print(delay)
+            sys.exit(0)
+    except (TypeError, ValueError, OverflowError, OSError) as error:
+        print(f"warning: invalid rate-limit reset time: {error}", file=sys.stderr)
+print("warning: no usable rate-limit reset time; waiting 60 seconds", file=sys.stderr)
+print(60)
+' <<<"$1"
+}
+
 publish() {
-  local version=$1 name status
+  local version=$1 name status attempt output failure delay waited=0
   if [ -z "${CARGO_REGISTRY_TOKEN:-}" ]; then
     echo "error: CARGO_REGISTRY_TOKEN is not set" >&2
-    exit 1
+    return 1
+  fi
+  if ! [[ $PUBLISH_MAX_ATTEMPTS =~ ^[1-9][0-9]{0,2}$ && $PUBLISH_MAX_WAIT =~ ^(0|[1-9][0-9]{0,5})$ ]] ||
+    (( PUBLISH_MAX_ATTEMPTS > 100 || PUBLISH_MAX_WAIT > 86400 )); then
+    echo "error: PUBLISH_MAX_ATTEMPTS must be 1..100 and PUBLISH_MAX_WAIT must be 0..86400 seconds" >&2
+    return 1
   fi
   for name in "${CRATES[@]}"; do
-    status=$(registry_status "$name" "$version")
-    case "$status" in
-      200)
-        # A previous run may have uploaded it but timed out before indexing;
-        # dependents must not be published until the index serves it.
-        echo "$name $version already on crates.io; skipping upload"
-        wait_for_index "$name" "$version"
-        continue
-        ;;
-      404) ;;
-      *)
-        echo "error: crates.io returned HTTP $status for $name $version" >&2
-        exit 1
-        ;;
-    esac
-    echo "Publishing $name $version"
-    $CARGO publish -p "$name" --locked
-    wait_for_index "$name" "$version"
+    for ((attempt = 1; attempt <= PUBLISH_MAX_ATTEMPTS; attempt++)); do
+      status=$(registry_status "$name" "$version")
+      case "$status" in
+        200)
+          # A previous run may have uploaded it but timed out before indexing.
+          echo "$name $version already on crates.io; skipping upload"
+          wait_for_index "$name" "$version"
+          break
+          ;;
+        404)
+          echo "Publishing $name $version"
+          if output=$($CARGO publish -p "$name" --locked 2>&1 | tee /dev/stderr); then
+            wait_for_index "$name" "$version"
+            break
+          else
+            failure=$?
+          fi
+          if ! [[ $output =~ status[[:space:]]+429([^0-9]|$) ]]; then
+            return "$failure"
+          fi
+          ;;
+        429)
+          echo "warning: crates.io lookup for $name $version returned HTTP 429" >&2
+          output=''
+          failure=1
+          ;;
+        *)
+          echo "error: crates.io returned HTTP $status for $name $version" >&2
+          return 1
+          ;;
+      esac
+      if (( attempt == PUBLISH_MAX_ATTEMPTS )); then
+        echo "error: rate limit persisted for $name after $attempt attempts" >&2
+        return "$failure"
+      fi
+      delay=$(rate_limit_delay "$output")
+      if (( delay > PUBLISH_MAX_WAIT - waited )); then
+        echo "error: rate-limit wait of ${delay}s exceeds remaining $((PUBLISH_MAX_WAIT - waited))s budget" >&2
+        return "$failure"
+      fi
+      echo "Rate limited; retrying $name in ${delay}s (attempt $((attempt + 1))/$PUBLISH_MAX_ATTEMPTS)"
+      sleep "$delay"
+      waited=$((waited + delay))
+    done
   done
 }
 
